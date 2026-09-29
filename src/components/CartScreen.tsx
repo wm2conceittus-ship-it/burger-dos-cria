@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CartItem, StoreSettings } from '../types';
+import { CartItem, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import {
@@ -22,11 +22,17 @@ import {
   PlusCircle,
   QrCode,
   Clock,
+  User,
+  UserCheck,
+  UserPlus,
+  Phone,
 } from 'lucide-react';
 
 interface CartScreenProps {
   items: CartItem[];
   deliveryAddress: string;
+  customerProfile?: CustomerProfile | null;
+  onOpenCustomerRegister?: () => void;
   storeSettings?: StoreSettings;
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
@@ -45,6 +51,8 @@ interface CartScreenProps {
 export const CartScreen: React.FC<CartScreenProps> = ({
   items,
   deliveryAddress,
+  customerProfile,
+  onOpenCustomerRegister,
   storeSettings,
   onUpdateStoreSettings,
   onUpdateQuantity,
@@ -305,6 +313,69 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             ))}
           </section>
         )}
+
+        {/* Identificação / Cadastro do Cliente */}
+        <section className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium text-[#b4b5b5] flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-[#ff5722]" /> Dados do Cliente para Entrega
+            </h3>
+            {customerProfile && onOpenCustomerRegister && (
+              <button
+                onClick={onOpenCustomerRegister}
+                className="text-[11px] text-[#ff8a65] hover:text-white underline font-semibold"
+              >
+                Editar Dados
+              </button>
+            )}
+          </div>
+
+          {customerProfile ? (
+            <div className="bg-[#20201f] rounded-lg p-3.5 flex items-center justify-between border border-[#353535]/50 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white">
+                    {customerProfile.name}
+                  </span>
+                  <span className="text-xs text-[#b4b5b5] flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-[#ff5722]" /> {customerProfile.phone}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded font-extrabold uppercase font-['Montserrat']">
+                Cadastrado
+              </span>
+            </div>
+          ) : (
+            <div
+              onClick={onOpenCustomerRegister}
+              className="bg-[#20201f] rounded-lg p-3.5 border border-[#ff5722]/50 hover:border-[#ff5722] cursor-pointer flex items-center justify-between shadow-md transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white group-hover:text-[#ff8a65] transition-colors">
+                    Cadastro Obrigatório Pendente
+                  </p>
+                  <p className="text-[11px] text-[#b4b5b5]">
+                    Clique aqui para preencher seu nome e WhatsApp.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-bold text-white bg-[#ff5722] px-3.5 py-1.5 rounded-md"
+              >
+                Cadastrar
+              </button>
+            </div>
+          )}
+        </section>
 
         {/* Endereço de Entrega */}
         <section className="space-y-1.5">
@@ -667,6 +738,10 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => {
+                if (!customerProfile && onOpenCustomerRegister) {
+                  onOpenCustomerRegister();
+                  return;
+                }
                 onCheckout(paymentMethod, discountAmount, changeFor);
               }}
               className="w-full py-4 rounded-md font-['Montserrat'] font-bold text-base flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xl btn-flame text-white"

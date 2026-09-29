@@ -10,7 +10,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Order, OrderStatus, StoreSettings } from '../types';
+import { Order, OrderStatus, StoreSettings, CustomerProfile } from '../types';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -189,6 +189,22 @@ export async function saveExpenseToFirestore(expense: any): Promise<void> {
   try {
     const cleanExpense = sanitizeForFirestore(expense);
     await setDoc(doc(db, 'expenses', expense.id), cleanExpense);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+// 4. Customer Profile Sync
+export async function saveCustomerProfileToFirestore(profile: CustomerProfile): Promise<void> {
+  const phoneClean = profile.phone.replace(/\D/g, '') || `cust_${Date.now()}`;
+  const path = `customers/${phoneClean}`;
+  try {
+    const cleanProfile = sanitizeForFirestore({
+      ...profile,
+      id: phoneClean,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, 'customers', phoneClean), cleanProfile);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

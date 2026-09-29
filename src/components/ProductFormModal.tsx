@@ -18,12 +18,21 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     initialProduct?.category || 'burgers'
   );
   const [price, setPrice] = useState(initialProduct ? initialProduct.price.toString() : '');
+  const [costPrice, setCostPrice] = useState(
+    initialProduct?.costPrice !== undefined ? initialProduct.costPrice.toString() : ''
+  );
   const [description, setDescription] = useState(initialProduct?.description || '');
   const [image, setImage] = useState(
     initialProduct?.image ||
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAYiCpXDFzLo2i6AtAat0pi5aY8cpQUYfRuf2lbZeJUENy1TTAC_Bp1C6uBfpTVpZo5EBVV-P4x_1BjUgFtYgHZL-qddmIobcNc7lXG8HraY8OO7zkpnTr9cPo8CXh4B_xkAUO1J2kEZ5F6bESJfzGCr5GCSfpvW7aFvJsjpZVH-y5_FDuAVwAZta5HmIc8WjdmPiru6h5LhILUqoQtXc6eN7wGbyqDCpwfNowYZEEKdEzN9rFso8No-Yz7_ictkmFt8jLOplvkWlWY'
   );
   const [tag, setTag] = useState(initialProduct?.tag || '');
+
+  const numPrice = parseFloat(price) || 0;
+  const numCost = parseFloat(costPrice) || 0;
+  const grossProfit = numPrice > 0 && numCost > 0 ? numPrice - numCost : 0;
+  const profitMargin = numPrice > 0 && numCost > 0 ? (grossProfit / numPrice) * 100 : 0;
+  const markup = numCost > 0 ? numPrice / numCost : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +43,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       name: name.trim(),
       category,
       price: parseFloat(price) || 0,
+      costPrice: costPrice.trim() ? parseFloat(costPrice) : undefined,
       description: description.trim() || 'Feito com ingredientes frescos e grelhado no fogo.',
       image,
       tag: tag.trim() || undefined,
@@ -59,7 +69,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
         <div className="p-4 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b]">
           <h3 className="font-['Montserrat'] font-bold text-base text-white">
             {initialProduct ? 'Editar Item do Cardápio' : 'Novo Item no Cardápio'}
@@ -82,37 +92,81 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[#b4b5b5] mb-1">Categoria *</label>
-              <select
-                value={category}
-                onChange={e => setCategory(e.target.value as any)}
-                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
-              >
-                <option value="burgers">Burgers</option>
-                <option value="pizzas">Pizzas</option>
-                <option value="combos">Combos</option>
-                <option value="salgados">Salgados & Porções</option>
-                <option value="sucos">Sucos</option>
-                <option value="bebidas">Bebidas</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-[#b4b5b5] mb-1">Categoria *</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value as any)}
+              className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+            >
+              <option value="burgers">Burgers</option>
+              <option value="pizzas">Pizzas</option>
+              <option value="combos">Combos</option>
+              <option value="salgados">Salgados & Porções</option>
+              <option value="sucos">Sucos</option>
+              <option value="bebidas">Bebidas</option>
+            </select>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#b4b5b5] mb-1">Preço (R$) *</label>
+              <label className="block text-[#b4b5b5] mb-1 font-medium">Preço de Venda (R$) *</label>
               <input
                 type="number"
                 step="0.50"
-                min="1"
+                min="0"
                 required
                 value={price}
                 onChange={e => setPrice(e.target.value)}
                 placeholder="Ex: 38.00"
-                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722] font-semibold"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-[#b4b5b5] font-medium">Preço de Custo (R$)</label>
+                <span className="text-[10px] text-emerald-400 font-semibold">Insumos/CMV</span>
+              </div>
+              <input
+                type="number"
+                step="0.10"
+                min="0"
+                value={costPrice}
+                onChange={e => setCostPrice(e.target.value)}
+                placeholder="Ex: 12.50"
+                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-semibold"
               />
             </div>
           </div>
+
+          {/* Indicador de Margem e Lucro em Tempo Real */}
+          {numPrice > 0 && numCost > 0 && (
+            <div className="p-3 bg-[#181818] border border-emerald-500/30 rounded-xl flex items-center justify-between text-[11px] shadow-inner">
+              <div>
+                <span className="text-[#8e8f8f] block text-[10px]">Lucro Bruto Un.:</span>
+                <span className="font-bold text-emerald-400 font-mono text-xs">
+                  R$ {grossProfit.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              <div>
+                <span className="text-[#8e8f8f] block text-[10px]">Margem de Lucro:</span>
+                <span
+                  className={`font-bold font-mono text-xs ${
+                    profitMargin >= 60 ? 'text-emerald-400' : profitMargin >= 40 ? 'text-amber-400' : 'text-red-400'
+                  }`}
+                >
+                  {profitMargin.toFixed(1)}%
+                </span>
+              </div>
+              <div>
+                <span className="text-[#8e8f8f] block text-[10px]">Markup:</span>
+                <span className="font-bold text-[#ff8a65] font-mono text-xs">
+                  {markup.toFixed(2)}x
+                </span>
+              </div>
+            </div>
+          )}
 
           {category === 'pizzas' && (
             <div className="p-2.5 bg-[#ff5722]/10 border border-[#ff5722]/30 rounded-xl text-[11px] text-[#ffb5a0] flex items-center gap-2">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Screen } from '../types';
-import { Utensils, ShoppingBag, Bike, User, ChefHat } from 'lucide-react';
+import { Utensils, ShoppingBag, Bike, User, ChefHat, Lock } from 'lucide-react';
 
 interface BottomNavProps {
   currentScreen: Screen;
@@ -64,15 +64,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
         <button
           onClick={() => onNavigate('kitchen')}
-          className={`flex flex-col items-center justify-center px-3 py-1 rounded-md transition-all duration-150 active:scale-90 ${
+          className={`flex flex-col items-center justify-center px-3 py-1 rounded-md transition-all duration-150 active:scale-90 relative ${
             currentScreen === 'kitchen'
               ? 'text-[#ff5722] bg-[#ff5722]/10 font-bold'
               : 'text-[#b4b5b5] hover:text-[#ffb5a0]'
           }`}
-          title="Painel da Cozinha"
+          title="Painel do Gestor (Restrito com PIN)"
         >
-          <ChefHat className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] font-['Montserrat']">Cozinha</span>
+          <div className="relative">
+            <ChefHat className="w-5 h-5 mb-0.5" />
+            <span className="absolute -top-1 -right-1.5 w-3 h-3 bg-[#1c1b1b] border border-[#ff5722] rounded-full flex items-center justify-center text-[#ff5722]">
+              <Lock className="w-1.5 h-1.5" />
+            </span>
+          </div>
+          <span className="text-[11px] font-['Montserrat']">Gestor</span>
         </button>
 
         <button

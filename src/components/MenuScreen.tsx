@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Product, StoreSettings } from '../types';
+import { Product, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
   Search,
@@ -24,12 +24,20 @@ import {
   Compass,
   Navigation,
   MapPin,
+  User,
+  UserCheck,
+  UserPlus,
+  Phone,
+  Lock,
+  ChefHat,
 } from 'lucide-react';
 
 interface MenuScreenProps {
   products: Product[];
   storeSettings?: StoreSettings;
   deliveryAddress?: string;
+  customerProfile?: CustomerProfile | null;
+  onOpenCustomerRegister?: () => void;
   onOpenAddressModal?: () => void;
   onSelectProduct: (product: Product) => void;
   onQuickAdd: (product: Product) => void;
@@ -52,6 +60,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   products,
   storeSettings,
   deliveryAddress,
+  customerProfile,
+  onOpenCustomerRegister,
   onOpenAddressModal,
   onSelectProduct,
   onQuickAdd,
@@ -209,6 +219,31 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-2.5">
+            {/* Botão de Cadastro do Cliente */}
+            {customerProfile ? (
+              <button
+                onClick={onOpenCustomerRegister}
+                className="h-9 px-2.5 sm:px-3 rounded-full bg-[#20201f] border border-[#ff5722]/40 hover:border-[#ff5722] text-[#ff8a65] hover:text-white flex items-center gap-1.5 text-xs font-['Montserrat'] font-semibold transition-all active:scale-95 shadow-sm"
+                title="Meu Cadastro e Endereço"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-[#ff5722]" />
+                <span className="hidden md:inline text-[11px] text-[#b4b5b5]">Olá,</span>
+                <span className="max-w-[70px] sm:max-w-[110px] truncate font-bold text-white text-xs">
+                  {customerProfile.name.split(' ')[0]}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenCustomerRegister}
+                className="h-9 px-3 rounded-full bg-[#ff5722] hover:bg-[#ff5722]/90 text-white flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold transition-all active:scale-95 shadow-md shadow-[#ff5722]/20 animate-pulse"
+                title="Cadastre-se para pedir no cardápio"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Cadastrar</span>
+                <span className="sm:hidden">Cadastro</span>
+              </button>
+            )}
+
             <button
               onClick={() => setShowShareModal(true)}
               className="h-9 px-3 rounded-md bg-[#ff5722]/15 hover:bg-[#ff5722]/25 border border-[#ff5722]/40 text-[#ff8a65] flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold transition-all active:scale-95 shadow-sm"
@@ -228,14 +263,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
             <button
               onClick={onOpenKitchen}
-              className="w-9 h-9 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-colors"
-              title="Acessar Gestor de Cozinha"
+              className="relative w-9 h-9 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-all group"
+              title="Acesso do Gestor (Restrito com PIN)"
             >
               <img
                 src={APP_IMAGES.userAvatar}
-                alt="Avatar"
-                className="w-full h-full object-cover"
+                alt="Gestor"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#1c1b1b] border border-[#ff5722]/80 rounded-full flex items-center justify-center text-[#ff5722] shadow-sm">
+                <Lock className="w-2 h-2" />
+              </span>
             </button>
           </div>
         </div>
@@ -262,6 +300,47 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Cartão de Identificação do Cliente */}
+              {customerProfile ? (
+                <div className="bg-[#242323] p-3 rounded-lg border border-[#353535] space-y-1.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-extrabold text-[#ff8a65] tracking-wider flex items-center gap-1 font-['Montserrat']">
+                      <UserCheck className="w-3 h-3 text-[#ff5722]" /> Meu Cadastro
+                    </span>
+                    <button
+                      onClick={() => {
+                        setDrawerOpen(false);
+                        onOpenCustomerRegister?.();
+                      }}
+                      className="text-[10px] text-[#ffb5a0] hover:text-white underline font-semibold"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                  <div className="text-xs font-bold text-white truncate">{customerProfile.name}</div>
+                  <div className="text-[11px] text-[#b4b5b5] flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-[#ff5722]" /> {customerProfile.phone}
+                  </div>
+                  <div className="text-[10px] text-[#b4b5b5] truncate flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-[#ff5722] flex-shrink-0" /> {customerProfile.address}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-[#ff5722]/15 to-[#ff5722]/5 p-3 rounded-lg border border-[#ff5722]/40 space-y-2 text-center shadow-sm">
+                  <p className="text-xs font-bold text-white">Olá, visitante!</p>
+                  <p className="text-[10px] text-[#b4b5b5]">Cadastre-se para pedir no cardápio e receber seu lanche.</p>
+                  <button
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      onOpenCustomerRegister?.();
+                    }}
+                    className="w-full py-2 rounded-md btn-flame font-bold text-xs text-white shadow-md active:scale-95 transition-transform"
+                  >
+                    Fazer Cadastro 🔥
+                  </button>
+                </div>
+              )}
 
               <nav className="space-y-2 text-sm font-['Montserrat']">
                 <button
@@ -324,6 +403,15 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 >
                   <Share2 className="w-4 h-4" /> Compartilhar Cardápio
                 </button>
+                <button
+                  onClick={() => { setDrawerOpen(false); onOpenKitchen(); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-[#2a2a2a] text-[#b4b5b5] hover:text-white transition-colors border-t border-[#353535]/40 mt-1"
+                >
+                  <span className="flex items-center gap-3">
+                    <ChefHat className="w-4 h-4 text-[#ff5722]" /> Painel do Gestor
+                  </span>
+                  <Lock className="w-3.5 h-3.5 text-[#ff8a65]" />
+                </button>
               </nav>
             </div>
 
@@ -359,10 +447,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         )}
 
         {/* Delivery Address & GPS Quick Access */}
-        {deliveryAddress && onOpenAddressModal && (
+        {deliveryAddress && (
           <div
-            onClick={onOpenAddressModal}
-            className="flex items-center justify-between bg-[#1c1b1b] border border-[#353535]/70 hover:border-[#ff5722]/50 p-2.5 px-3.5 rounded-lg cursor-pointer transition-all active:scale-98 shadow-sm group"
+            onClick={onOpenCustomerRegister || onOpenAddressModal}
+            className="flex items-center justify-between bg-[#1c1b1b] border border-[#353535]/70 hover:border-[#ff5722]/50 p-2.5 px-3.5 rounded-md cursor-pointer transition-all active:scale-98 shadow-sm group"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center flex-shrink-0 group-hover:bg-[#ff5722] group-hover:text-white transition-colors">
@@ -371,7 +459,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-[#ff8a65] font-extrabold uppercase tracking-wider font-['Montserrat']">
-                    Entregar no Endereço:
+                    {customerProfile ? `Entregar para ${customerProfile.name.split(' ')[0]}:` : 'Entregar no Endereço:'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 </div>
@@ -385,7 +473,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               className="text-[11px] font-bold text-[#ffb5a0] group-hover:text-white px-2.5 py-1.5 rounded-md bg-[#20201f] border border-[#353535] group-hover:border-[#ff5722]/50 transition-colors whitespace-nowrap ml-2 flex items-center gap-1.5 shadow-sm"
             >
               <Compass className="w-3.5 h-3.5 text-[#ff5722]" />
-              <span>Usar GPS / Alterar</span>
+              <span>{customerProfile ? 'Alterar Dados' : 'Cadastrar / GPS'}</span>
             </button>
           </div>
         )}
@@ -512,7 +600,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             {dailySpecial && (
               <div
                 onClick={() => onSelectProduct(dailySpecial)}
-                className="relative h-60 sm:h-72 w-full rounded-lg overflow-hidden shadow-2xl group cursor-pointer border border-[#ff5722]/30 hover:border-[#ff5722] transition-all"
+                className="relative h-60 sm:h-72 w-full rounded-md overflow-hidden shadow-2xl group cursor-pointer border border-[#ff5722]/30 hover:border-[#ff5722] transition-all"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0F0F0F] via-[#0F0F0F]/60 to-transparent z-10" />
                 <img
@@ -618,7 +706,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <div
                   key={combo.id}
                   onClick={() => onSelectProduct(combo)}
-                  className="bg-[#20201f] rounded-lg overflow-hidden border border-[#353535]/50 hover:border-[#ff5722]/50 shadow-lg flex flex-col justify-between group cursor-pointer transition-all"
+                  className="bg-[#20201f] rounded-md overflow-hidden border border-[#353535]/50 hover:border-[#ff5722]/50 shadow-lg flex flex-col justify-between group cursor-pointer transition-all"
                 >
                   <div className="h-48 relative overflow-hidden bg-[#1c1b1b]">
                     <img
@@ -919,7 +1007,7 @@ const ProductGridCard: React.FC<{
   return (
     <div
       onClick={() => isAvailable && onSelect()}
-      className={`bg-[#20201f] rounded-lg overflow-hidden shadow-lg border transition-all group flex flex-col justify-between ${
+      className={`bg-[#20201f] rounded-md overflow-hidden shadow-lg border transition-all group flex flex-col justify-between ${
         isAvailable
           ? 'border-[#353535]/50 hover:border-[#ff5722]/50 cursor-pointer'
           : 'border-red-900/30 opacity-70 cursor-not-allowed'

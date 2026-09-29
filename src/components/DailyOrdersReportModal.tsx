@@ -51,8 +51,6 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
   const [copiedCsv, setCopiedCsv] = useState(false);
   const [activeView, setActiveView] = useState<'lista' | 'itens_resumo'>('lista');
 
-  if (!isOpen) return null;
-
   // Non-refused orders considered valid for finance
   const validOrders = orders.filter(o => o.status !== 'recusado');
   const totalRevenue = validOrders.reduce((sum, o) => sum + (o.total || 0), 0);
@@ -285,6 +283,8 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
         );
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">

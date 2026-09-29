@@ -45,6 +45,14 @@ service cloud.firestore {
       allow delete: if isValidId(expenseId);
     }
 
+    // Customers collection: customer registration & delivery profile
+    match /customers/{customerId} {
+      allow get: if isValidId(customerId);
+      allow list: if true;
+      allow create, update: if isValidId(customerId);
+      allow delete: if false;
+    }
+
     // Connection testing
     match /test/{docId} {
       allow read, write: if true;

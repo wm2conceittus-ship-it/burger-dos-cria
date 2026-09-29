@@ -1,5 +1,20 @@
 export type Screen = 'menu' | 'product_detail' | 'cart' | 'tracking' | 'kitchen';
 
+export interface CustomerProfile {
+  id?: string;
+  name: string;
+  phone: string;
+  address: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  complement?: string;
+  reference?: string;
+  city?: string;
+  cep?: string;
+  registeredAt?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +22,7 @@ export interface Product {
   subCategory?: 'refrigerantes';
   price: number;
   originalPrice?: number;
+  costPrice?: number; // Preço de custo / CMV unitário dos insumos
   description: string;
   image: string;
   tag?: string;
@@ -60,6 +76,7 @@ export interface StoreSettings {
   acceptedPaymentMethods?: string[];
   mercadoPago?: MercadoPagoConfig;
   couriers?: Courier[];
+  managerPin?: string;
 }
 
 export type PizzaSize = 'P' | 'M' | 'G' | 'Família';

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Screen, Product, CartItem, Order, StoreSettings } from './types';
+import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
 import { PRODUCTS, INITIAL_ORDERS } from './data/mockData';
 import {
   testFirestoreConnection,
@@ -14,6 +14,7 @@ import {
   updateOrderInFirestore,
   subscribeToStoreSettings,
   saveStoreSettingsToFirestore,
+  saveCustomerProfileToFirestore,
 } from './services/firebase';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
@@ -24,6 +25,8 @@ import { BottomNav } from './components/BottomNav';
 import { ScreenSwitcherBanner } from './components/ScreenSwitcherBanner';
 import { ContactDriverModal } from './components/ContactDriverModal';
 import { AddressModal } from './components/AddressModal';
+import { CustomerRegisterModal } from './components/CustomerRegisterModal';
+import { ManagerPinModal } from './components/ManagerPinModal';
 import { ManualOrderModal } from './components/ManualOrderModal';
 import { PrintModal } from './components/PrintModal';
 import { ProductFormModal } from './components/ProductFormModal';
@@ -109,6 +112,7 @@ export default function App() {
         notes: 'Entregas locais até 3km',
       },
     ],
+    managerPin: '1234',
   });
   
   // Initial cart populated with the exact 2 items from the reference cart screen
@@ -134,6 +138,24 @@ export default function App() {
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order>(INITIAL_ORDERS[4]); // #1234
   const [deliveryAddress, setDeliveryAddress] = useState('Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP');
 
+  // Customer Profile State (Persisted in localStorage and synced to Firestore)
+  const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('burger_customer_profile');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // ignore parse errors
+    }
+    return null;
+  });
+  const [isCustomerRegisterOpen, setIsCustomerRegisterOpen] = useState(false);
+
+  // Manager Authentication & PIN Protection State
+  const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
   // Modals state
   const [isDriverChatOpen, setIsDriverChatOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -148,6 +170,60 @@ export default function App() {
     setTimeout(() => {
       setToastMessage(null);
     }, 2800);
+  };
+
+  const handleOpenKitchen = () => {
+    if (isManagerAuthenticated) {
+      setCurrentScreen('kitchen');
+    } else {
+      setIsPinModalOpen(true);
+    }
+  };
+
+  const handlePinSuccess = () => {
+    setIsManagerAuthenticated(true);
+    setIsPinModalOpen(false);
+    setCurrentScreen('kitchen');
+    showToast('Acesso de Gestor autenticado! 🔥');
+  };
+
+  const handleLockManager = () => {
+    setIsManagerAuthenticated(false);
+    setCurrentScreen('menu');
+    showToast('Painel do Gestor bloqueado com segurança!');
+  };
+
+  const handleNavigateScreen = (screen: Screen) => {
+    if (screen === 'kitchen') {
+      handleOpenKitchen();
+    } else {
+      setCurrentScreen(screen);
+    }
+  };
+
+  // Se o cliente ainda não se cadastrou, exibe o cadastro ao abrir o cardápio
+  useEffect(() => {
+    if (!customerProfile) {
+      const timer = setTimeout(() => {
+        setIsCustomerRegisterOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (customerProfile.address) {
+      setDeliveryAddress(customerProfile.address);
+    }
+  }, []);
+
+  const handleSaveCustomerProfile = (profile: CustomerProfile) => {
+    setCustomerProfile(profile);
+    setDeliveryAddress(profile.address);
+    try {
+      localStorage.setItem('burger_customer_profile', JSON.stringify(profile));
+    } catch {
+      // ignore
+    }
+    saveCustomerProfileToFirestore(profile);
+    setIsCustomerRegisterOpen(false);
+    showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${profile.name.split(' ')[0]}! 🔥`);
   };
 
   // Firebase Real-time Synchronization on Mount
@@ -236,6 +312,12 @@ export default function App() {
     changeFor?: string,
     mercadoPagoPaymentId?: string
   ) => {
+    if (!customerProfile) {
+      setIsCustomerRegisterOpen(true);
+      showToast('Por favor, conclua seu cadastro para enviar o pedido!');
+      return;
+    }
+
     const subtotal = cartItems.reduce((acc, it) => acc + it.totalPrice, 0);
     const deliveryFee = storeSettings.defaultDeliveryFee;
     const total = Math.max(0, subtotal + deliveryFee - discountAmount);
@@ -248,11 +330,12 @@ export default function App() {
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber: newOrderNum,
-      customerName: 'Você (Cliente)',
+      customerName: customerProfile.name,
+      customerPhone: customerProfile.phone,
       type: 'Delivery',
       status: isAutoAccept ? 'preparando' : 'novo',
       timeAgo: isAutoAccept ? 'Aceito automaticamente' : 'Acabou de ser feito',
-      address: deliveryAddress,
+      address: customerProfile.address || deliveryAddress,
       paymentMethod,
       changeFor,
       mercadoPagoPaymentId,
@@ -398,7 +481,7 @@ export default function App() {
       {/* Quick Screen Switcher Banner for review */}
       <ScreenSwitcherBanner
         currentScreen={currentScreen}
-        onNavigate={setCurrentScreen}
+        onNavigate={handleNavigateScreen}
         cartCount={cartItems.length}
       />
 
@@ -408,14 +491,16 @@ export default function App() {
           products={products}
           storeSettings={storeSettings}
           deliveryAddress={deliveryAddress}
-          onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          customerProfile={customerProfile}
+          onOpenCustomerRegister={() => setIsCustomerRegisterOpen(true)}
+          onOpenAddressModal={() => setIsCustomerRegisterOpen(true)}
           onSelectProduct={product => {
             setSelectedProduct(product);
             setCurrentScreen('product_detail');
           }}
           onQuickAdd={handleQuickAdd}
           onOpenCart={() => setCurrentScreen('cart')}
-          onOpenKitchen={() => setCurrentScreen('kitchen')}
+          onOpenKitchen={handleOpenKitchen}
           onOpenChat={() => setIsDriverChatOpen(true)}
           cartCount={cartItems.length}
         />
@@ -434,12 +519,14 @@ export default function App() {
         <CartScreen
           items={cartItems}
           deliveryAddress={deliveryAddress}
+          customerProfile={customerProfile}
+          onOpenCustomerRegister={() => setIsCustomerRegisterOpen(true)}
           storeSettings={storeSettings}
           onUpdateStoreSettings={handleUpdateStoreSettings}
           onUpdateQuantity={handleUpdateCartQuantity}
           onRemoveItem={handleRemoveCartItem}
           onBack={() => setCurrentScreen('menu')}
-          onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          onOpenAddressModal={() => setIsCustomerRegisterOpen(true)}
           onOpenChat={() => setIsDriverChatOpen(true)}
           onCheckout={handleCheckout}
         />
@@ -478,6 +565,7 @@ export default function App() {
           onPrintOrder={order => setPrintOrder(order)}
           onOpenChat={() => setIsDriverChatOpen(true)}
           onNavigateToMenu={() => setCurrentScreen('menu')}
+          onLockManager={handleLockManager}
         />
       )}
 
@@ -485,13 +573,20 @@ export default function App() {
       {currentScreen !== 'product_detail' && (
         <BottomNav
           currentScreen={currentScreen}
-          onNavigate={setCurrentScreen}
+          onNavigate={handleNavigateScreen}
           cartCount={cartItems.length}
           hasActiveOrder={Boolean(activeTrackingOrder)}
         />
       )}
 
       {/* Modals */}
+      {isPinModalOpen && (
+        <ManagerPinModal
+          correctPin={storeSettings.managerPin || '1234'}
+          onSuccess={handlePinSuccess}
+          onClose={() => setIsPinModalOpen(false)}
+        />
+      )}
       {isDriverChatOpen && (
         <ContactDriverModal
           onClose={() => setIsDriverChatOpen(false)}
@@ -500,6 +595,15 @@ export default function App() {
           courierAvatar={activeTrackingOrder.courierAvatar}
           courierVehicle={activeTrackingOrder.courierVehicle}
           courierPlate={activeTrackingOrder.courierPlate}
+        />
+      )}
+
+      {isCustomerRegisterOpen && (
+        <CustomerRegisterModal
+          initialProfile={customerProfile}
+          canClose={true}
+          onSave={handleSaveCustomerProfile}
+          onClose={() => setIsCustomerRegisterOpen(false)}
         />
       )}
 

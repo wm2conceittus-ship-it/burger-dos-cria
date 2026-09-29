@@ -45,9 +45,11 @@ import {
   Navigation,
   Car,
   FileSpreadsheet,
+  Flame,
 } from 'lucide-react';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
+import { FinancialPdfModal } from './FinancialPdfModal';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -67,12 +69,13 @@ interface KitchenManagerScreenProps {
   onPrintOrder: (order: Order) => void;
   onOpenChat: () => void;
   onNavigateToMenu: () => void;
+  onLockManager?: () => void;
 }
 
 export interface ExpenseItem {
   id: string;
   description: string;
-  category: 'insumos' | 'motoboy' | 'embalagens' | 'fixo' | 'outros';
+  category: 'insumos' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros';
   amount: number;
   time: string;
 }
@@ -81,7 +84,9 @@ const INITIAL_EXPENSES: ExpenseItem[] = [
   { id: 'exp-1', description: 'Blend Angus e Pães Brioche (Açougue & Padaria)', category: 'insumos', amount: 380.00, time: '17:30' },
   { id: 'exp-2', description: 'Diária 2x Entregadores / Motoboys', category: 'motoboy', amount: 160.00, time: '18:00' },
   { id: 'exp-3', description: 'Embalagens Térmicas & Papel Acoplado', category: 'embalagens', amount: 75.00, time: '18:15' },
-  { id: 'exp-4', description: 'Hortifruti (Tomate, Rúcula, Cebola, Queijo)', category: 'insumos', amount: 94.00, time: '18:40' },
+  { id: 'exp-4', description: 'Recarga Botijão P45 / Gás de Cozinha GLP', category: 'gas', amount: 145.00, time: '18:25' },
+  { id: 'exp-5', description: 'Hortifruti (Tomate, Rúcula, Cebola, Queijo)', category: 'insumos', amount: 94.00, time: '18:40' },
+  { id: 'exp-6', description: 'Bobinas Térmicas & Material de Limpeza', category: 'operacional', amount: 55.00, time: '19:10' },
 ];
 
 export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
@@ -101,6 +106,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onPrintOrder,
   onOpenChat,
   onNavigateToMenu,
+  onLockManager,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'
   const [activeTab, setActiveTab] = useState<'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
@@ -108,6 +114,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'pizzas' | 'salgados' | 'sucos' | 'bebidas'>('all');
+  const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '1234');
+  const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
 
@@ -115,11 +123,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
+  const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
   const [financialToast, setFinancialToast] = useState<string | null>(null);
 
   // New expense form
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
-  const [newExpenseCat, setNewExpenseCat] = useState<'insumos' | 'motoboy' | 'embalagens' | 'fixo' | 'outros'>('insumos');
+  const [newExpenseCat, setNewExpenseCat] = useState<'insumos' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros'>('insumos');
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
@@ -360,7 +369,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const insumosExpenses = expenses.filter(e => e.category === 'insumos').reduce((acc, e) => acc + e.amount, 0);
   const motoboyExpenses = expenses.filter(e => e.category === 'motoboy').reduce((acc, e) => acc + e.amount, 0);
   const embalagensExpenses = expenses.filter(e => e.category === 'embalagens').reduce((acc, e) => acc + e.amount, 0);
-  const outrosExpenses = expenses.filter(e => e.category === 'fixo' || e.category === 'outros').reduce((acc, e) => acc + e.amount, 0);
+  const gasExpenses = expenses.filter(e => e.category === 'gas').reduce((acc, e) => acc + e.amount, 0);
+  const operacionalExpenses = expenses.filter(e => e.category === 'operacional').reduce((acc, e) => acc + e.amount, 0);
+  const fixosExpenses = expenses.filter(e => e.category === 'fixo').reduce((acc, e) => acc + e.amount, 0);
+  const outrosExpenses = expenses.filter(e => e.category === 'outros').reduce((acc, e) => acc + e.amount, 0);
 
   const cmvPercentage = totalRevenue > 0 ? (insumosExpenses / totalRevenue) * 100 : 0;
 
@@ -420,7 +432,24 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       [''],
       ['3. REGISTRO DE DESPESAS E SAIDAS DO CAIXA'],
       ['Horario', 'Descricao', 'Categoria', 'Valor (R$)'],
-      ...expenses.map(e => [e.time, e.description, e.category, `R$ ${e.amount.toFixed(2)}`]),
+      ...expenses.map(e => [
+        e.time,
+        e.description,
+        e.category === 'gas'
+          ? 'Gás de Cozinha'
+          : e.category === 'operacional'
+          ? 'Custo Operacional Diário'
+          : e.category === 'fixo'
+          ? 'Custo Fixo (Aluguel/Luz/Água/Net)'
+          : e.category === 'insumos'
+          ? 'Insumos & Carnes'
+          : e.category === 'motoboy'
+          ? 'Entregas / Motoboy'
+          : e.category === 'embalagens'
+          ? 'Embalagens'
+          : 'Outros',
+        `R$ ${e.amount.toFixed(2)}`
+      ]),
       [''],
       ['4. PEDIDOS DO TURNO'],
       ['Numero', 'Cliente', 'Tipo', 'Pagamento', 'Status', 'Valor (R$)'],
@@ -475,28 +504,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Daily Report Button */}
-            <button
-              onClick={() => setShowDailyReportModal(true)}
-              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
-              title="Relatório Detalhado de Pedidos do Dia (Excel / WhatsApp / Impressão)"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Relatório do Dia</span>
-              <span className="sm:hidden">Relatório</span>
-            </button>
-
-            {/* Guide Button "Como Fazer a Gestão" */}
-            <button
-              onClick={() => setShowGuideModal(true)}
-              className="bg-[#ff5722]/15 hover:bg-[#ff5722]/25 text-[#ff8a65] border border-[#ff5722]/40 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
-              title="Como Fazer a Gestão"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Guia de Gestão</span>
-              <span className="sm:hidden">Guia</span>
-            </button>
-
             <button
               onClick={() => {
                 const url = typeof window !== 'undefined' ? window.location.origin : '';
@@ -520,12 +527,32 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <MessageSquare className="w-5 h-5" />
             </button>
 
-            <div className="w-8 h-8 rounded-full bg-[#353535] flex items-center justify-center text-white">
+            {onLockManager && (
+              <button
+                onClick={onLockManager}
+                className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                title="Bloquear Painel do Gestor (Exigir PIN novamente)"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Bloquear Gestor</span>
+                <span className="sm:hidden">Sair</span>
+              </button>
+            )}
+
+            <div className="w-8 h-8 rounded-full bg-[#353535] flex items-center justify-center text-white" title="Gestor Logado">
               <User className="w-4 h-4" />
             </div>
           </div>
         </div>
       </header>
+
+      {/* PIN Toast */}
+      {pinToast && (
+        <div className="fixed top-20 right-6 z-50 bg-emerald-500/20 border border-emerald-500 text-emerald-300 px-4 py-2.5 rounded-lg text-xs font-bold shadow-xl animate-fade-in flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4" />
+          <span>{pinToast}</span>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
@@ -596,6 +623,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Relatório do Dia</span>
+                </button>
+
+                <button
+                  onClick={() => setShowGuideModal(true)}
+                  className="bg-[#ff5722]/15 hover:bg-[#ff5722]/25 text-[#ff8a65] border border-[#ff5722]/40 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                  title="Como Fazer a Gestão"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#ff5722]" />
+                  <span>Guia de Gestão</span>
                 </button>
 
                 <button
@@ -1109,17 +1145,30 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
 
                     <div className="flex-grow min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <h4 className="font-['Montserrat'] font-bold text-xs text-white truncate">
-                          {product.name}
-                        </h4>
-                        <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722] flex-shrink-0">
-                          R$ {product.price.toFixed(2).replace('.', ',')}
-                        </span>
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <h4 className="font-['Montserrat'] font-bold text-xs text-white truncate">
+                            {product.name}
+                          </h4>
+                          <p className="text-[11px] text-[#b4b5b5] truncate mt-0.5 font-light">
+                            {product.description}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722] block">
+                            R$ {product.price.toFixed(2).replace('.', ',')}
+                          </span>
+                          {product.costPrice !== undefined && product.costPrice > 0 ? (
+                            <span className="text-[9.5px] text-emerald-400 font-mono block" title={`Lucro de R$ ${(product.price - product.costPrice).toFixed(2).replace('.', ',')}`}>
+                              Custo: R$ {product.costPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] text-[#71717a] block">
+                              Sem custo
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-[11px] text-[#b4b5b5] truncate mt-0.5 font-light">
-                        {product.description}
-                      </p>
 
                       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-[#353535]/40">
                         {/* Toggle Available */}
@@ -1166,15 +1215,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
-                  onClick={() => setShowDailyReportModal(true)}
-                  className="bg-[#20201f] border border-emerald-500/40 hover:border-emerald-500 text-emerald-400 px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
-                  title="Ver e exportar lista detalhada de pedidos do dia (Excel / WhatsApp / Impressão)"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                  <span>Relatório de Pedidos do Dia</span>
-                </button>
-
-                <button
                   onClick={() => setShowFinancialGuide(true)}
                   className="bg-[#20201f] border border-[#ff5722]/40 hover:border-[#ff5722] text-[#ff8a65] px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
                 >
@@ -1190,11 +1230,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </button>
 
                 <button
-                  onClick={handleExportCSV}
-                  className="bg-[#20201f] border border-[#353535] hover:border-white text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-colors active:scale-95"
-                  title="Baixar planilha CSV para Excel"
+                  onClick={() => setShowFinancialPdfModal(true)}
+                  className="bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                  title="Visualizar e exportar relatório financeiro em PDF"
                 >
-                  <Download className="w-4 h-4 text-emerald-400" /> Exportar CSV
+                  <FileText className="w-4 h-4 text-red-400" />
+                  <span>Exportar PDF</span>
                 </button>
               </div>
             </div>
@@ -1265,7 +1306,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {/* DRE Simplificado & Registro de Despesas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* DRE Simplificado do Turno */}
-              <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-md space-y-4">
+              <div className="bg-[#20201f] rounded-md p-5 border border-[#353535]/50 shadow-md space-y-4">
                 <div className="flex justify-between items-center border-b border-[#353535] pb-2.5">
                   <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-[#ff5722]" /> DRE Operacional do Turno
@@ -1307,9 +1348,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
 
                   <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
-                    <span className="font-sans font-medium text-red-400">(-) Custos Operacionais & Gás</span>
-                    <span className="font-mono text-red-400">- R$ {outrosExpenses.toFixed(2).replace('.', ',')}</span>
+                    <span className="font-sans font-medium text-[#ff7043] flex items-center gap-1">
+                      <Flame className="w-3.5 h-3.5 text-[#ff7043]" />
+                      (-) Gás de Cozinha (GLP / Botijão / Encanado)
+                    </span>
+                    <span className="font-mono text-[#ff7043] font-semibold">- R$ {gasExpenses.toFixed(2).replace('.', ',')}</span>
                   </div>
+
+                  <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
+                    <span className="font-sans font-medium text-red-400">(-) Custos Operacionais Diários (Limpeza & Materiais)</span>
+                    <span className="font-mono text-red-400">- R$ {operacionalExpenses.toFixed(2).replace('.', ',')}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
+                    <span className="font-sans font-medium text-indigo-400">(-) Custos Fixos (Aluguel, Energia, Água, Internet)</span>
+                    <span className="font-mono text-indigo-400 font-semibold">- R$ {fixosExpenses.toFixed(2).replace('.', ',')}</span>
+                  </div>
+
+                  {outrosExpenses > 0 && (
+                    <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
+                      <span className="font-sans font-medium text-red-400">(-) Outras Despesas Diversas</span>
+                      <span className="font-mono text-red-400">- R$ {outrosExpenses.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                  )}
 
                   <div className="flex justify-between py-2 font-bold bg-[#1c1b1b] px-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 font-sans text-sm mt-3">
                     <span>(=) Lucro Líquido Operacional</span>
@@ -1319,7 +1380,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               {/* Registro de Despesas / Saídas do Caixa */}
-              <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-md space-y-4 flex flex-col justify-between">
+              <div className="bg-[#20201f] rounded-md p-5 border border-[#353535]/50 shadow-md space-y-4 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-center border-b border-[#353535] pb-2.5 mb-3">
                     <div>
@@ -1349,17 +1410,38 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         >
                           <div className="flex items-center gap-2.5">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                                 expense.category === 'insumos'
                                   ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                                   : expense.category === 'motoboy'
                                   ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                                   : expense.category === 'embalagens'
                                   ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                                  : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                  : expense.category === 'gas'
+                                  ? 'bg-orange-500/20 text-[#ff7043] border border-[#ff5722]/40'
+                                  : expense.category === 'operacional'
+                                  ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                                  : expense.category === 'fixo'
+                                  ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                                  : 'bg-zinc-500/15 text-zinc-300 border border-zinc-500/30'
                               }`}
                             >
-                              {expense.category}
+                              {expense.category === 'gas' && <Flame className="w-2.5 h-2.5" />}
+                              <span>
+                                {expense.category === 'insumos'
+                                  ? 'Insumos'
+                                  : expense.category === 'motoboy'
+                                  ? 'Motoboy'
+                                  : expense.category === 'embalagens'
+                                  ? 'Embalagens'
+                                  : expense.category === 'gas'
+                                  ? 'Gás de Cozinha'
+                                  : expense.category === 'operacional'
+                                  ? 'Operacional'
+                                  : expense.category === 'fixo'
+                                  ? 'Custo Fixo (Aluguel/Luz)'
+                                  : 'Outros'}
+                              </span>
                             </span>
                             <div>
                               <p className="font-medium text-white">{expense.description}</p>
@@ -2528,6 +2610,78 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               </div>
             )}
+
+            {/* PIN de Segurança do Gestor */}
+            <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 space-y-4 shadow-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold font-['Montserrat'] text-white flex items-center gap-2">
+                      <span>PIN de Segurança do Gestor</span>
+                      <span className="text-[10px] bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40 px-2 py-0.5 rounded font-extrabold uppercase">
+                        Acesso Restrito
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-[#b4b5b5]">
+                      Senha numérica de 4 dígitos necessária para entrar neste painel de gestão de pedidos e finanças.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#353535]/50">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-[#b4b5b5]">
+                    Alterar PIN de Acesso (4 dígitos numéricos)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      maxLength={4}
+                      inputMode="numeric"
+                      value={managerPinInput}
+                      onChange={e => setManagerPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Ex: 1234"
+                      className="w-32 bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-center tracking-widest text-lg font-bold focus:border-[#ff5722] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (managerPinInput.length !== 4) {
+                          alert('O PIN deve conter exatamente 4 dígitos numéricos.');
+                          return;
+                        }
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          managerPin: managerPinInput,
+                        });
+                        setPinToast('PIN de segurança do gestor atualizado com sucesso!');
+                        setTimeout(() => setPinToast(null), 3500);
+                      }}
+                      className="bg-[#ff5722] hover:bg-[#d84315] text-white px-4 py-2 rounded-md font-['Montserrat'] font-bold text-xs transition-colors active:scale-95 shadow-sm"
+                    >
+                      Salvar Novo PIN
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[#8e8e8e]">
+                    PIN ativo no momento: <strong className="text-white font-mono">{storeSettings.managerPin || '1234'}</strong>
+                  </p>
+                </div>
+
+                <div className="bg-[#181818] p-3.5 rounded-lg border border-[#353535] text-xs text-[#b4b5b5] flex flex-col justify-center">
+                  <div className="flex items-center gap-1.5 text-white font-semibold mb-1">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Proteção contra clientes e visitantes</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Nenhum cliente conseguirá ver os relatórios de faturamento, pedidos da cozinha ou custos sem digitar esse PIN de 4 dígitos.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -2546,7 +2700,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal: Lançar Nova Despesa / Saída */}
       {showAddExpenseModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+          <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-4 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b]">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center">
@@ -2588,8 +2742,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <option value="insumos">Insumos & Carnes</option>
                     <option value="motoboy">Entregas / Motoboy</option>
                     <option value="embalagens">Embalagens & Sacolas</option>
-                    <option value="fixo">Operacional & Gás</option>
-                    <option value="outros">Outras Despesas</option>
+                    <option value="gas">Gás de Cozinha (GLP / Botijão / Encanado)</option>
+                    <option value="operacional">Custos Operacionais Diários (Limpeza, Bobinas)</option>
+                    <option value="fixo">Custos Fixos Mensais (Aluguel, Energia, Água, Internet)</option>
+                    <option value="outros">Outras Despesas Diversas</option>
                   </select>
                 </div>
 
@@ -2631,7 +2787,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal: Guia Completo de Gestão Financeira para Hamburgueria */}
       {showFinancialGuide && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="p-4 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b]">
               <div className="flex items-center gap-2.5">
@@ -2735,6 +2891,30 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   O maior erro de donos de hamburgueria é pagar contas de casa com o dinheiro do caixa da loja. Defina um <strong className="text-white">Pró-labore fixo mensal</strong> para você. O restante é o capital de giro e lucro retido da hamburgueria.
                 </p>
               </div>
+
+              {/* Pillar 6 */}
+              <div className="bg-[#1c1b1b] border border-[#353535]/70 rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2 text-indigo-400 font-['Montserrat'] font-bold text-sm">
+                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs">6</span>
+                  Custos Fixos Mensais (Aluguel, Luz, Água, Internet) & Ponto de Equilíbrio
+                </div>
+                <p className="text-[#b4b5b5]">
+                  Diferente da carne e pão (que só são gastos quando você vende), as contas estruturais chegam todo mês independentemente do faturamento:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-medium text-center">
+                  <div className="p-2 bg-[#20201f] border border-[#353535] rounded-md">🏢 Aluguel do Ponto</div>
+                  <div className="p-2 bg-[#20201f] border border-[#353535] rounded-md">⚡ Energia dos Freezers/Coifa</div>
+                  <div className="p-2 bg-[#20201f] border border-[#353535] rounded-md">💧 Água da Cozinha</div>
+                  <div className="p-2 bg-[#20201f] border border-[#353535] rounded-md">📶 Internet & Sistema</div>
+                </div>
+                <div className="bg-[#20201f] p-3 rounded-md border border-[#353535] space-y-1.5 text-[11px]">
+                  <p className="font-semibold text-white">Como lançar no Burger Dash:</p>
+                  <ul className="list-disc pl-4 space-y-1 text-[#b4b5b5]">
+                    <li><strong>No vencimento das faturas:</strong> Lance o boleto pago clicando em <em>"+ Lançar Despesa"</em> e selecione a categoria <em>"Custos Fixos Mensais"</em>.</li>
+                    <li><strong>Rateio Diário (Meta da Noite):</strong> Divida a soma dos custos fixos mensais pelos dias que a loja abre no mês (ex: R$ 3.000 ÷ 26 noites = ~R$ 115/noite). Essa é a quantia que a operação precisa pagar por turno para empatar as contas (Ponto de Equilíbrio / Breakeven).</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -2772,7 +2952,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal: Cadastrar / Editar Entregador */}
       {showCourierModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden my-6">
+          <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-lg shadow-2xl overflow-hidden my-6">
             {/* Header */}
             <div className="p-4 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b]">
               <div className="flex items-center gap-2.5">
@@ -3008,7 +3188,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Quick Dispatch Modal */}
       {dispatchOrderTarget && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-md bg-[#019ad8]/20 text-[#86cfff] flex items-center justify-center">
@@ -3099,13 +3279,35 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       )}
 
       {/* Modal Relatório Detalhado de Pedidos do Dia */}
-      <DailyOrdersReportModal
-        isOpen={showDailyReportModal}
-        onClose={() => setShowDailyReportModal(false)}
-        orders={orders}
-        storeSettings={storeSettings}
-        onPrintOrder={onPrintOrder}
-      />
+      {showDailyReportModal && (
+        <DailyOrdersReportModal
+          isOpen={showDailyReportModal}
+          onClose={() => setShowDailyReportModal(false)}
+          orders={orders}
+          storeSettings={storeSettings}
+          onPrintOrder={onPrintOrder}
+        />
+      )}
+
+      {/* Modal Relatório Financeiro e Fechamento em PDF */}
+      {showFinancialPdfModal && (
+        <FinancialPdfModal
+          isOpen={showFinancialPdfModal}
+          onClose={() => setShowFinancialPdfModal(false)}
+          orders={orders}
+          expenses={expenses}
+          storeSettings={storeSettings}
+          totalRevenue={totalRevenue}
+          totalExpenses={totalExpenses}
+          netProfit={netProfit}
+          netMargin={netMargin}
+          averageTicket={averageTicket}
+          pixTotal={pixTotal}
+          cardTotal={cardTotal}
+          cashTotal={cashTotal}
+          cmvPercentage={cmvPercentage}
+        />
+      )}
     </div>
   );
 };

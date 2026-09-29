@@ -71,26 +71,34 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
   return (
     <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-36">
-      {/* Floating Top Header */}
-      <header className="fixed top-0 left-0 w-full z-50 h-16 pointer-events-none px-5">
-        <div className="max-w-2xl mx-auto w-full h-full flex justify-between items-center">
-          <button
-            onClick={onBack}
-            className="pointer-events-auto bg-[#20201f]/80 backdrop-blur-md p-2.5 rounded-full text-[#ffb5a0] hover:bg-[#353535] active:scale-95 transition-all shadow-lg"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setIsFavorite(!isFavorite)}
-            className="pointer-events-auto bg-[#20201f]/80 backdrop-blur-md p-2.5 rounded-full text-[#ffb5a0] hover:bg-[#353535] active:scale-95 transition-all shadow-lg"
-          >
-            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-[#ff5722] text-[#ff5722]' : ''}`} />
-          </button>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="relative w-full h-[400px] md:h-[480px] overflow-hidden">
+        {/* Floating Top Controls: Seta Voltar e Curtida / Like */}
+        <div className="absolute top-4 left-0 w-full z-30 px-4 sm:px-6 pointer-events-none">
+          <div className="max-w-2xl mx-auto flex justify-between items-center">
+            <button
+              onClick={onBack}
+              className="pointer-events-auto bg-black/70 hover:bg-[#ff5722] text-white backdrop-blur-md p-3 rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group"
+              title="Voltar ao Cardápio"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-white" />
+            </button>
+            <button
+              onClick={() => setIsFavorite(!isFavorite)}
+              className={`pointer-events-auto bg-black/70 backdrop-blur-md p-3 rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group ${
+                isFavorite ? 'hover:bg-black/90' : 'hover:bg-[#252525]'
+              }`}
+              title={isFavorite ? 'Descurtir' : 'Curtir / Favoritar'}
+            >
+              <Heart
+                className={`w-5 h-5 transition-transform group-hover:scale-110 ${
+                  isFavorite ? 'fill-[#ff5722] text-[#ff5722]' : 'text-white'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
         <div className="absolute inset-0 bg-gradient-to-t from-[#131313] via-[#131313]/30 to-transparent z-10" />
         <img
           src={product.image}
