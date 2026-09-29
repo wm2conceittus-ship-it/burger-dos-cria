@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Pedido realizado na hamburgueria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "number" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string", "enum": ["recebido", "novo", "preparando", "pronto", "em_entrega", "entregue", "recusado"] },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "customerName", "status", "total", "paymentMethod"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Configurações operacionais da hamburgueria",
+      "type": "object",
+      "properties": {
+        "isOpen": { "type": "boolean" },
+        "storeName": { "type": "string" },
+        "pixKey": { "type": "string" },
+        "whatsappSupport": { "type": "string" },
+        "estimatedDeliveryTime": { "type": "string" },
+        "defaultDeliveryFee": { "type": "number" },
+        "acceptedPaymentMethods": { "type": "array" },
+        "autoAcceptOrders": { "type": "boolean" },
+        "autoPrintReceipts": { "type": "boolean" },
+        "soundAlerts": { "type": "boolean" },
+        "couriers": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["isOpen", "storeName"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Registro de despesa ou custo operacional da hamburgueria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "registeredBy": { "type": "string" }
+      },
+      "required": ["id", "description", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Coleção de pedidos em tempo real sincronizados entre o cliente e a chapa da cozinha"
+    },
+    "/settings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Configurações da hamburgueria (status de aberta/fechada, tempos, chaves Pix)"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Despesas operacionais cadastradas na cozinha"
+    }
+  }
+}

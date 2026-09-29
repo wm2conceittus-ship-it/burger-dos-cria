@@ -1,0 +1,6 @@
+{
+  "name": "Burger Dash - O Sabor do Fogo",
+  "description": "App de delivery e gestão de pedidos para hamburgueria gourmet com experiência dark-mode flame.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

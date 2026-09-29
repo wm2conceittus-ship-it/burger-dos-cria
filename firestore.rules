@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Orders collection: clients create orders, kitchen reads and updates order status
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create: if isValidId(orderId)
+        && incoming().id is string
+        && incoming().status in ['recebido', 'novo', 'preparando', 'pronto', 'em_entrega', 'entregue', 'recusado']
+        && incoming().total is number
+        && incoming().total >= 0;
+      allow update: if isValidId(orderId)
+        && incoming().status in ['recebido', 'novo', 'preparando', 'pronto', 'em_entrega', 'entregue', 'recusado'];
+      allow delete: if false;
+    }
+
+    // Settings collection: store configurations (open/closed, delivery fee, pix key)
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow write: if isValidId(settingId);
+    }
+
+    // Expenses collection: kitchen expense management
+    match /expenses/{expenseId} {
+      allow get: if isValidId(expenseId);
+      allow list: if true;
+      allow create, update: if isValidId(expenseId)
+        && incoming().amount is number;
+      allow delete: if isValidId(expenseId);
+    }
+
+    // Connection testing
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

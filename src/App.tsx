@@ -1,0 +1,547 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
+import { Screen, Product, CartItem, Order, StoreSettings } from './types';
+import { PRODUCTS, INITIAL_ORDERS } from './data/mockData';
+import {
+  testFirestoreConnection,
+  subscribeToOrders,
+  saveOrderToFirestore,
+  updateOrderStatusInFirestore,
+  updateOrderInFirestore,
+  subscribeToStoreSettings,
+  saveStoreSettingsToFirestore,
+} from './services/firebase';
+import { MenuScreen } from './components/MenuScreen';
+import { ProductDetailScreen } from './components/ProductDetailScreen';
+import { CartScreen } from './components/CartScreen';
+import { OrderTrackingScreen } from './components/OrderTrackingScreen';
+import { KitchenManagerScreen } from './components/KitchenManagerScreen';
+import { BottomNav } from './components/BottomNav';
+import { ScreenSwitcherBanner } from './components/ScreenSwitcherBanner';
+import { ContactDriverModal } from './components/ContactDriverModal';
+import { AddressModal } from './components/AddressModal';
+import { ManualOrderModal } from './components/ManualOrderModal';
+import { PrintModal } from './components/PrintModal';
+import { ProductFormModal } from './components/ProductFormModal';
+import { Toast } from './components/Toast';
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]); // Gourmet Truffle Burger
+
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    isOpen: true,
+    storeName: 'Burguer dos Crias',
+    defaultDeliveryFee: 7.00,
+    estimatedDeliveryTime: '20-30 min',
+    autoPrintReceipts: true,
+    soundAlerts: true,
+    allowManualOrders: true,
+    autoAcceptOrders: false,
+    whatsappSupport: '(11) 98765-4321',
+    openingHours: 'Terça a Domingo, 18h - 00h',
+    pixKey: '11987654321',
+    acceptedPaymentMethods: [
+      'Pix',
+      'Cartão de Crédito',
+      'Cartão de Débito',
+      'Dinheiro',
+      'Vale Refeição (VR / Sodexo / Alelo)',
+    ],
+    mercadoPago: {
+      isEnabled: true,
+      publicKey: 'TEST-98a72b4c-9f82-411a-ba73-1029837465ab',
+      accessToken: 'TEST-8291039847120938-092714-a9f82b7c6d5e4a3b2c1d-19283746',
+      environment: 'sandbox',
+      allowPix: true,
+      allowCreditCard: true,
+      allowCheckoutPro: true,
+    },
+    couriers: [
+      {
+        id: 'cour-1',
+        name: 'Ricardo Souza (Cria 01)',
+        phone: '(11) 98765-1122',
+        vehicle: 'moto',
+        vehicleModel: 'Honda CG 160 Titan (Preta)',
+        plate: 'BRA-2E19',
+        pixKey: 'ricardo.entregas@pix.com',
+        feePerDelivery: 7.00,
+        dailyRate: 60.00,
+        active: true,
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        totalDeliveries: 48,
+        notes: 'Entregador oficial do turno da noite',
+      },
+      {
+        id: 'cour-2',
+        name: 'Matheus Santos (Cria Veloz)',
+        phone: '(11) 97654-3344',
+        vehicle: 'moto',
+        vehicleModel: 'Yamaha Fazer 250 (Azul)',
+        plate: 'SP-9A82',
+        pixKey: '11976543344',
+        feePerDelivery: 8.00,
+        dailyRate: 70.00,
+        active: true,
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        totalDeliveries: 35,
+        notes: 'Especialista em rotas expressas',
+      },
+      {
+        id: 'cour-3',
+        name: 'Felipe Rocha (Bike Express)',
+        phone: '(11) 96123-9988',
+        vehicle: 'bike',
+        vehicleModel: 'Bicicleta Caloi Aro 29 c/ Bag',
+        plate: '',
+        pixKey: 'felipe.bike@pix.com',
+        feePerDelivery: 5.00,
+        dailyRate: 40.00,
+        active: false,
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        totalDeliveries: 19,
+        notes: 'Entregas locais até 3km',
+      },
+    ],
+  });
+  
+  // Initial cart populated with the exact 2 items from the reference cart screen
+  const [cartItems, setCartItems] = useState<CartItem[]>([
+    {
+      id: 'cart-init-1',
+      product: PRODUCTS[0], // Gourmet Truffle Burger
+      quantity: 1,
+      meatDoneness: 'Ao ponto',
+      additionals: [{ id: 'bacon', name: 'Bacon extra', price: 6.00 }],
+      totalPrice: 54.90,
+    },
+    {
+      id: 'cart-init-2',
+      product: PRODUCTS.find(p => p.id === 'batata-rustica') || PRODUCTS[4],
+      quantity: 1,
+      additionals: [],
+      totalPrice: 18.90,
+    }
+  ]);
+
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order>(INITIAL_ORDERS[4]); // #1234
+  const [deliveryAddress, setDeliveryAddress] = useState('Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP');
+
+  // Modals state
+  const [isDriverChatOpen, setIsDriverChatOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+  const [printOrder, setPrintOrder] = useState<Order | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  // Firebase Real-time Synchronization on Mount
+  useEffect(() => {
+    testFirestoreConnection();
+
+    // Subscribe to orders in Firestore
+    const unsubscribeOrders = subscribeToOrders(firestoreOrders => {
+      if (firestoreOrders && firestoreOrders.length > 0) {
+        setOrders(firestoreOrders);
+      }
+    });
+
+    // Subscribe to store settings in Firestore
+    const unsubscribeSettings = subscribeToStoreSettings(remoteSettings => {
+      if (remoteSettings && remoteSettings.storeName) {
+        setStoreSettings(prev => ({ ...prev, ...remoteSettings }));
+      }
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeSettings();
+    };
+  }, []);
+
+  const handleUpdateStoreSettings = (newSettings: StoreSettings) => {
+    setStoreSettings(newSettings);
+    saveStoreSettingsToFirestore(newSettings);
+    showToast('Configurações sincronizadas no Firebase!');
+  };
+
+  // Cart operations
+  const handleAddToCart = (item: CartItem) => {
+    setCartItems(prev => [...prev, item]);
+    showToast(`Adicionado ao carrinho: ${item.product.name}!`);
+    setCurrentScreen('cart');
+  };
+
+  const handleQuickAdd = (product: Product) => {
+    if (product.isAvailable === false) {
+      showToast('Item temporariamente esgotado!');
+      return;
+    }
+    const newItem: CartItem = {
+      id: `cart-quick-${Date.now()}`,
+      product,
+      quantity: 1,
+      meatDoneness: product.options?.meatDoneness ? 'Ao ponto' : undefined,
+      additionals: [],
+      totalPrice: product.price,
+    };
+    setCartItems(prev => [...prev, newItem]);
+    showToast(`${product.name} adicionado ao carrinho!`);
+  };
+
+  const handleUpdateCartQuantity = (id: string, delta: number) => {
+    setCartItems(prev =>
+      prev
+        .map(item => {
+          if (item.id === id) {
+            const newQty = item.quantity + delta;
+            if (newQty <= 0) return null;
+            const singlePrice = item.totalPrice / item.quantity;
+            return {
+              ...item,
+              quantity: newQty,
+              totalPrice: singlePrice * newQty,
+            };
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const handleRemoveCartItem = (id: string) => {
+    setCartItems(prev => prev.filter(i => i.id !== id));
+    showToast('Item removido do carrinho');
+  };
+
+  // Checkout -> Create new order and go to tracking
+  const handleCheckout = (
+    paymentMethod: string,
+    discountAmount: number,
+    changeFor?: string,
+    mercadoPagoPaymentId?: string
+  ) => {
+    const subtotal = cartItems.reduce((acc, it) => acc + it.totalPrice, 0);
+    const deliveryFee = storeSettings.defaultDeliveryFee;
+    const total = Math.max(0, subtotal + deliveryFee - discountAmount);
+    const newOrderNum = `#${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const isAutoAccept = Boolean(storeSettings.autoAcceptOrders);
+    const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
+    const assignedCourier = activeCouriers.length > 0 ? activeCouriers[0] : undefined;
+
+    const newOrder: Order = {
+      id: `ord-${Date.now()}`,
+      orderNumber: newOrderNum,
+      customerName: 'Você (Cliente)',
+      type: 'Delivery',
+      status: isAutoAccept ? 'preparando' : 'novo',
+      timeAgo: isAutoAccept ? 'Aceito automaticamente' : 'Acabou de ser feito',
+      address: deliveryAddress,
+      paymentMethod,
+      changeFor,
+      mercadoPagoPaymentId,
+      paymentStatus: mercadoPagoPaymentId ? 'aprovado' : undefined,
+      items: cartItems.map(ci => ({
+        name: `${ci.product.name}${ci.pizzaSize ? ` [Tam: ${ci.pizzaSize}]` : ''}${ci.meatDoneness ? ` (${ci.meatDoneness})` : ''}`,
+        quantity: ci.quantity,
+        price: ci.totalPrice / ci.quantity,
+        pizzaSize: ci.pizzaSize,
+        notes: ci.notes || (ci.additionals.length > 0 ? ci.additionals.map(a => a.name).join(', ') : undefined),
+      })),
+      subtotal,
+      deliveryFee,
+      total,
+      courierName: assignedCourier?.name || 'Ricardo Souza',
+      courierPhone: assignedCourier?.phone || '(11) 98765-1122',
+      courierAvatar: assignedCourier?.avatar,
+      courierVehicle: assignedCourier?.vehicleModel || (assignedCourier?.vehicle ? `Veículo (${assignedCourier.vehicle})` : undefined),
+      courierPlate: assignedCourier?.plate,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
+    saveOrderToFirestore(newOrder);
+    setActiveTrackingOrder(newOrder);
+    setCartItems([]);
+    showToast(
+      isAutoAccept
+        ? `Pedido ${newOrderNum} realizado e salvo no Firebase! Aceito na cozinha 🔥`
+        : `Pedido ${newOrderNum} realizado e sincronizado no Firebase! 🔥`
+    );
+    setCurrentScreen('tracking');
+  };
+
+  // Kitchen operations
+  const handleKitchenAcceptOrder = (orderId: string) => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, status: 'preparando' } : o))
+    );
+    updateOrderStatusInFirestore(orderId, 'preparando');
+    showToast('Pedido aceito na cozinha! Preparando...');
+  };
+
+  const handleKitchenRejectOrder = (orderId: string) => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, status: 'recusado' } : o))
+    );
+    updateOrderStatusInFirestore(orderId, 'recusado');
+    showToast('Pedido recusado.');
+  };
+
+  const handleKitchenAdvanceToReady = (orderId: string) => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, status: 'pronto' } : o))
+    );
+    updateOrderStatusInFirestore(orderId, 'pronto');
+    showToast('Pedido pronto para retirada ou entrega!');
+  };
+
+  const handleKitchenAdvanceToDelivery = (
+    orderId: string,
+    courierInfo?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string }
+  ) => {
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id === orderId) {
+          return {
+            ...o,
+            status: 'em_entrega',
+            courierName: courierInfo?.name || o.courierName,
+            courierPhone: courierInfo?.phone || o.courierPhone,
+            courierAvatar: courierInfo?.avatar || o.courierAvatar,
+            courierVehicle: courierInfo?.vehicle || o.courierVehicle,
+            courierPlate: courierInfo?.plate || o.courierPlate,
+          };
+        }
+        return o;
+      })
+    );
+    if (courierInfo) {
+      updateOrderInFirestore(orderId, {
+        status: 'em_entrega',
+        courierName: courierInfo.name,
+        courierPhone: courierInfo.phone,
+        courierAvatar: courierInfo.avatar,
+        courierVehicle: courierInfo.vehicle,
+        courierPlate: courierInfo.plate,
+      });
+      showToast(`Pedido despachado com ${courierInfo.name}! 🛵`);
+    } else {
+      updateOrderStatusInFirestore(orderId, 'em_entrega');
+      showToast('Pedido despachado para entrega!');
+    }
+  };
+
+  const handleKitchenCompleteOrder = (orderId: string) => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, status: 'entregue' } : o))
+    );
+    updateOrderStatusInFirestore(orderId, 'entregue');
+    showToast('Pedido marcado como Entregue!');
+  };
+
+  const handleManualOrderAdd = (newOrder: Order) => {
+    setOrders(prev => [newOrder, ...prev]);
+    saveOrderToFirestore(newOrder);
+    showToast(`Pedido ${newOrder.orderNumber} adicionado e sincronizado no Firebase!`);
+  };
+
+  // Product management
+  const handleToggleProductAvailability = (productId: string) => {
+    setProducts(prev =>
+      prev.map(p => {
+        if (p.id === productId) {
+          const updated = { ...p, isAvailable: p.isAvailable === false ? true : false };
+          showToast(
+            updated.isAvailable
+              ? `${p.name} reativado no cardápio!`
+              : `${p.name} pausado (sem estoque)!`
+          );
+          return updated;
+        }
+        return p;
+      })
+    );
+  };
+
+  const handleSaveProduct = (savedProduct: Product) => {
+    setProducts(prev => {
+      const exists = prev.some(p => p.id === savedProduct.id);
+      if (exists) {
+        return prev.map(p => (p.id === savedProduct.id ? savedProduct : p));
+      }
+      return [savedProduct, ...prev];
+    });
+    showToast(`Produto ${savedProduct.name} salvo com sucesso!`);
+    setIsProductModalOpen(false);
+    setEditingProduct(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0F0F0F] text-[#e5e2e1] font-['Be_Vietnam_Pro'] antialiased selection:bg-[#ff5722] selection:text-white">
+      {/* Quick Screen Switcher Banner for review */}
+      <ScreenSwitcherBanner
+        currentScreen={currentScreen}
+        onNavigate={setCurrentScreen}
+        cartCount={cartItems.length}
+      />
+
+      {/* Main View Router */}
+      {currentScreen === 'menu' && (
+        <MenuScreen
+          products={products}
+          storeSettings={storeSettings}
+          deliveryAddress={deliveryAddress}
+          onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          onSelectProduct={product => {
+            setSelectedProduct(product);
+            setCurrentScreen('product_detail');
+          }}
+          onQuickAdd={handleQuickAdd}
+          onOpenCart={() => setCurrentScreen('cart')}
+          onOpenKitchen={() => setCurrentScreen('kitchen')}
+          onOpenChat={() => setIsDriverChatOpen(true)}
+          cartCount={cartItems.length}
+        />
+      )}
+
+      {currentScreen === 'product_detail' && (
+        <ProductDetailScreen
+          product={selectedProduct}
+          onBack={() => setCurrentScreen('menu')}
+          onAddToCart={handleAddToCart}
+          onOpenCart={() => setCurrentScreen('cart')}
+        />
+      )}
+
+      {currentScreen === 'cart' && (
+        <CartScreen
+          items={cartItems}
+          deliveryAddress={deliveryAddress}
+          storeSettings={storeSettings}
+          onUpdateStoreSettings={handleUpdateStoreSettings}
+          onUpdateQuantity={handleUpdateCartQuantity}
+          onRemoveItem={handleRemoveCartItem}
+          onBack={() => setCurrentScreen('menu')}
+          onOpenAddressModal={() => setIsAddressModalOpen(true)}
+          onOpenChat={() => setIsDriverChatOpen(true)}
+          onCheckout={handleCheckout}
+        />
+      )}
+
+      {currentScreen === 'tracking' && (
+        <OrderTrackingScreen
+          order={activeTrackingOrder}
+          onBack={() => setCurrentScreen('menu')}
+          onOpenChatWithDriver={() => setIsDriverChatOpen(true)}
+          onOpenHelp={() => showToast('Suporte Burger Dash: Atendimento 24h via WhatsApp.')}
+        />
+      )}
+
+      {currentScreen === 'kitchen' && (
+        <KitchenManagerScreen
+          orders={orders}
+          products={products}
+          storeSettings={storeSettings}
+          onUpdateStoreSettings={handleUpdateStoreSettings}
+          onToggleProductAvailability={handleToggleProductAvailability}
+          onOpenEditProduct={prod => {
+            setEditingProduct(prod);
+            setIsProductModalOpen(true);
+          }}
+          onOpenAddProduct={() => {
+            setEditingProduct(null);
+            setIsProductModalOpen(true);
+          }}
+          onAcceptOrder={handleKitchenAcceptOrder}
+          onRejectOrder={handleKitchenRejectOrder}
+          onAdvanceToReady={handleKitchenAdvanceToReady}
+          onAdvanceToDelivery={handleKitchenAdvanceToDelivery}
+          onCompleteOrder={handleKitchenCompleteOrder}
+          onOpenManualOrder={() => setIsManualOrderOpen(true)}
+          onPrintOrder={order => setPrintOrder(order)}
+          onOpenChat={() => setIsDriverChatOpen(true)}
+          onNavigateToMenu={() => setCurrentScreen('menu')}
+        />
+      )}
+
+      {/* Bottom Navigation */}
+      {currentScreen !== 'product_detail' && (
+        <BottomNav
+          currentScreen={currentScreen}
+          onNavigate={setCurrentScreen}
+          cartCount={cartItems.length}
+          hasActiveOrder={Boolean(activeTrackingOrder)}
+        />
+      )}
+
+      {/* Modals */}
+      {isDriverChatOpen && (
+        <ContactDriverModal
+          onClose={() => setIsDriverChatOpen(false)}
+          courierName={activeTrackingOrder.courierName || 'Ricardo'}
+          courierPhone={activeTrackingOrder.courierPhone}
+          courierAvatar={activeTrackingOrder.courierAvatar}
+          courierVehicle={activeTrackingOrder.courierVehicle}
+          courierPlate={activeTrackingOrder.courierPlate}
+        />
+      )}
+
+      {isAddressModalOpen && (
+        <AddressModal
+          currentAddress={deliveryAddress}
+          onSave={setDeliveryAddress}
+          onClose={() => setIsAddressModalOpen(false)}
+        />
+      )}
+
+      {isManualOrderOpen && (
+        <ManualOrderModal
+          products={products}
+          onAddOrder={handleManualOrderAdd}
+          onClose={() => setIsManualOrderOpen(false)}
+        />
+      )}
+
+      {isProductModalOpen && (
+        <ProductFormModal
+          initialProduct={editingProduct}
+          onSave={handleSaveProduct}
+          onClose={() => {
+            setIsProductModalOpen(false);
+            setEditingProduct(null);
+          }}
+        />
+      )}
+
+      {printOrder && (
+        <PrintModal
+          order={printOrder}
+          onClose={() => setPrintOrder(null)}
+        />
+      )}
+
+      {/* Toast Feedback */}
+      <Toast
+        message={toastMessage}
+        onClose={() => setToastMessage(null)}
+      />
+    </div>
+  );
+}

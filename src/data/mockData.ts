@@ -1,0 +1,545 @@
+import { Product, Order, PizzaSize } from '../types';
+
+export interface PizzaSizeConfig {
+  id: PizzaSize;
+  label: string;
+  sizeName: string;
+  slices: string;
+  diameter: string;
+  people: string;
+  priceOffset: number; // Diferença em relação ao tamanho G
+  isPopular?: boolean;
+}
+
+export const PIZZA_SIZES: PizzaSizeConfig[] = [
+  {
+    id: 'P',
+    label: 'Pequena (P)',
+    sizeName: 'Pequena',
+    slices: '4 Fatias',
+    diameter: '25cm',
+    people: 'Serve 1 a 2 pessoas',
+    priceOffset: -12.00,
+  },
+  {
+    id: 'M',
+    label: 'Média (M)',
+    sizeName: 'Média',
+    slices: '6 Fatias',
+    diameter: '30cm',
+    people: 'Serve 2 a 3 pessoas',
+    priceOffset: -6.00,
+  },
+  {
+    id: 'G',
+    label: 'Grande (G)',
+    sizeName: 'Grande',
+    slices: '8 Fatias',
+    diameter: '35cm',
+    people: 'Serve 3 a 4 pessoas',
+    priceOffset: 0.00,
+    isPopular: true,
+  },
+  {
+    id: 'Família',
+    label: 'Família',
+    sizeName: 'Família',
+    slices: '12 Fatias',
+    diameter: '45cm',
+    people: 'Serve 5 a 6 pessoas',
+    priceOffset: 16.00,
+  },
+];
+
+export const APP_IMAGES = {
+  logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAoqwQM8fVB8Rlxe89Opa8PNEc5VGqmAKSUAYca3evzgOtwSm6dXfhzESGaN3X2sinHTm7Z4X2C6Z7bi7z-AHjhCPlELBzCM159tX9aRrBrkm7faPAD-2wde7-na7B2QJiQOzRi3aPUvGhO0GAp-YXA_q8Y5bJV7mdkcYoB_ROYWtR7VQvxjg0RGGXO_JWp88klIpe1-33HiZDPxKfPguJZjiG9E0KqP7SqMzjdG8oMh_UdocboaW3mll6rpl_fxzdH9wfUfqQ0k5z1',
+  userAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYRO9PkdVACM1W3w6pijTUB_edkuuAMSAYbXBSd4cJwQnHZXjtHnXXg6rAaIMmX5d4ysbyv5punQ2xwMYlfXZ0of3UGURpSCgq-xpaznmI-1yj12Sb8b_AgRAmLQNgUEElSsG4w-2y7AqZc-6n8qaI0mvD3mwYBWq4kremXAkuLaECIADZLLRWVXnmtalow1tI-ZdW8k3rgN6krCqqGwdFGch74zqapJVVnUHHM2QdEtDYWumB8C5IsD3cbKVeAfnnukFEFM0YY77J',
+  driverAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBkeBs2xKKeQ2JobtSVepnULtn-8CE9iYyNPJHNU1jchqLvCat06ZbOvHSjdm7SPR0Uvc2_5jLq6EHEt3ndCWyn4OWWjIy-ikupU_u9YlGXWbWblJWRoJgQ-PpVrR0KpUq2ibzpf93phDZO7Ni75_FxxQuBn3jzUVK6-0F0NhCKpN6lOsMEPydfLMAtfGpeX1ilARsIiAG90fq67f0JCHpN48LduOferpAc4pbX9KBD-z4y0WZvg9MYD24TQPvlfG8S6rtWnYCAWKfI',
+  deliveryMap: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_akAeClo5MTyOJy-3KYBdGKhjNzv8pEop-2_w0uqlWTM0uyECroxmOY7aSguQJ8R78q7kxMFkn1X-tyLV-hKDYLNrYkGmJQIbuG0srXGYgd0vRaP9jn_H7GnVCf9NuU0ebX1i1g39fYj5EChjKrCmbDx3GWmoBgVmgwkP6M0jSIMOlwoMkAE68HfbU-kLQuBSC5bUS3E1lLd3jk8HcsiZml9RT-Tpd8W9xAt7CuN5YS6D47C8lLEtJJhhZVV9VHxdgT7HA9CeUdGG',
+  urgentCardBanner: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCq4Qa26b5sZTS_PcCUlgDwSpHvMd9VGAUR2oVnwHLuqgopgiWCO5BYXyuFyjQHVaiGXO-57wpJx1sKCIPUcGRxx6OaVUyPApfctz2nDaIVSzlj92s2DDUFS-SfA4vpQfBW0uiDoTeiZRjfT1tksMA961IYjJwJCs9YF1ARR5gZJLGDge0U4EJsjbR28JXWYRPU6Iz60UWAK2kOD9InAxi0cWjzg33krVPGHrW0hvO3WP_aT4vwrXo_bsblCYyhzYOnCeEH_qsuEJI-',
+};
+
+export const PRODUCTS: Product[] = [
+  {
+    id: 'gourmet-truffle',
+    name: 'Gourmet Truffle Burger',
+    category: 'burgers',
+    price: 54.00,
+    rating: 4.9,
+    tag: 'Gourmet',
+    description: 'Blend de Angus (200g), maionese de trufas negras, queijo gruyère e rúcula baby no pão brioche artesanal.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCuSdj4JSzyVbcLchz_WoYBrQfv59DaME1EY3-Dqh9rRiCe3a1JHscojj5Zh6I0bHYIgOaT0yKz9TTdPewC3VaX-QMaySphQYTIa1BWoirXnEspLqzHUTHwIceGngxmsuXyavLYslayAPuIk3g-6sYaAAuCvisE_p10YXn2qH2yV0T4CsnMT2lnHWoTL1DAMExaZ2grmSg_gutXjZA3H0bzhgTrSDPucEiFJmj9L7_YKK0fVL17tMdPxxaayZpSaf30xMZliEfwWy0X',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
+        { id: 'cebola', name: 'Cebola caramelizada', subtitle: '+ Doçura artesanal', price: 3.00 },
+      ]
+    }
+  },
+  {
+    id: 'truffle-king',
+    name: 'Truffle King',
+    category: 'burgers',
+    price: 48.00,
+    originalPrice: 56.00,
+    rating: 4.9,
+    tag: 'ESPECIAL DO DIA',
+    description: 'Trufas negras, cebola caramelizada, queijo gruyère derretido e blend 180g grelhado no fogo.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBXzEZOeVvNpMsT2EQdwYEYsTt5i2EdY8MvdcEqg_OPMjyqC4Hc_PiIdV07y6G0l44qNiZdddaB95t8qKoHPz2IWe6D7KDYYAnt02Rz1UHY8bTcPBeAV0jwg9R_yjVmw8gqnNwTqi9X5cujyqjmoifHQf2Ph8fdgVlfGeLgWHtaDvvfBkDIkhmqy3ozLI1tUDLFftfN05BqoVmPBA6wmg2saSzub8NbglCe2mUheCM1Z7vvLD8VcejTCM1IBRw0XnCwIG_vzta0lVDk',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
+        { id: 'cebola', name: 'Cebola caramelizada', subtitle: '+ Doçura artesanal', price: 3.00 },
+      ]
+    }
+  },
+  {
+    id: 'mafia',
+    name: 'mafia',
+    category: 'burgers',
+    price: 32.00,
+    rating: 4.7,
+    description: 'Pão de brioche, blend duplo prensado e queijo cheddar.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAYiCpXDFzLo2i6AtAat0pi5aY8cpQUYfRuf2lbZeJUENy1TTAC_Bp1C6uBfpTVpZo5EBVV-P4x_1BjUgFtYgHZL-qddmIobcNc7lXG8HraY8OO7zkpnTr9cPo8CXh4B_xkAUO1J2kEZ5F6bESJfzGCr5GCSfpvW7aFvJsjpZVH-y5_FDuAVwAZta5HmIc8WjdmPiru6h5LhILUqoQtXc6eN7wGbyqDCpwfNowYZEEKdEzN9rFso8No-Yz7_ictkmFt8jLOplvkWlWY',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
+      ]
+    }
+  },
+  {
+    id: 'classic-bacon',
+    name: 'Classic Bacon',
+    category: 'burgers',
+    price: 39.00,
+    rating: 4.8,
+    tag: 'BEST-SELLER',
+    description: 'Bacon crocante, cheddar inglês e maionese defumada.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAITDiZyk_4eAHYtLt1rGiR5MhwGdDDIPM_LTckR4CVpWDDDqxS_SU8-zRNGkwR3S6SJVrFZfFHsYwHVu_F8A5f3OM401y_82FemAM1_g-Fo3QZotggWGMwLnOjEqKrF9LG9QtdS2UbtaxV2pRdxO--Iqg2uod6FFV__TRklcbami-8cxYdPV-WyA5BCloox0qJEnTy8J69c5_iGtorPAA_IK51JpEbDCgQapiJHS3JM7AbaxyBE4XrOVoefTnkOtKzmV7gksfZC8fi',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cebola', name: 'Cebola caramelizada', subtitle: '+ Doçura artesanal', price: 3.00 },
+      ]
+    }
+  },
+  {
+    id: 'gourmet-truffle-menu',
+    name: 'Gourmet Truffle',
+    category: 'burgers',
+    price: 54.00,
+    rating: 4.9,
+    description: 'Wagyu A5, azeite de trufas brancas e rúcula baby.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDozVPdDHa4G250E6ROjE-zrD3HSOwr6-QmKCB8titHoNY4ytMXvMwDha9lv_5oxcaCxwYTyd3lt-WwCWPg6EizyXtUXyTvOvZEKUBx_eKszFsyhPjNVZ4el4i1tJR_f46dR4SDQqNXrwP3T19A6yofibUj6E2miaTifqln09Q7fLORWNjn0q5Y2nPwJBpUEHMvkbtjgC5QHfGqWMmdnXjDavm-M7WqhPkwaJ_e5CfWiGRxihqwLEPAO5bPTkvKT1v9XUyceH6t1Ojn',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
+      ]
+    }
+  },
+  {
+    id: 'smoky-bbq',
+    name: 'Smoky BBQ',
+    category: 'burgers',
+    price: 42.00,
+    rating: 4.7,
+    description: 'Hambúrguer bovino, cheddar derretido, anéis de cebola crocantes, bacon defumado e molho BBQ.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAtSjFtcBl-KoNSmrntC7-C2Nexuxm9-DDpUJl8YWYXGHi_NQTREvRZLFSsDxeeqYa1AqlE1m2zr32K6S1vZv1qvr8ytl1i2QLBgSt6ZNq78x6_aXigMhV6rJtiWcevEmi-QASyu7DNnrjsmfY-H93xGAdJkjAaPevoAprNdBW6juyY0c3fkrhkkJv23XLO4UsosjH1OIB4an5MSuUcxUV4KIlzMwMsQv22BfYtlRtgJAv7urqXz0TQhOA5ymidfyiTP0HAqdIyGA01',
+    options: {
+      meatDoneness: true,
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
+        { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
+      ]
+    }
+  },
+  // COMBOS
+  {
+    id: 'combo-familia-crias',
+    name: 'Combo Família Crias',
+    category: 'combos',
+    price: 124.00,
+    originalPrice: 145.00,
+    rating: 4.9,
+    tag: 'ECONOMIZE R$ 21',
+    description: '2x Burgers Crias Max + 2x Batatas Rústicas Médias + 2x Refrigerantes em Lata. Perfeito para dividir!',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCq4Qa26b5sZTS_PcCUlgDwSpHvMd9VGAUR2oVnwHLuqgopgiWCO5BYXyuFyjQHVaiGXO-57wpJx1sKCIPUcGRxx6OaVUyPApfctz2nDaIVSzlj92s2DDUFS-SfA4vpQfBW0uiDoTeiZRjfT1tksMA961IYjJwJCs9YF1ARR5gZJLGDge0U4EJsjbR28JXWYRPU6Iz60UWAK2kOD9InAxi0cWjzg33krVPGHrW0hvO3WP_aT4vwrXo_bsblCYyhzYOnCeEH_qsuEJI-',
+  },
+  {
+    id: 'combo-smash-duplo',
+    name: 'Combo Smash Duplo',
+    category: 'combos',
+    price: 46.00,
+    originalPrice: 52.00,
+    rating: 4.8,
+    tag: 'COMBO POPULAR',
+    description: 'Burger mafia (duplo blend prensado e cheddar) + Batata Crocante Individual + 1 Refrigerante 350ml.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAYiCpXDFzLo2i6AtAat0pi5aY8cpQUYfRuf2lbZeJUENy1TTAC_Bp1C6uBfpTVpZo5EBVV-P4x_1BjUgFtYgHZL-qddmIobcNc7lXG8HraY8OO7zkpnTr9cPo8CXh4B_xkAUO1J2kEZ5F6bESJfzGCr5GCSfpvW7aFvJsjpZVH-y5_FDuAVwAZta5HmIc8WjdmPiru6h5LhILUqoQtXc6eN7wGbyqDCpwfNowYZEEKdEzN9rFso8No-Yz7_ictkmFt8jLOplvkWlWY',
+  },
+  {
+    id: 'combo-truffle-experience',
+    name: 'Combo Truffle Experience',
+    category: 'combos',
+    price: 74.00,
+    originalPrice: 85.00,
+    rating: 5.0,
+    tag: 'EXPERIÊNCIA GOURMET',
+    description: 'Gourmet Truffle Burger + Batata Rústica com Alecrim + Refrigerante gelado à sua escolha.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCuSdj4JSzyVbcLchz_WoYBrQfv59DaME1EY3-Dqh9rRiCe3a1JHscojj5Zh6I0bHYIgOaT0yKz9TTdPewC3VaX-QMaySphQYTIa1BWoirXnEspLqzHUTHwIceGngxmsuXyavLYslayAPuIk3g-6sYaAAuCvisE_p10YXn2qH2yV0T4CsnMT2lnHWoTL1DAMExaZ2grmSg_gutXjZA3H0bzhgTrSDPucEiFJmj9L7_YKK0fVL17tMdPxxaayZpSaf30xMZliEfwWy0X',
+  },
+  // SALGADOS & PORÇÕES
+  {
+    id: 'batata-rustica',
+    name: 'Batata Frita Grande',
+    category: 'salgados',
+    price: 18.90,
+    rating: 4.8,
+    tag: 'PORÇÃO',
+    description: 'Rústica com Alecrim fresco e flor de sal marinho servida em cesto térmico.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBksqjRCHKyH0Wklex97IsdV-IyLaYHuJvgIycYRCZ2-E0J0xdM2CLo7bI5WUr3EG2mT-k_VrxUXGu-wdCH6nDTbeFBMDqV2DVcmbhq9jaqCGW8ZECBOnLt5A6qeIa4LxZajs4NxSzxa1FiwrjdmsKmQzrY_dKXd1hXoAcCpDCCHOilYfzwNg_J8nFyR381Xegf0FNxlECpJYtRqXEtxYc5DIpx9YGEe4dBlZbmher37PdXtE6S3whyIPD7wb4gkkBchuYLdxFX1mb6',
+  },
+  {
+    id: 'batata-cheddar-bacon',
+    name: 'Batata Cheddar & Bacon',
+    category: 'salgados',
+    price: 26.00,
+    rating: 4.9,
+    tag: 'MAIS PEDIDO',
+    description: 'Batata rústica crocante coberta com calda de queijo cheddar inglês cremoso e farofa de bacon crocante.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBksqjRCHKyH0Wklex97IsdV-IyLaYHuJvgIycYRCZ2-E0J0xdM2CLo7bI5WUr3EG2mT-k_VrxUXGu-wdCH6nDTbeFBMDqV2DVcmbhq9jaqCGW8ZECBOnLt5A6qeIa4LxZajs4NxSzxa1FiwrjdmsKmQzrY_dKXd1hXoAcCpDCCHOilYfzwNg_J8nFyR381Xegf0FNxlECpJYtRqXEtxYc5DIpx9YGEe4dBlZbmher37PdXtE6S3whyIPD7wb4gkkBchuYLdxFX1mb6',
+  },
+  {
+    id: 'aneis-cebola',
+    name: 'Anéis de Cebola Crocantes',
+    category: 'salgados',
+    price: 16.90,
+    rating: 4.7,
+    description: 'Onion rings empanados com farinha panko artesanal temperada e molho barbecue defumado.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAtSjFtcBl-KoNSmrntC7-C2Nexuxm9-DDpUJl8YWYXGHi_NQTREvRZLFSsDxeeqYa1AqlE1m2zr32K6S1vZv1qvr8ytl1i2QLBgSt6ZNq78x6_aXigMhV6rJtiWcevEmi-QASyu7DNnrjsmfY-H93xGAdJkjAaPevoAprNdBW6juyY0c3fkrhkkJv23XLO4UsosjH1OIB4an5MSuUcxUV4KIlzMwMsQv22BfYtlRtgJAv7urqXz0TQhOA5ymidfyiTP0HAqdIyGA01',
+  },
+  // Bebidas - Refrigerantes & Geladas
+  {
+    id: 'coca-cola',
+    name: 'Coca-Cola Original',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 7.90,
+    description: 'Lata 350ml trincando de gelada.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCq_KET3B6sPDVax3g9KyVzHeFMaxvDopMmp7eHfrdtMqWxeFyCK4QQbtJoHnFfYtL1eWfSAuvd4hGWOkVRt-ECk7qi_FA6V-HlyLp0dZqwELF7R79rthxzN-pe7YTGbnjKocuII3WbRbEDbtdN1hvZSjeAFbieV9kiUzoJQdEWDx-njMCG6X3GYv72x1cmha_5UDFiDvhDCu6EI7srAGY1EK38AiIXDMqeGoq3jRfQYJ_Ejsr1WPATysiNwPiHQtgdz1TtbkZWSFQy',
+  },
+  {
+    id: 'coca-cola-zero',
+    name: 'Coca-Cola Sem Açúcar',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 7.90,
+    description: 'Lata 350ml zero calorias, máximo sabor e bem gelada.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCq_KET3B6sPDVax3g9KyVzHeFMaxvDopMmp7eHfrdtMqWxeFyCK4QQbtJoHnFfYtL1eWfSAuvd4hGWOkVRt-ECk7qi_FA6V-HlyLp0dZqwELF7R79rthxzN-pe7YTGbnjKocuII3WbRbEDbtdN1hvZSjeAFbieV9kiUzoJQdEWDx-njMCG6X3GYv72x1cmha_5UDFiDvhDCu6EI7srAGY1EK38AiIXDMqeGoq3jRfQYJ_Ejsr1WPATysiNwPiHQtgdz1TtbkZWSFQy',
+  },
+  {
+    id: 'guarana',
+    name: 'Guaraná Antarctica',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 6.90,
+    description: 'Lata 350ml gelada com o sabor original do Brasil.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD0XqpYIyzFElYHq90Rc6iZjF7fRDqpexKA5OPFMuvf46Xdun76qcRdSdfRq_X0cXJZHT5z2PsPKi1ISuMEJM42xLy2CWJWAzO-sakcRNMaJVicjBjL3h2aeMFF9q6BfOTw-R-3cC60JfTYyd1kAoMTwfuoYLSYzqEXTOZVnoEzxnfTXvGuoZVk7sF51alzz4JAae_jLVryPjzI7WgL41gExeSFcPS2nECirwkFFZSVrSXd3kX1pj2om45akt2tDagb5iKaH_lC5A7v',
+  },
+  {
+    id: 'guarana-zero',
+    name: 'Guaraná Antarctica Zero',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 6.90,
+    description: 'Lata 350ml zero açúcar, super refrescante.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD0XqpYIyzFElYHq90Rc6iZjF7fRDqpexKA5OPFMuvf46Xdun76qcRdSdfRq_X0cXJZHT5z2PsPKi1ISuMEJM42xLy2CWJWAzO-sakcRNMaJVicjBjL3h2aeMFF9q6BfOTw-R-3cC60JfTYyd1kAoMTwfuoYLSYzqEXTOZVnoEzxnfTXvGuoZVk7sF51alzz4JAae_jLVryPjzI7WgL41gExeSFcPS2nECirwkFFZSVrSXd3kX1pj2om45akt2tDagb5iKaH_lC5A7v',
+  },
+  {
+    id: 'fanta-laranja',
+    name: 'Fanta Laranja',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 6.90,
+    description: 'Lata 350ml bem gelada.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBCbm4j4mSteKXaJO4v8Z1p7aKmAiYrDZ_jpgdtOd2A-qq_o4yVs70gbZjiXqdBVXHmHSYTtm0p68vh8mowoMXe9kd4bNjJeU32GmZ6SWyu2dfZJgJKVp2JBZzBrdWNCvSLMZbxVypJhsTm4dkfWpYLx882g56X-YZEfKKXcqy1tw7oBeIvGPlJQfwNEyyKhwHdvXp5acIdFwjKpIKrA66ioKBnca6hUrMnw1lkuCVw0WMKTQUt57mRQgqU2IVhWg30WdFGm4n_7uWn',
+  },
+  {
+    id: 'sprite',
+    name: 'Sprite Lemon Fresh',
+    category: 'bebidas',
+    subCategory: 'refrigerantes',
+    price: 6.90,
+    description: 'Lata 350ml com sabor limão refrescante trincando de gelada.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBCbm4j4mSteKXaJO4v8Z1p7aKmAiYrDZ_jpgdtOd2A-qq_o4yVs70gbZjiXqdBVXHmHSYTtm0p68vh8mowoMXe9kd4bNjJeU32GmZ6SWyu2dfZJgJKVp2JBZzBrdWNCvSLMZbxVypJhsTm4dkfWpYLx882g56X-YZEfKKXcqy1tw7oBeIvGPlJQfwNEyyKhwHdvXp5acIdFwjKpIKrA66ioKBnca6hUrMnw1lkuCVw0WMKTQUt57mRQgqU2IVhWg30WdFGm4n_7uWn',
+  },
+  {
+    id: 'agua-mineral',
+    name: 'Água Mineral Crystal Sem Gás',
+    category: 'bebidas',
+    price: 4.50,
+    description: 'Garrafa 500ml bem gelada.',
+    image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'agua-com-gas',
+    name: 'Água Mineral Crystal Com Gás',
+    category: 'bebidas',
+    price: 4.90,
+    description: 'Garrafa 500ml com gás e rodela de limão opcional.',
+    image: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'heineken-long-neck',
+    name: 'Cerveja Heineken Long Neck',
+    category: 'bebidas',
+    price: 11.90,
+    tag: 'PURO MALTE',
+    description: 'Garrafa 330ml Premium Lager gelada.',
+    image: 'https://images.unsplash.com/photo-1608270544520-2c70284c8e76?auto=format&fit=crop&w=800&q=80',
+  },
+  // Sucos Naturais
+  {
+    id: 'suco-laranja-natural',
+    name: 'Suco de Laranja Natural 500ml',
+    category: 'sucos',
+    price: 11.90,
+    rating: 4.9,
+    tag: '100% DA FRUTA',
+    description: 'Laranjas selecionadas e espremidas na hora do pedido. Sem adição de água nem conservantes.',
+    image: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'suco-abacaxi-hortela',
+    name: 'Suco de Abacaxi com Hortelã 500ml',
+    category: 'sucos',
+    price: 13.90,
+    rating: 4.8,
+    tag: 'SUPER REFRESCANTE',
+    description: 'Polpa de abacaxi pérola fresca batida com folhas selecionadas de hortelã e gelo triturado.',
+    image: 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'suco-maracuja',
+    name: 'Suco de Maracujá da Fruta 500ml',
+    category: 'sucos',
+    price: 13.50,
+    rating: 4.9,
+    tag: 'POLPA NATURAL',
+    description: 'Maracujá fresquinho com o equilíbrio perfeito de acidez e doçura, servido bem gelado.',
+    image: 'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'suco-morango',
+    name: 'Suco de Morango Natural 500ml',
+    category: 'sucos',
+    price: 14.90,
+    rating: 4.9,
+    tag: 'MAIS PEDIDO',
+    description: 'Morangos frescos batidos na hora, textura aveludada e sabor intenso da fruta.',
+    image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'suco-limonada-suica',
+    name: 'Limonada Suíça Especial 500ml',
+    category: 'sucos',
+    price: 14.50,
+    rating: 4.8,
+    tag: 'CREMOSA',
+    description: 'Limões tahiti batidos na hora com toque sutil de leite condensado e muito gelo.',
+    image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'suco-uva-integral',
+    name: 'Suco de Uva Tinto Integral 500ml',
+    category: 'sucos',
+    price: 12.90,
+    rating: 4.7,
+    tag: 'SEM AÇÚCAR',
+    description: 'Suco de uva 100% integral selecionado do Sul, servido trincando de gelado.',
+    image: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&w=800&q=80',
+  },
+  // Pizzas Artesanais
+  {
+    id: 'pizza-calabresa',
+    name: 'Pizza Calabresa dos Crias',
+    category: 'pizzas',
+    price: 49.90,
+    originalPrice: 56.00,
+    rating: 4.9,
+    tag: 'MAIS PEDIDA',
+    description: 'Molho de tomate pelado italiano, mussarela derretida, fatias finas de calabresa defumada artesanal, cebola roxa e orégano.',
+    image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80',
+    ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela', 'Calabresa artesanal', 'Cebola roxa', 'Orégano'],
+    options: {
+      additionals: [
+        { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
+        { id: 'borda-cheddar', name: 'Borda Recheada de Cheddar', subtitle: '+ Cheddar inglês cremoso', price: 9.90 },
+        { id: 'bacon-extra', name: 'Bacon em Cubos Crocante', subtitle: '+ Dose extra de crocância', price: 6.00 },
+      ]
+    }
+  },
+  {
+    id: 'pizza-4queijos',
+    name: 'Pizza 4 Queijos Especial',
+    category: 'pizzas',
+    price: 54.90,
+    rating: 4.8,
+    tag: 'GOURMET',
+    description: 'Mussarela especial, provolone defumado, queijo gorgonzola suave e requeijão cremoso tipo catupiry com azeitonas pretas.',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela', 'Provolone', 'Gorgonzola', 'Catupiry original'],
+    options: {
+      additionals: [
+        { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
+        { id: 'queijo-extra', name: 'Mussarela Extra', subtitle: '+ Camada dupla de queijo', price: 7.50 },
+      ]
+    }
+  },
+  {
+    id: 'pizza-margherita',
+    name: 'Pizza Margherita Suprema',
+    category: 'pizzas',
+    price: 46.90,
+    rating: 4.9,
+    description: 'Mussarela de búfala, rodelas de tomate fresco selecionado, folhas frescas de manjericão e azeite extravirgem.',
+    image: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=800&q=80',
+    ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela de búfala', 'Tomate fresco', 'Manjericão', 'Azeite'],
+    options: {
+      additionals: [
+        { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
+        { id: 'parmesao', name: 'Parmesão Ralado na Hora', subtitle: '+ Grana Padano ralado', price: 6.00 },
+      ]
+    }
+  },
+  {
+    id: 'pizza-frango-catupiry',
+    name: 'Pizza Frango com Catupiry',
+    category: 'pizzas',
+    price: 52.00,
+    rating: 4.8,
+    tag: 'CLÁSSICA',
+    description: 'Peito de frango desfiado temperado com especiarias, coberto com muito Catupiry legítimo e orégano.',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+    ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Frango desfiado', 'Catupiry original', 'Milho doce', 'Orégano'],
+    options: {
+      additionals: [
+        { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
+        { id: 'bacon-extra', name: 'Bacon Crocante', subtitle: '+ Fatias de bacon', price: 6.00 },
+      ]
+    }
+  }
+];
+
+export const INITIAL_ORDERS: Order[] = [
+  {
+    id: 'ord-2489',
+    orderNumber: '#2489',
+    customerName: 'João Silva',
+    customerPhone: '(11) 98765-4321',
+    type: 'Delivery',
+    status: 'novo',
+    timeAgo: 'Pedido há 4 min',
+    isUrgent: false,
+    address: 'Rua Augusta, 450 - Consolação',
+    paymentMethod: 'Pix',
+    items: [
+      { name: 'Burger Especial Bacon', quantity: 1, price: 42.90, notes: 'Sem cebola, carne bem passada' },
+      { name: 'Coca-Cola 350ml', quantity: 1, price: 7.00 },
+    ],
+    subtotal: 49.90,
+    deliveryFee: 7.00,
+    total: 56.90,
+    createdAt: '19:20'
+  },
+  {
+    id: 'ord-2487',
+    orderNumber: '#2487',
+    customerName: 'Maria Clara',
+    customerPhone: '(11) 99123-4567',
+    type: 'Retirada',
+    status: 'preparando',
+    timeAgo: 'Preparando há 12 min',
+    isUrgent: false,
+    address: 'Balcão da Loja',
+    paymentMethod: 'Cartão de Crédito',
+    items: [
+      { name: 'Crias Burger Max', quantity: 2, price: 78.00 },
+      { name: 'Batata Rústica Grande', quantity: 1, price: 18.00 },
+    ],
+    subtotal: 96.00,
+    deliveryFee: 0.00,
+    total: 96.00,
+    createdAt: '19:12'
+  },
+  {
+    id: 'ord-2486',
+    orderNumber: '#2486',
+    customerName: 'Roberto M.',
+    customerPhone: '(11) 97654-3210',
+    type: 'Delivery',
+    status: 'preparando',
+    timeAgo: 'Preparando há 18 min',
+    isUrgent: false,
+    address: 'Av. Paulista, 1800 - Apto 82',
+    paymentMethod: 'Pix',
+    items: [
+      { name: 'Combo Familia Crias', quantity: 1, price: 124.00 },
+      { name: 'Coca-Cola Original', quantity: 3, price: 23.70 },
+    ],
+    subtotal: 147.70,
+    deliveryFee: 8.00,
+    total: 155.70,
+    createdAt: '19:06'
+  },
+  {
+    id: 'ord-2490',
+    orderNumber: '#2490',
+    customerName: 'Ana Júlia',
+    customerPhone: '(11) 98111-2233',
+    type: 'Delivery',
+    status: 'novo',
+    timeAgo: 'Acabou de chegar',
+    isUrgent: true,
+    address: 'Rua Bela Cintra, 902',
+    paymentMethod: 'Cartão de Débito',
+    items: [
+      { name: 'Smash Classic', quantity: 3, price: 69.00 },
+      { name: 'Batata P', quantity: 2, price: 20.00 },
+      { name: 'Guaraná Antarctica', quantity: 1, price: 6.90 },
+    ],
+    subtotal: 95.90,
+    deliveryFee: 7.00,
+    total: 102.90,
+    createdAt: '19:24'
+  },
+  {
+    id: 'ord-1234',
+    orderNumber: '#1234',
+    customerName: 'Você (Cliente)',
+    customerPhone: '(11) 98888-9999',
+    type: 'Delivery',
+    status: 'preparando',
+    timeAgo: 'Há 8 min',
+    address: 'Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP',
+    courierName: 'Ricardo',
+    courierAvatar: APP_IMAGES.driverAvatar,
+    paymentMethod: 'Pix',
+    items: [
+      { name: 'Gourmet Truffle Burger (Ao ponto)', quantity: 1, price: 54.90, notes: 'Com bacon extra' },
+      { name: 'Batata Frita Grande (Rústica)', quantity: 1, price: 18.90 },
+    ],
+    subtotal: 73.80,
+    deliveryFee: 7.00,
+    total: 80.80,
+    createdAt: '19:16'
+  }
+];
