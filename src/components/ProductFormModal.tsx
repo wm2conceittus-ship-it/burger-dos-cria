@@ -21,6 +21,21 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [costPrice, setCostPrice] = useState(
     initialProduct?.costPrice !== undefined ? initialProduct.costPrice.toString() : ''
   );
+  const [juice300Price, setJuice300Price] = useState(
+    initialProduct?.juicePrices?.['300ml'] !== undefined
+      ? initialProduct.juicePrices['300ml'].toString()
+      : initialProduct?.price ? Math.max(0, initialProduct.price - 3).toFixed(2) : '8.90'
+  );
+  const [juice500Price, setJuice500Price] = useState(
+    initialProduct?.juicePrices?.['500ml'] !== undefined
+      ? initialProduct.juicePrices['500ml'].toString()
+      : initialProduct?.price ? initialProduct.price.toString() : '11.90'
+  );
+  const [juice1LPrice, setJuice1LPrice] = useState(
+    initialProduct?.juicePrices?.['1L'] !== undefined
+      ? initialProduct.juicePrices['1L'].toString()
+      : initialProduct?.price ? (initialProduct.price + 8).toFixed(2) : '19.90'
+  );
   const [description, setDescription] = useState(initialProduct?.description || '');
   const [image, setImage] = useState(
     initialProduct?.image ||
@@ -36,18 +51,27 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !price) return;
+    if (!name.trim() || (!price && category !== 'sucos')) return;
+
+    const basePrice = category === 'sucos'
+      ? (parseFloat(juice500Price) || parseFloat(price) || 11.90)
+      : (parseFloat(price) || 0);
 
     const savedProduct: Product = {
       id: initialProduct?.id || `prod-${Date.now()}`,
       name: name.trim(),
       category,
-      price: parseFloat(price) || 0,
+      price: basePrice,
       costPrice: costPrice.trim() ? parseFloat(costPrice) : undefined,
-      description: description.trim() || 'Feito com ingredientes frescos e grelhado no fogo.',
+      description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
       isAvailable: initialProduct?.isAvailable ?? true,
+      juicePrices: category === 'sucos' ? {
+        '300ml': parseFloat(juice300Price) || Math.max(0, basePrice - 3),
+        '500ml': parseFloat(juice500Price) || basePrice,
+        '1L': parseFloat(juice1LPrice) || (basePrice + 8),
+      } : undefined,
       options: category === 'burgers' ? {
         meatDoneness: true,
         additionals: initialProduct?.options?.additionals || [
@@ -174,6 +198,75 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <span>
                 O valor acima refere-se ao tamanho <strong>Grande (G - 8 fatias)</strong>. Os tamanhos <strong>P (4 fatias)</strong>, <strong>M (6 fatias)</strong> e <strong>Família (12 fatias)</strong> são calculados dinamicamente no cardápio.
               </span>
+            </div>
+          )}
+
+          {category === 'sucos' && (
+            <div className="p-3 bg-[#ff9800]/10 border border-[#ff9800]/30 rounded-xl space-y-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🥤</span>
+                <div>
+                  <h4 className="font-['Montserrat'] font-bold text-xs text-white">
+                    Preços Individuais por Tamanho de Suco
+                  </h4>
+                  <p className="text-[10px] text-[#ffd180]">
+                    Defina o valor exato que o cliente pagará para cada tamanho:
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-white mb-1">
+                    Copo 300ml (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.10"
+                    min="0"
+                    required
+                    value={juice300Price}
+                    onChange={e => setJuice300Price(e.target.value)}
+                    placeholder="8.90"
+                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-white mb-1">
+                    Copo 500ml (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.10"
+                    min="0"
+                    required
+                    value={juice500Price}
+                    onChange={e => {
+                      setJuice500Price(e.target.value);
+                      setPrice(e.target.value);
+                    }}
+                    placeholder="11.90"
+                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-white mb-1">
+                    1 Litro (1lt) (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.10"
+                    min="0"
+                    required
+                    value={juice1LPrice}
+                    onChange={e => setJuice1LPrice(e.target.value)}
+                    placeholder="19.90"
+                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
+                  />
+                </div>
+              </div>
             </div>
           )}
 

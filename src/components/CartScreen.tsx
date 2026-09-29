@@ -266,6 +266,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                           🍕 Tam: {item.pizzaSize} {item.pizzaSize === 'Família' ? '(12 fatias)' : `(${item.pizzaSize === 'P' ? '4 fatias' : item.pizzaSize === 'M' ? '6 fatias' : '8 fatias'})`}
                         </span>
                       )}
+                      {item.juiceSize && (
+                        <span className="bg-[#ff9800]/20 text-[#ffd180] border border-[#ff9800]/40 text-[10px] font-bold font-['Montserrat'] px-2 py-0.5 rounded-md flex items-center gap-1">
+                          🥤 Tam: {item.juiceSize === '1L' ? '1 Litro (1lt)' : item.juiceSize}
+                        </span>
+                      )}
                       {item.meatDoneness && (
                         <span className="bg-[#353535] text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
                           {item.meatDoneness}

@@ -15,11 +15,17 @@ export interface CustomerProfile {
   registeredAt?: string;
 }
 
+export interface JuicePrices {
+  '300ml': number;
+  '500ml': number;
+  '1L': number;
+}
+
 export interface Product {
   id: string;
   name: string;
   category: 'burgers' | 'combos' | 'salgados' | 'bebidas' | 'pizzas' | 'sucos';
-  subCategory?: 'refrigerantes';
+  subCategory?: 'cervejas' | 'refrigerantes';
   price: number;
   originalPrice?: number;
   costPrice?: number; // Preço de custo / CMV unitário dos insumos
@@ -29,6 +35,7 @@ export interface Product {
   rating?: number;
   ingredients?: string[];
   isAvailable?: boolean;
+  juicePrices?: JuicePrices;
   options?: {
     meatDoneness?: boolean;
     additionals?: { id: string; name: string; subtitle: string; price: number }[];
@@ -80,6 +87,7 @@ export interface StoreSettings {
 }
 
 export type PizzaSize = 'P' | 'M' | 'G' | 'Família';
+export type JuiceSize = '300ml' | '500ml' | '1L';
 
 export interface CartItem {
   id: string;
@@ -88,6 +96,7 @@ export interface CartItem {
   meatDoneness?: 'Mal passado' | 'Ao ponto' | 'Bem passado';
   pizzaSize?: PizzaSize;
   pizzaSlices?: string;
+  juiceSize?: JuiceSize;
   additionals: { id: string; name: string; price: number }[];
   notes?: string;
   totalPrice: number;
@@ -107,6 +116,7 @@ export interface Order {
     quantity: number;
     price: number;
     pizzaSize?: PizzaSize;
+    juiceSize?: JuiceSize;
     notes?: string;
   }[];
   subtotal: number;

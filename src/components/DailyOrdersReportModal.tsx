@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Order, StoreSettings } from '../types';
 import { APP_IMAGES } from '../data/mockData';
+import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
 import {
   X,
   Download,
@@ -25,6 +27,7 @@ import {
   Share2,
   Calendar,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 
 interface DailyOrdersReportModalProps {
@@ -50,6 +53,8 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
   const [copiedText, setCopiedText] = useState(false);
   const [copiedCsv, setCopiedCsv] = useState(false);
   const [activeView, setActiveView] = useState<'lista' | 'itens_resumo'>('lista');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // Non-refused orders considered valid for finance
   const validOrders = orders.filter(o => o.status !== 'recusado');
@@ -97,7 +102,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
     const map = new Map<string, { name: string; quantity: number; totalRevenue: number }>();
     validOrders.forEach(o => {
       o.items.forEach(item => {
-        const key = item.name + (item.pizzaSize ? ` (${item.pizzaSize})` : '');
+        const key = item.name + (item.pizzaSize ? ` (${item.pizzaSize})` : '') + (item.juiceSize ? ` (${item.juiceSize === '1L' ? '1lt' : item.juiceSize})` : '');
         const current = map.get(key) || { name: key, quantity: 0, totalRevenue: 0 };
         current.quantity += item.quantity;
         current.totalRevenue += item.price * item.quantity;
@@ -142,7 +147,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
     const rows = filteredOrders.map(order => {
       const itemsString = order.items
-        .map(i => `${i.quantity}x ${i.name}${i.pizzaSize ? ` [Tam: ${i.pizzaSize}]` : ''}${i.notes ? ` (${i.notes})` : ''}`)
+        .map(i => `${i.quantity}x ${i.name}${i.pizzaSize ? ` [Tam: ${i.pizzaSize}]` : ''}${i.juiceSize ? ` [Tam: ${i.juiceSize === '1L' ? '1 Litro (1lt)' : i.juiceSize}]` : ''}${i.notes ? ` (${i.notes})` : ''}`)
         .join(' | ');
 
       return [
@@ -234,6 +239,53 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
   // Printable View Trigger
   const handlePrintReport = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!reportRef.current || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      const element = reportRef.current;
+      const dataUrl = await toPng(element, {
+        quality: 0.95,
+        pixelRatio: 1.5,
+        backgroundColor: '#181818',
+        skipFonts: true,
+        imagePlaceholder: 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%231a1a1a" width="100" height="100"/></svg>',
+      });
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Falha ao renderizar imagem'));
+      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (img.height * imgWidth) / img.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = position - pageHeight;
+        pdf.addPage();
+        pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const safeStoreName = (storeSettings.storeName || 'burgerdash').toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const fileDateStr = new Date().toISOString().slice(0, 10);
+      pdf.save(`relatorio-pedidos-${safeStoreName}-${fileDateStr}.pdf`);
+    } catch (err) {
+      console.error('Erro ao gerar PDF de pedidos:', err);
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -349,17 +401,36 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
             </button>
 
             <button
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-50 text-white px-3 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer shadow-sm"
+              title="Baixar arquivo PDF de pedidos"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Gerando PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Baixar PDF</span>
+                </>
+              )}
+            </button>
+
+            <button
               onClick={handlePrintReport}
-              className="bg-[#262626] hover:bg-[#333333] text-white border border-[#353535] hover:border-white px-3 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
-              title="Imprimir relatório da cozinha ou salvar em PDF"
+              className="bg-[#262626] hover:bg-[#333333] text-white border border-[#353535] hover:border-white px-3 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap hidden sm:flex cursor-pointer"
+              title="Imprimir relatório da cozinha"
             >
               <Printer className="w-3.5 h-3.5 text-white" />
-              <span className="hidden sm:inline">Imprimir / PDF</span>
+              <span>Imprimir</span>
             </button>
 
             <button
               onClick={onClose}
-              className="text-[#b4b5b5] hover:text-white p-2 rounded-md hover:bg-[#333] transition-colors ml-auto md:ml-0"
+              className="text-[#b4b5b5] hover:text-white p-2 rounded-md hover:bg-[#333] transition-colors ml-auto md:ml-0 cursor-pointer"
               title="Fechar relatório"
             >
               <X className="w-5 h-5" />
@@ -368,7 +439,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+        <div ref={reportRef} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 bg-[#181818]">
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
             <div className="bg-[#20201f] border border-[#353535] rounded-md p-3">

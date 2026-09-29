@@ -1,4 +1,4 @@
-import { Product, Order, PizzaSize } from '../types';
+import { Product, Order, PizzaSize, JuiceSize } from '../types';
 
 export interface PizzaSizeConfig {
   id: PizzaSize;
@@ -10,6 +10,40 @@ export interface PizzaSizeConfig {
   priceOffset: number; // Diferença em relação ao tamanho G
   isPopular?: boolean;
 }
+
+export interface JuiceSizeConfig {
+  id: JuiceSize;
+  label: string;
+  volume: string;
+  description: string;
+  priceOffset: number; // Diferença em relação ao tamanho 500ml (base)
+  isPopular?: boolean;
+}
+
+export const JUICE_SIZES: JuiceSizeConfig[] = [
+  {
+    id: '300ml',
+    label: 'Copo 300ml',
+    volume: '300ml',
+    description: 'Dose individual refrescante',
+    priceOffset: -3.00,
+  },
+  {
+    id: '500ml',
+    label: 'Copo 500ml',
+    volume: '500ml',
+    description: 'Tamanho clássico gelado • Mais Pedido',
+    priceOffset: 0.00,
+    isPopular: true,
+  },
+  {
+    id: '1L',
+    label: 'Garrafa 1 Litro (1lt)',
+    volume: '1 Litro (1lt)',
+    description: 'Ideal para dividir com amigos ou família',
+    priceOffset: 8.00,
+  },
+];
 
 export const PIZZA_SIZES: PizzaSizeConfig[] = [
   {
@@ -307,73 +341,150 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: 'heineken-long-neck',
-    name: 'Cerveja Heineken Long Neck',
+    name: 'Cerveja Heineken Long Neck 330ml',
     category: 'bebidas',
-    price: 11.90,
+    subCategory: 'cervejas',
+    price: 12.90,
     tag: 'PURO MALTE',
-    description: 'Garrafa 330ml Premium Lager gelada.',
+    description: 'Garrafa 330ml Premium Lager holandesa trincando de gelada.',
     image: 'https://images.unsplash.com/photo-1608270544520-2c70284c8e76?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'corona-extra',
+    name: 'Cerveja Corona Extra 330ml',
+    category: 'bebidas',
+    subCategory: 'cervejas',
+    price: 13.90,
+    tag: 'COM LIMÃO',
+    description: 'Garrafa 330ml refrescante com rodela de limão taiti.',
+    image: 'https://images.unsplash.com/photo-1584225064785-c62a8b43d148?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'stella-artois',
+    name: 'Cerveja Stella Artois 330ml',
+    category: 'bebidas',
+    subCategory: 'cervejas',
+    price: 11.90,
+    tag: 'PREMIUM LAGER',
+    description: 'Garrafa 330ml puro malte clássica belga.',
+    image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'budweiser-long-neck',
+    name: 'Cerveja Budweiser 330ml',
+    category: 'bebidas',
+    subCategory: 'cervejas',
+    price: 9.90,
+    tag: 'KING OF BEERS',
+    description: 'Garrafa 330ml marcante e refrescante.',
+    image: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'brahma-duplo-malte',
+    name: 'Cerveja Brahma Duplo Malte Lata 350ml',
+    category: 'bebidas',
+    subCategory: 'cervejas',
+    price: 7.90,
+    tag: 'DUPLO MALTE',
+    description: 'Lata 350ml cremosidade e sabor no ponto certo.',
+    image: 'https://images.unsplash.com/photo-1567696911980-2eed69a46042?auto=format&fit=crop&w=800&q=80',
   },
   // Sucos Naturais
   {
     id: 'suco-laranja-natural',
-    name: 'Suco de Laranja Natural 500ml',
+    name: 'Suco de Laranja Natural',
     category: 'sucos',
     price: 11.90,
+    costPrice: 3.50,
     rating: 4.9,
     tag: '100% DA FRUTA',
-    description: 'Laranjas selecionadas e espremidas na hora do pedido. Sem adição de água nem conservantes.',
+    description: 'Laranjas selecionadas e espremidas na hora do pedido. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 8.90,
+      '500ml': 11.90,
+      '1L': 19.90,
+    },
   },
   {
     id: 'suco-abacaxi-hortela',
-    name: 'Suco de Abacaxi com Hortelã 500ml',
+    name: 'Suco de Abacaxi com Hortelã',
     category: 'sucos',
     price: 13.90,
+    costPrice: 4.00,
     rating: 4.8,
     tag: 'SUPER REFRESCANTE',
-    description: 'Polpa de abacaxi pérola fresca batida com folhas selecionadas de hortelã e gelo triturado.',
+    description: 'Polpa de abacaxi pérola fresca batida com folhas de hortelã e gelo. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 9.90,
+      '500ml': 13.90,
+      '1L': 21.90,
+    },
   },
   {
     id: 'suco-maracuja',
-    name: 'Suco de Maracujá da Fruta 500ml',
+    name: 'Suco de Maracujá da Fruta',
     category: 'sucos',
     price: 13.50,
+    costPrice: 4.20,
     rating: 4.9,
     tag: 'POLPA NATURAL',
-    description: 'Maracujá fresquinho com o equilíbrio perfeito de acidez e doçura, servido bem gelado.',
+    description: 'Maracujá fresquinho com o equilíbrio perfeito de acidez e doçura. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 9.50,
+      '500ml': 13.50,
+      '1L': 21.50,
+    },
   },
   {
     id: 'suco-morango',
-    name: 'Suco de Morango Natural 500ml',
+    name: 'Suco de Morango Natural',
     category: 'sucos',
     price: 14.90,
+    costPrice: 5.00,
     rating: 4.9,
     tag: 'MAIS PEDIDO',
-    description: 'Morangos frescos batidos na hora, textura aveludada e sabor intenso da fruta.',
+    description: 'Morangos frescos batidos na hora, sabor intenso e aveludado. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 10.90,
+      '500ml': 14.90,
+      '1L': 22.90,
+    },
   },
   {
     id: 'suco-limonada-suica',
-    name: 'Limonada Suíça Especial 500ml',
+    name: 'Limonada Suíça Especial',
     category: 'sucos',
     price: 14.50,
+    costPrice: 4.50,
     rating: 4.8,
     tag: 'CREMOSA',
-    description: 'Limões tahiti batidos na hora com toque sutil de leite condensado e muito gelo.',
+    description: 'Limões tahiti batidos na hora com toque de leite condensado e gelo. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 10.50,
+      '500ml': 14.50,
+      '1L': 22.50,
+    },
   },
   {
     id: 'suco-uva-integral',
-    name: 'Suco de Uva Tinto Integral 500ml',
+    name: 'Suco de Uva Tinto Integral',
     category: 'sucos',
     price: 12.90,
+    costPrice: 4.00,
     rating: 4.7,
     tag: 'SEM AÇÚCAR',
-    description: 'Suco de uva 100% integral selecionado do Sul, servido trincando de gelado.',
+    description: 'Suco de uva 100% integral selecionado do Sul, bem gelado. Escolha entre 300ml, 500ml ou 1 Litro (1lt).',
     image: 'https://images.unsplash.com/photo-1589733955941-5eeaf752f6dd?auto=format&fit=crop&w=800&q=80',
+    juicePrices: {
+      '300ml': 9.90,
+      '500ml': 12.90,
+      '1L': 20.90,
+    },
   },
   // Pizzas Artesanais
   {

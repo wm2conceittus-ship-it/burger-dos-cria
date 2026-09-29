@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Product, Order, PizzaSize } from '../types';
-import { X, Plus, Trash2, Pizza } from 'lucide-react';
-import { PIZZA_SIZES } from '../data/mockData';
+import { Product, Order, PizzaSize, JuiceSize } from '../types';
+import { X, Plus, Trash2, Pizza, Citrus } from 'lucide-react';
+import { PIZZA_SIZES, JUICE_SIZES } from '../data/mockData';
 
 interface ManualOrderModalProps {
   products: Product[];
@@ -19,25 +19,33 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || '');
   const [quantity, setQuantity] = useState(1);
   const [pizzaSize, setPizzaSize] = useState<PizzaSize>('G');
+  const [juiceSize, setJuiceSize] = useState<JuiceSize>('500ml');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ name: string; quantity: number; price: number; pizzaSize?: PizzaSize; notes?: string }[]>([
+  const [items, setItems] = useState<{ name: string; quantity: number; price: number; pizzaSize?: PizzaSize; juiceSize?: JuiceSize; notes?: string }[]>([
     { name: 'Gourmet Truffle Burger', quantity: 1, price: 54.00, notes: 'Bem passado' },
   ]);
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const isPizza = selectedProduct?.category === 'pizzas';
+  const isJuice = selectedProduct?.category === 'sucos';
 
   const handleAddItem = () => {
     const prod = products.find(p => p.id === selectedProductId);
     if (!prod) return;
 
     const sizeConfig = PIZZA_SIZES.find(s => s.id === pizzaSize) || PIZZA_SIZES[2];
+    const juiceConfig = JUICE_SIZES.find(s => s.id === juiceSize) || JUICE_SIZES[1];
+
     const finalPrice = prod.category === 'pizzas'
       ? Math.max(15, prod.price + sizeConfig.priceOffset)
+      : prod.category === 'sucos'
+      ? (prod.juicePrices?.[juiceSize] ?? Math.max(5, prod.price + juiceConfig.priceOffset))
       : prod.price;
 
     const itemName = prod.category === 'pizzas'
       ? `${prod.name} [Tam: ${pizzaSize}]`
+      : prod.category === 'sucos'
+      ? `${prod.name} [${juiceSize === '1L' ? '1 Litro (1lt)' : juiceSize}]`
       : prod.name;
 
     setItems(prev => [
@@ -47,6 +55,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
         quantity,
         price: finalPrice,
         pizzaSize: prod.category === 'pizzas' ? pizzaSize : undefined,
+        juiceSize: prod.category === 'sucos' ? juiceSize : undefined,
         notes: notes.trim() || undefined,
       },
     ]);
@@ -178,6 +187,35 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                       >
                         <span className="block font-black">{size}</span>
                         <span className="text-[9px] opacity-80 block">{sizeConfig?.slices}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {isJuice && (
+              <div className="pt-1 border-t border-[#353535]/50">
+                <label className="text-[11px] text-[#ffd180] font-bold block mb-1.5 flex items-center gap-1">
+                  <Citrus className="w-3.5 h-3.5 text-[#ff9800]" /> Escolha o Tamanho do Suco:
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['300ml', '500ml', '1L'] as const).map(size => {
+                    const sizeConfig = JUICE_SIZES.find(s => s.id === size);
+                    const isSelected = juiceSize === size;
+                    return (
+                      <button
+                        type="button"
+                        key={size}
+                        onClick={() => setJuiceSize(size)}
+                        className={`py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all border text-center ${
+                          isSelected
+                            ? 'bg-[#ff9800] text-black border-[#ff9800] shadow-sm font-black'
+                            : 'bg-[#20201f] text-[#b4b5b5] border-[#353535] hover:border-[#ff9800]/50'
+                        }`}
+                      >
+                        <span className="block font-black">{size === '1L' ? '1 Litro (1lt)' : size}</span>
+                        <span className="text-[9px] opacity-80 block">{sizeConfig?.volume}</span>
                       </button>
                     );
                   })}

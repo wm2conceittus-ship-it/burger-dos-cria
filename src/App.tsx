@@ -268,6 +268,11 @@ export default function App() {
       showToast('Item temporariamente esgotado!');
       return;
     }
+    if (product.category === 'sucos' || product.category === 'pizzas') {
+      setSelectedProduct(product);
+      setCurrentScreen('product_detail');
+      return;
+    }
     const newItem: CartItem = {
       id: `cart-quick-${Date.now()}`,
       product,
@@ -341,10 +346,11 @@ export default function App() {
       mercadoPagoPaymentId,
       paymentStatus: mercadoPagoPaymentId ? 'aprovado' : undefined,
       items: cartItems.map(ci => ({
-        name: `${ci.product.name}${ci.pizzaSize ? ` [Tam: ${ci.pizzaSize}]` : ''}${ci.meatDoneness ? ` (${ci.meatDoneness})` : ''}`,
+        name: `${ci.product.name}${ci.pizzaSize ? ` [Tam: ${ci.pizzaSize}]` : ''}${ci.juiceSize ? ` [${ci.juiceSize === '1L' ? '1 Litro (1lt)' : ci.juiceSize}]` : ''}${ci.meatDoneness ? ` (${ci.meatDoneness})` : ''}`,
         quantity: ci.quantity,
         price: ci.totalPrice / ci.quantity,
         pizzaSize: ci.pizzaSize,
+        juiceSize: ci.juiceSize,
         notes: ci.notes || (ci.additionals.length > 0 ? ci.additionals.map(a => a.name).join(', ') : undefined),
       })),
       subtotal,

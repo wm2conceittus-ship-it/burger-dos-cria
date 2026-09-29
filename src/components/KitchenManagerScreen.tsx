@@ -46,6 +46,8 @@ import {
   Car,
   FileSpreadsheet,
   Flame,
+  GlassWater,
+  Beer,
 } from 'lucide-react';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
@@ -75,18 +77,19 @@ interface KitchenManagerScreenProps {
 export interface ExpenseItem {
   id: string;
   description: string;
-  category: 'insumos' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros';
+  category: 'insumos' | 'bebidas' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros';
   amount: number;
   time: string;
 }
 
 const INITIAL_EXPENSES: ExpenseItem[] = [
   { id: 'exp-1', description: 'Blend Angus e Pães Brioche (Açougue & Padaria)', category: 'insumos', amount: 380.00, time: '17:30' },
-  { id: 'exp-2', description: 'Diária 2x Entregadores / Motoboys', category: 'motoboy', amount: 160.00, time: '18:00' },
-  { id: 'exp-3', description: 'Embalagens Térmicas & Papel Acoplado', category: 'embalagens', amount: 75.00, time: '18:15' },
-  { id: 'exp-4', description: 'Recarga Botijão P45 / Gás de Cozinha GLP', category: 'gas', amount: 145.00, time: '18:25' },
-  { id: 'exp-5', description: 'Hortifruti (Tomate, Rúcula, Cebola, Queijo)', category: 'insumos', amount: 94.00, time: '18:40' },
-  { id: 'exp-6', description: 'Bobinas Térmicas & Material de Limpeza', category: 'operacional', amount: 55.00, time: '19:10' },
+  { id: 'exp-2', description: 'Fardos de Cerveja Heineken, Corona & Ambev (Distribuidora)', category: 'bebidas', amount: 140.00, time: '17:45' },
+  { id: 'exp-3', description: 'Diária 2x Entregadores / Motoboys', category: 'motoboy', amount: 160.00, time: '18:00' },
+  { id: 'exp-4', description: 'Embalagens Térmicas & Papel Acoplado', category: 'embalagens', amount: 75.00, time: '18:15' },
+  { id: 'exp-5', description: 'Recarga Botijão P45 / Gás de Cozinha GLP', category: 'gas', amount: 145.00, time: '18:25' },
+  { id: 'exp-6', description: 'Hortifruti (Tomate, Rúcula, Cebola, Queijo)', category: 'insumos', amount: 94.00, time: '18:40' },
+  { id: 'exp-7', description: 'Bobinas Térmicas & Material de Limpeza', category: 'operacional', amount: 55.00, time: '19:10' },
 ];
 
 export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
@@ -128,7 +131,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
   // New expense form
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
-  const [newExpenseCat, setNewExpenseCat] = useState<'insumos' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros'>('insumos');
+  const [newExpenseCat, setNewExpenseCat] = useState<'insumos' | 'bebidas' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros'>('insumos');
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
@@ -367,6 +370,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
   const insumosExpenses = expenses.filter(e => e.category === 'insumos').reduce((acc, e) => acc + e.amount, 0);
+  const bebidasExpenses = expenses.filter(e => e.category === 'bebidas').reduce((acc, e) => acc + e.amount, 0);
   const motoboyExpenses = expenses.filter(e => e.category === 'motoboy').reduce((acc, e) => acc + e.amount, 0);
   const embalagensExpenses = expenses.filter(e => e.category === 'embalagens').reduce((acc, e) => acc + e.amount, 0);
   const gasExpenses = expenses.filter(e => e.category === 'gas').reduce((acc, e) => acc + e.amount, 0);
@@ -374,7 +378,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const fixosExpenses = expenses.filter(e => e.category === 'fixo').reduce((acc, e) => acc + e.amount, 0);
   const outrosExpenses = expenses.filter(e => e.category === 'outros').reduce((acc, e) => acc + e.amount, 0);
 
-  const cmvPercentage = totalRevenue > 0 ? (insumosExpenses / totalRevenue) * 100 : 0;
+  const cmvPercentage = totalRevenue > 0 ? ((insumosExpenses + bebidasExpenses) / totalRevenue) * 100 : 0;
 
   // Breakdown by payment methods
   const pixTotal = totalRevenue * 0.65;
@@ -437,6 +441,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         e.description,
         e.category === 'gas'
           ? 'Gás de Cozinha'
+          : e.category === 'bebidas'
+          ? 'Bebidas & Cervejas'
           : e.category === 'operacional'
           ? 'Custo Operacional Diário'
           : e.category === 'fixo'
@@ -1338,6 +1344,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
 
                   <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
+                    <span className="font-sans font-medium text-amber-400 flex items-center gap-1">
+                      <Beer className="w-3.5 h-3.5 text-amber-400" />
+                      (-) Bebidas & Cervejas (Estoque Revenda)
+                    </span>
+                    <span className="font-mono text-amber-400 font-semibold">- R$ {bebidasExpenses.toFixed(2).replace('.', ',')}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#b4b5b5]">
                     <span className="font-sans font-medium text-red-400">(-) Diárias e Entregas (Motoboys)</span>
                     <span className="font-mono text-red-400">- R$ {motoboyExpenses.toFixed(2).replace('.', ',')}</span>
                   </div>
@@ -1413,6 +1427,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                                 expense.category === 'insumos'
                                   ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                  : expense.category === 'bebidas'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                                   : expense.category === 'motoboy'
                                   ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                                   : expense.category === 'embalagens'
@@ -1427,9 +1443,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               }`}
                             >
                               {expense.category === 'gas' && <Flame className="w-2.5 h-2.5" />}
+                              {expense.category === 'bebidas' && <Beer className="w-2.5 h-2.5" />}
                               <span>
                                 {expense.category === 'insumos'
                                   ? 'Insumos'
+                                  : expense.category === 'bebidas'
+                                  ? 'Cervejas & Bebidas'
                                   : expense.category === 'motoboy'
                                   ? 'Motoboy'
                                   : expense.category === 'embalagens'
@@ -2740,6 +2759,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
                   >
                     <option value="insumos">Insumos & Carnes</option>
+                    <option value="bebidas">Cervejas & Bebidas (Estoque Revenda / Distribuidora)</option>
                     <option value="motoboy">Entregas / Motoboy</option>
                     <option value="embalagens">Embalagens & Sacolas</option>
                     <option value="gas">Gás de Cozinha (GLP / Botijão / Encanado)</option>

@@ -90,6 +90,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
                     TAM: {it.pizzaSize.toUpperCase()} {it.pizzaSize === 'Família' ? '(12 FATIAS)' : `(${it.pizzaSize === 'P' ? '4 FATIAS' : it.pizzaSize === 'M' ? '6 FATIAS' : '8 FATIAS'})`}
                   </span>
                 )}
+                {it.juiceSize && (
+                  <span className="ml-1.5 inline-block text-[10px] font-black bg-amber-600 text-white px-1.5 py-0.5 rounded print:text-black print:border print:border-black">
+                    TAM: {it.juiceSize === '1L' ? '1 LITRO (1LT)' : it.juiceSize.toUpperCase()}
+                  </span>
+                )}
                 {it.notes && (
                   <p className="text-[11px] text-black font-extrabold ml-5 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5">
                     » OBS: {it.notes}

@@ -13,6 +13,7 @@ import {
   Layers,
   Croissant,
   GlassWater,
+  Beer,
   Citrus,
   X,
   Sparkles,
@@ -54,7 +55,8 @@ export type CategoryFilter =
   | 'salgados'
   | 'sucos'
   | 'bebidas'
-  | 'refrigerantes';
+  | 'refrigerantes'
+  | 'cervejas';
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({
   products,
@@ -169,9 +171,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const combos = products.filter(p => p.category === 'combos');
   const salgados = products.filter(p => p.category === 'salgados');
   const sucos = products.filter(p => p.category === 'sucos');
-  const refrigerantes = products.filter(p => p.category === 'bebidas' && p.subCategory === 'refrigerantes');
+  const refrigerantes = products.filter(
+    p => p.category === 'bebidas' && (p.subCategory === 'refrigerantes' || p.name.toLowerCase().includes('coca') || p.name.toLowerCase().includes('guaraná') || p.name.toLowerCase().includes('fanta') || p.name.toLowerCase().includes('sprite'))
+  );
+  const cervejas = products.filter(
+    p => p.category === 'bebidas' && (p.subCategory === 'cervejas' || p.name.toLowerCase().includes('cerveja'))
+  );
   const outrasBebidas = products.filter(
-    p => p.category === 'bebidas' && p.subCategory !== 'refrigerantes'
+    p => p.category === 'bebidas' && p.subCategory !== 'refrigerantes' && !p.name.toLowerCase().includes('cerveja') && !p.name.toLowerCase().includes('coca') && !p.name.toLowerCase().includes('guaraná') && !p.name.toLowerCase().includes('fanta') && !p.name.toLowerCase().includes('sprite')
   );
 
   // Filter based on search or category
@@ -797,7 +804,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <Citrus className="w-5 h-5 text-[#ff9800]" /> Sucos Natural da Fruta
               </h3>
               <p className="text-xs text-[#b4b5b5] mt-0.5">
-                100% da fruta, batidos na hora bem gelados (Copo de 500ml)
+                100% da fruta batidos na hora bem gelados • Escolha entre 300ml, 500ml e 1 Litro (1lt)
               </p>
             </div>
 
@@ -806,7 +813,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <DrinkCard
                   key={suco.id}
                   product={suco}
-                  onQuickAdd={() => onQuickAdd(suco)}
+                  onSelect={() => onSelectProduct(suco)}
+                  onQuickAdd={() => onSelectProduct(suco)}
                 />
               ))}
             </div>
@@ -818,41 +826,43 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           <div className="space-y-8">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
-                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Bebidas Geladas
+                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Bebidas & Cervejas
               </h3>
               <p className="text-xs text-[#b4b5b5] mt-0.5">
-                Refrigerantes em lata, águas minerais e cervejas trincando de geladas
+                Cervejas trincando de geladas, águas minerais e outras bebidas refrescantes
               </p>
             </div>
 
-            {/* Sub-seção: Refrigerantes */}
-            <div className="space-y-3.5">
-              <div className="flex justify-between items-center border-b border-[#353535]/50 pb-1.5">
-                <h4 className="font-['Montserrat'] text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#ff5722]" /> Refrigerantes em Lata
-                </h4>
-                <span className="text-[11px] text-[#b4b5b5]">Lata 350ml</span>
-              </div>
+            {/* Sub-seção: Cervejas Geladas */}
+            {cervejas.length > 0 && (
+              <div className="space-y-3.5">
+                <div className="flex justify-between items-center border-b border-[#353535]/50 pb-1.5">
+                  <h4 className="font-['Montserrat'] text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Beer className="w-4 h-4 text-amber-400" /> Cervejas Geladas (Long Neck & Latas)
+                  </h4>
+                  <span className="text-[11px] text-[#b4b5b5]">Puro Malte & Premium</span>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                {refrigerantes.map(refri => (
-                  <DrinkCard
-                    key={refri.id}
-                    product={refri}
-                    onQuickAdd={() => onQuickAdd(refri)}
-                  />
-                ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                  {cervejas.map(cerveja => (
+                    <DrinkCard
+                      key={cerveja.id}
+                      product={cerveja}
+                      onQuickAdd={() => onQuickAdd(cerveja)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Sub-seção: Águas Minerais & Cervejas */}
+            {/* Sub-seção: Águas Minerais & Bebidas */}
             {outrasBebidas.length > 0 && (
               <div className="space-y-3.5">
                 <div className="flex justify-between items-center border-b border-[#353535]/50 pb-1.5">
                   <h4 className="font-['Montserrat'] text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#019ad8]" /> Águas Minerais & Cervejas
+                    <span className="w-2 h-2 rounded-full bg-[#019ad8]" /> Águas Minerais & Outras Bebidas
                   </h4>
-                  <span className="text-[11px] text-[#b4b5b5]">Garrafas & Long Necks</span>
+                  <span className="text-[11px] text-[#b4b5b5]">Geladas</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -881,6 +891,23 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
               {refrigerantes.map(refri => (
                 <DrinkCard key={refri.id} product={refri} onQuickAdd={() => onQuickAdd(refri)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================= CATEGORIA: APENAS CERVEJAS ================= */}
+        {!searchQuery.trim() && selectedCategory === 'cervejas' && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
+                <Beer className="w-5 h-5 text-amber-400" /> Cervejas Geladas
+              </h3>
+              <p className="text-xs text-[#b4b5b5] mt-0.5">Long Necks e latas trincando de geladas para acompanhar seu burger</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+              {cervejas.map(cerveja => (
+                <DrinkCard key={cerveja.id} product={cerveja} onQuickAdd={() => onQuickAdd(cerveja)} />
               ))}
             </div>
           </div>
@@ -1117,15 +1144,31 @@ const ProductGridCard: React.FC<{
   );
 };
 
-// Sub-component: Drink Card (Bebidas)
+// Sub-component: Drink Card (Bebidas e Sucos)
 const DrinkCard: React.FC<{
   product: Product;
   onQuickAdd: () => void;
-}> = ({ product, onQuickAdd }) => {
+  onSelect?: () => void;
+}> = ({ product, onQuickAdd, onSelect }) => {
   const isAvailable = product.isAvailable !== false;
+  const isJuice = product.category === 'sucos';
+
+  const handleAction = () => {
+    if (!isAvailable) return;
+    if (isJuice && onSelect) {
+      onSelect();
+    } else {
+      onQuickAdd();
+    }
+  };
 
   return (
-    <div className="bg-[#20201f] rounded-lg overflow-hidden border border-[#353535]/50 flex items-center p-3 gap-3 group hover:border-[#ff5722]/40 transition-all shadow-md">
+    <div
+      onClick={isJuice && onSelect ? onSelect : undefined}
+      className={`bg-[#20201f] rounded-lg overflow-hidden border border-[#353535]/50 flex items-center p-3 gap-3 group hover:border-[#ff5722]/40 transition-all shadow-md ${
+        isJuice ? 'cursor-pointer hover:border-[#ff9800]/60' : ''
+      }`}
+    >
       <div className="w-20 h-20 rounded-md overflow-hidden bg-[#1c1b1b] flex-shrink-0 relative">
         <img
           src={product.image}
@@ -1146,25 +1189,42 @@ const DrinkCard: React.FC<{
           <h5 className="font-['Montserrat'] font-bold text-xs text-white truncate">
             {product.name}
           </h5>
+          {isJuice && (
+            <span className="inline-block text-[9px] font-bold text-[#ffd180] bg-[#ff9800]/15 border border-[#ff9800]/30 px-1.5 py-0.2 rounded font-['Montserrat'] mt-0.5">
+              300ml • 500ml • 1lt
+            </span>
+          )}
           <p className="text-[10px] text-[#b4b5b5] truncate mt-0.5">{product.description}</p>
         </div>
 
         <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-[#353535]/30">
-          <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722]">
-            R$ {product.price.toFixed(2).replace('.', ',')}
-          </span>
+          <div>
+            {isJuice && (
+              <span className="text-[9px] text-[#b4b5b5] block leading-none">A partir de</span>
+            )}
+            <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722]">
+              R$ {(isJuice ? (product.juicePrices?.['300ml'] ?? Math.max(5, product.price - 3)) : product.price).toFixed(2).replace('.', ',')}
+            </span>
+          </div>
 
           <button
             disabled={!isAvailable}
-            onClick={onQuickAdd}
-            className={`w-7 h-7 rounded-md flex items-center justify-center transition-all ${
-              isAvailable
-                ? 'bg-[#ff5722] text-white hover:opacity-90 active:scale-90 shadow-sm'
-                : 'bg-[#353535] text-[#b4b5b5] cursor-not-allowed'
+            onClick={e => {
+              e.stopPropagation();
+              handleAction();
+            }}
+            className={`transition-all shadow-sm ${
+              isJuice
+                ? 'px-2.5 py-1 rounded-md text-[10px] font-bold font-[' + "'Montserrat'" + '] bg-[#ff9800] text-black hover:opacity-90 active:scale-95'
+                : 'w-7 h-7 rounded-md flex items-center justify-center ' + (isAvailable ? 'bg-[#ff5722] text-white hover:opacity-90 active:scale-90' : 'bg-[#353535] text-[#b4b5b5] cursor-not-allowed')
             }`}
-            title="Adicionar Bebida"
+            title={isJuice ? 'Escolher Tamanho (300ml, 500ml, 1lt)' : 'Adicionar Bebida'}
           >
-            <Plus className="w-4 h-4" />
+            {isJuice ? (
+              <span>Escolher</span>
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
           </button>
         </div>
       </div>

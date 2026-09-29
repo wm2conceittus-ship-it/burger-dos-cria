@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Product, CartItem, PizzaSize } from '../types';
-import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users } from 'lucide-react';
-import { PIZZA_SIZES } from '../data/mockData';
+import { Product, CartItem, PizzaSize, JuiceSize } from '../types';
+import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users, Citrus } from 'lucide-react';
+import { PIZZA_SIZES, JUICE_SIZES } from '../data/mockData';
 
 interface ProductDetailScreenProps {
   product: Product;
@@ -19,12 +19,23 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [meatDoneness, setMeatDoneness] = useState<'Mal passado' | 'Ao ponto' | 'Bem passado'>('Ao ponto');
   const [pizzaSize, setPizzaSize] = useState<PizzaSize>('G');
+  const [juiceSize, setJuiceSize] = useState<JuiceSize>('500ml');
   const [selectedAdditionals, setSelectedAdditionals] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   const isPizza = product.category === 'pizzas';
+  const isJuice = product.category === 'sucos';
   const selectedSizeConfig = PIZZA_SIZES.find(s => s.id === pizzaSize) || PIZZA_SIZES[2];
+  const selectedJuiceSizeConfig = JUICE_SIZES.find(s => s.id === juiceSize) || JUICE_SIZES[1];
+
+  const getJuicePrice = (sizeId: JuiceSize) => {
+    if (product.juicePrices?.[sizeId] !== undefined) {
+      return product.juicePrices[sizeId]!;
+    }
+    const cfg = JUICE_SIZES.find(s => s.id === sizeId);
+    return Math.max(5, product.price + (cfg ? cfg.priceOffset : 0));
+  };
 
   const additionalsList = product.options?.additionals || [
     { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
@@ -43,9 +54,11 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     return sum + (item ? item.price : 0);
   }, 0);
 
-  // If it's a pizza, calculate price based on size offset
+  // Calculate base price based on pizza or juice size offset
   const basePriceWithSize = isPizza
     ? Math.max(15, product.price + selectedSizeConfig.priceOffset)
+    : isJuice
+    ? getJuicePrice(juiceSize)
     : product.price;
 
   const unitPrice = basePriceWithSize + additionalsTotal;
@@ -63,6 +76,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
       meatDoneness: product.options?.meatDoneness ? meatDoneness : undefined,
       pizzaSize: isPizza ? pizzaSize : undefined,
       pizzaSlices: isPizza ? `${selectedSizeConfig.slices} (${selectedSizeConfig.diameter})` : undefined,
+      juiceSize: isJuice ? juiceSize : undefined,
       additionals: chosenAdditionals,
       notes: notes.trim() || undefined,
       totalPrice,
@@ -200,6 +214,91 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                       <span className="text-[#b4b5b5] text-[11px] flex items-center gap-1">
                         <Users className="w-3.5 h-3.5 text-[#8e8f8f]" /> {size.people}
                       </span>
+                      <span className="font-['Montserrat'] font-extrabold text-sm text-white">
+                        R$ {calculatedPrice.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Escolha do Tamanho do Suco Natural (300ml, 500ml, 1lt) */}
+        {isJuice && (
+          <div className="space-y-3.5 bg-[#1c1b1b] p-4 rounded-xl border border-[#ff9800]/40 shadow-lg">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="font-['Montserrat'] text-base font-bold text-white flex items-center gap-2">
+                  <Citrus className="w-5 h-5 text-[#ff9800]" /> Escolha o Tamanho do Suco
+                </h2>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Selecione entre 300ml, 500ml ou 1 Litro (1lt) bem geladinho
+                </p>
+              </div>
+              <span className="text-xs text-[#ff9800] bg-[#ff9800]/15 border border-[#ff9800]/30 px-2.5 py-1 rounded-md font-bold">
+                Obrigatório
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {JUICE_SIZES.map(size => {
+                const isSelected = juiceSize === size.id;
+                const calculatedPrice = getJuicePrice(size.id);
+
+                return (
+                  <div
+                    key={size.id}
+                    onClick={() => setJuiceSize(size.id)}
+                    className={`p-3.5 bg-[#20201f] rounded-lg border transition-all cursor-pointer relative flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-[#ff9800] bg-[#ff9800]/10 shadow-[0_0_18px_rgba(255,152,0,0.25)] ring-1 ring-[#ff9800]'
+                        : 'border-[#353535]/60 hover:bg-[#282828] hover:border-[#ff9800]/40'
+                    }`}
+                  >
+                    {size.isPopular && (
+                      <span className="absolute -top-2.5 right-3 bg-[#ff9800] text-black text-[10px] font-['Montserrat'] font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+                        Mais Pedido 🔥
+                      </span>
+                    )}
+
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-9 h-9 rounded-md flex items-center justify-center font-['Montserrat'] font-black text-xs transition-all ${
+                            isSelected
+                              ? 'bg-[#ff9800] text-black shadow-md font-bold'
+                              : 'bg-[#2a2a2a] text-[#ffd180] border border-[#353535]'
+                          }`}
+                        >
+                          {size.id === '1L' ? '1LT' : size.id}
+                        </div>
+                        <div>
+                          <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                            {size.label}
+                          </h3>
+                          <span className="text-[11px] text-[#ffb74d] font-semibold block">
+                            {size.volume}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
+                          isSelected ? 'border-[#ff9800] bg-[#ff9800]' : 'border-[#ab8980]/50'
+                        }`}
+                      >
+                        {isSelected && <div className="w-2 h-2 rounded-full bg-black" />}
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-[#b4b5b5] my-1 font-light">
+                      {size.description}
+                    </p>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-[#353535]/50 text-xs">
+                      <span className="text-[#8e8f8f] text-[10px]">Preço unitário</span>
                       <span className="font-['Montserrat'] font-extrabold text-sm text-white">
                         R$ {calculatedPrice.toFixed(2).replace('.', ',')}
                       </span>

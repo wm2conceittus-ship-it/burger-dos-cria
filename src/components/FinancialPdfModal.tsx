@@ -1,8 +1,10 @@
-import React from 'react';
-import { X, Printer, Download, FileText, TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Printer, Download, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { Order, StoreSettings } from '../types';
 import { ExpenseItem } from './KitchenManagerScreen';
 import { APP_IMAGES } from '../data/mockData';
+import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
 
 interface FinancialPdfModalProps {
   isOpen: boolean;
@@ -37,6 +39,10 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
   cashTotal,
   cmvPercentage,
 }) => {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+
   if (!isOpen) return null;
 
   const validOrders = orders.filter(o => o.status !== 'recusado');
@@ -48,6 +54,67 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
     year: 'numeric',
   });
   const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const fileDateStr = now.toISOString().slice(0, 10);
+
+  const handleDownloadPdf = async () => {
+    if (!reportRef.current || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    setDownloadSuccess(false);
+
+    try {
+      const element = reportRef.current;
+      
+      const dataUrl = await toPng(element, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        skipFonts: true,
+        imagePlaceholder: 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%231a1a1a" width="100" height="100"/><text fill="%23ffffff" font-size="20" x="50%" y="50%" text-anchor="middle" dy=".3em">🍔</text></svg>',
+      });
+
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Falha ao processar imagem para PDF'));
+      });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      
+      const imgWidth = pageWidth;
+      const imgHeight = (img.height * imgWidth) / img.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = position - pageHeight;
+        pdf.addPage();
+        pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const safeStoreName = (storeSettings.storeName || 'burgerdash')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '-');
+      const fileName = `fechamento-caixa-${safeStoreName}-${fileDateStr}.pdf`;
+
+      pdf.save(fileName);
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 4000);
+    } catch (err) {
+      console.error('Erro ao gerar PDF com html-to-image/jsPDF:', err);
+      // Fallback: window.print()
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -58,7 +125,7 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
       <div className="bg-[#1e1e1e] border border-[#353535] rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden print:border-none print:shadow-none print:max-h-none print:w-full print:rounded-none">
         
         {/* Top Actions Bar (Hidden in Print) */}
-        <div className="p-4 border-b border-[#353535] bg-[#161616] flex justify-between items-center print:hidden">
+        <div className="p-4 border-b border-[#353535] bg-[#161616] flex flex-wrap justify-between items-center gap-3 print:hidden">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400">
               <FileText className="w-4 h-4" />
@@ -71,22 +138,48 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
                 </span>
               </h3>
               <p className="text-[11px] text-[#b4b5b5]">
-                Visualize abaixo e clique em "Salvar como PDF" para arquivar ou imprimir.
+                Faça o download do arquivo PDF direto no seu dispositivo ou imprima.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {downloadSuccess && (
+              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 animate-pulse">
+                <CheckCircle2 className="w-3.5 h-3.5" /> PDF Baixado!
+              </span>
+            )}
+
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
+              className="bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Gerando PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Baixar Arquivo PDF</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={handlePrint}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-all"
+              className="bg-[#2a2a2a] hover:bg-[#353535] text-white px-3 py-2 rounded-xl text-xs font-['Montserrat'] font-medium flex items-center gap-1.5 border border-[#444] transition-all cursor-pointer hidden sm:flex"
             >
-              <Printer className="w-4 h-4" />
-              <span>Salvar como PDF / Imprimir</span>
+              <Printer className="w-4 h-4 text-[#b4b5b5]" />
+              <span>Imprimir</span>
             </button>
+
             <button
               onClick={onClose}
-              className="text-[#b4b5b5] hover:text-white p-2 rounded-lg hover:bg-[#2a2a2a] transition-colors"
+              className="text-[#b4b5b5] hover:text-white p-2 rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+              title="Fechar"
             >
               <X className="w-5 h-5" />
             </button>
@@ -95,7 +188,11 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
 
         {/* Printable Paper Canvas */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#121212] print:p-0 print:bg-white print:overflow-visible">
-          <div className="max-w-3xl mx-auto bg-white text-gray-900 rounded-xl p-8 sm:p-10 shadow-2xl font-sans text-xs space-y-6 print:shadow-none print:p-4 print:max-w-none print:rounded-none">
+          <div
+            ref={reportRef}
+            id="financial-report-canvas"
+            className="max-w-3xl mx-auto bg-white text-gray-900 rounded-xl p-8 sm:p-10 shadow-2xl font-sans text-xs space-y-6 print:shadow-none print:p-4 print:max-w-none print:rounded-none"
+          >
             
             {/* Header Document */}
             <div className="flex justify-between items-start border-b-2 border-gray-900 pb-5">
@@ -247,6 +344,8 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
                         <td className="p-2 border border-gray-200 uppercase text-[10px] text-gray-700 font-bold">
                           {e.category === 'insumos'
                             ? 'Insumos & Carnes'
+                            : e.category === 'bebidas'
+                            ? 'Bebidas & Cervejas'
                             : e.category === 'motoboy'
                             ? 'Entregas / Motoboy'
                             : e.category === 'embalagens'
