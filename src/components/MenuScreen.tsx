@@ -31,6 +31,7 @@ import {
   Phone,
   Lock,
   ChefHat,
+  ArrowUp,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -78,6 +79,23 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 280);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   const getShareUrl = () => {
     if (typeof window !== 'undefined' && window.location.origin) {
@@ -914,15 +932,27 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         )}
       </main>
 
+      {/* Floating Scroll-to-Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed right-5 sm:right-6 bottom-38 w-11 h-11 rounded-full bg-[#20201f]/95 hover:bg-[#ff5722] text-[#ff8a65] hover:text-white border border-[#ff5722]/50 backdrop-blur-md flex items-center justify-center shadow-xl shadow-black/70 z-40 active:scale-90 transition-all duration-200 animate-in fade-in zoom-in-75 group"
+          title="Voltar ao Topo"
+          aria-label="Voltar ao Topo"
+        >
+          <ArrowUp className="w-5 h-5 transition-transform duration-200 group-hover:-translate-y-0.5" />
+        </button>
+      )}
+
       {/* Floating Action Cart Button */}
       <button
         onClick={onOpenCart}
-        className="fixed right-5 sm:right-6 bottom-24 sm:bottom-24 md:bottom-24 w-14 h-14 rounded-full btn-flame flex items-center justify-center text-white shadow-2xl z-40 active:scale-95 transition-transform"
+        className="fixed right-5 sm:right-6 bottom-24 w-11 h-11 rounded-full btn-flame flex items-center justify-center text-white shadow-lg shadow-[#ff5722]/30 z-40 active:scale-95 transition-all hover:scale-105"
         title="Ver Carrinho"
       >
-        <ShoppingCart className="w-6 h-6" />
+        <ShoppingCart className="w-5 h-5" />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-xs w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+          <span className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
             {cartCount}
           </span>
         )}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Order } from '../types';
 import { APP_IMAGES } from '../data/mockData';
-import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation, ExternalLink } from 'lucide-react';
 
 interface OrderTrackingScreenProps {
   order: Order;
@@ -219,6 +219,32 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
             </div>
           </div>
         </section>
+
+        {/* Live GPS Route Action Link */}
+        <div className="bg-[#182026] border border-[#019ad8]/40 rounded-xl p-3 flex items-center justify-between text-xs shadow-md">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-[#019ad8]/20 text-[#86cfff] flex items-center justify-center shrink-0">
+              <Navigation className="w-4 h-4 text-[#019ad8]" />
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-white block truncate font-['Montserrat']">
+                Trajeto GPS em Tempo Real
+              </span>
+              <span className="text-[11px] text-[#86cfff]/80 block truncate">
+                Acompanhe o trânsito e o caminho até seu endereço
+              </span>
+            </div>
+          </div>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="shrink-0 bg-[#019ad8] hover:bg-[#019ad8]/90 text-white font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
+          >
+            <span>Ver Rota</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
 
         {/* Action Buttons */}
         <section className="space-y-3">

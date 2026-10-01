@@ -17,6 +17,29 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
 
   if (!order) return null;
 
+  const isOnlinePaid =
+    order.paymentStatus === 'aprovado' ||
+    Boolean(
+      order.paymentMethod &&
+        (order.paymentMethod.toLowerCase().includes('online') ||
+          order.paymentMethod.toLowerCase().includes('pix'))
+    );
+
+  const isNeedMachine =
+    Boolean(
+      order.paymentMethod &&
+        (order.paymentMethod.toLowerCase().includes('maquininha') ||
+          order.paymentMethod.toLowerCase().includes('vale') ||
+          order.paymentMethod.toLowerCase().includes('vr') ||
+          order.paymentMethod.toLowerCase().includes('crédito') ||
+          order.paymentMethod.toLowerCase().includes('débito')) &&
+        !isOnlinePaid
+    );
+
+  const isCash = Boolean(
+    order.paymentMethod && order.paymentMethod.toLowerCase().includes('dinheiro')
+  );
+
   const handleSelectPaperSize = (size: '58mm' | '80mm') => {
     setPaperSize(size);
     localStorage.setItem('receipt_paper_size', size);
@@ -50,6 +73,14 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
       })
       .join('\n');
 
+    const paymentInstructionText = isOnlinePaid
+      ? '>>> PAGO ONLINE - NAO COBRAR DO CLIENTE <<<'
+      : isNeedMachine
+      ? '>>> LEVAR MAQUININHA (COBRAR NA ENTREGA) <<<'
+      : isCash
+      ? `>>> COBRAR EM DINHEIRO NA ENTREGA ${order.changeFor ? `(LEVAR TROCO P/ ${order.changeFor})` : '(SEM TROCO)'} <<<`
+      : '>>> COBRAR NA ENTREGA <<<';
+
     const text = `
 ${doubleDivider}
         BURGER DOS CRIAS
@@ -74,10 +105,10 @@ ${itemsText}
 ${divider}
 SUBTOTAL:            R$ ${order.subtotal.toFixed(2).replace('.', ',')}
 ${order.deliveryFee > 0 ? `TAXA ENTREGA:        R$ ${order.deliveryFee.toFixed(2).replace('.', ',')}\n` : ''}${doubleDivider}
-TOTAL A PAGAR:       R$ ${order.total.toFixed(2).replace('.', ',')}
+TOTAL DO PEDIDO:     R$ ${order.total.toFixed(2).replace('.', ',')}
 ${doubleDivider}
 FORMA DE PAGAMENTO:  ${order.paymentMethod || 'PIX'}
-STATUS PAGAMENTO:    CONFIRMADO
+INSTRUÇÃO: ${paymentInstructionText}
 ${order.changeFor ? `LEVAR TROCO PARA:    ${order.changeFor}\n` : ''}${order.mercadoPagoPaymentId ? `AUTORIZAÇÃO MP:      ${order.mercadoPagoPaymentId}\n` : ''}${divider}
    OBRIGADO PELA PREFERENCIA!
         BOM APETITE! 🔥
@@ -288,31 +319,46 @@ ${doubleDivider}
                   </div>
                 )}
                 <div className="flex justify-between font-black text-xs pt-1 border-t border-black text-black">
-                  <span>TOTAL A PAGAR:</span>
+                  <span>{isOnlinePaid ? 'TOTAL DO PEDIDO:' : 'TOTAL A COBRAR:'}</span>
                   <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>
 
               {/* Payment Details */}
-              <div className="py-1 border-b border-dashed border-black text-[9px] space-y-0.5 font-bold">
+              <div className="py-1.5 border-b border-dashed border-black text-[9px] space-y-1 font-bold">
                 <div className="flex justify-between">
                   <span>FORMA DE PGTO:</span>
                   <span className="uppercase">{order.paymentMethod || 'PIX'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>STATUS:</span>
-                  <span>CONFIRMADO</span>
-                </div>
+
+                {/* Big Visual Instruction Box for Courier */}
+                {isOnlinePaid ? (
+                  <div className="bg-black text-white px-1.5 py-1 text-center font-black text-[10px] tracking-wide rounded-sm">
+                    ✓ PAGO ONLINE - NÃO COBRAR
+                  </div>
+                ) : isNeedMachine ? (
+                  <div className="border-2 border-black p-1 text-center font-black text-[10px] tracking-wide rounded-sm">
+                    💳 LEVAR MAQUININHA (COBRAR)
+                  </div>
+                ) : isCash ? (
+                  <div className="border-2 border-black p-1 text-center font-black text-[10px] tracking-wide rounded-sm">
+                    💵 COBRAR EM DINHEIRO
+                    {order.changeFor && (
+                      <div className="text-[9px] font-black underline mt-0.5">
+                        LEVAR TROCO PARA: {order.changeFor}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border border-black p-1 text-center font-black text-[9px]">
+                    COBRAR NA ENTREGA
+                  </div>
+                )}
+
                 {order.mercadoPagoPaymentId && (
                   <div className="flex justify-between text-[8px] text-gray-700">
                     <span>AUTORIZAÇÃO:</span>
                     <span className="font-mono">{order.mercadoPagoPaymentId}</span>
-                  </div>
-                )}
-                {order.changeFor && (
-                  <div className="flex justify-between bg-black text-white px-1 py-0.5 font-black">
-                    <span>TROCO PARA:</span>
-                    <span>{order.changeFor}</span>
                   </div>
                 )}
               </div>
@@ -440,7 +486,7 @@ ${doubleDivider}
                 )}
 
                 <div className="flex justify-between text-base font-black pt-1.5 border-t border-gray-300 text-black">
-                  <span>TOTAL A COBRAR:</span>
+                  <span>{isOnlinePaid ? 'TOTAL DO PEDIDO:' : 'TOTAL A COBRAR:'}</span>
                   <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
                 </div>
 
@@ -451,17 +497,36 @@ ${doubleDivider}
                   </span>
                 </div>
 
+                {/* Big Visual Instruction Box for Courier */}
+                {isOnlinePaid ? (
+                  <div className="bg-black text-white p-2 text-center font-black text-xs tracking-wider rounded">
+                    ✓ PAGO ONLINE - NÃO COBRAR DO CLIENTE
+                  </div>
+                ) : isNeedMachine ? (
+                  <div className="border-2 border-black p-2 text-center font-black text-xs tracking-wider rounded">
+                    💳 LEVAR MAQUININHA DE CARTÃO (COBRAR NA ENTREGA)
+                  </div>
+                ) : isCash ? (
+                  <div className="border-2 border-black p-2 text-center font-black text-xs tracking-wider rounded space-y-0.5">
+                    <div>💵 COBRAR EM DINHEIRO NA ENTREGA</div>
+                    {order.changeFor ? (
+                      <div className="text-[11px] font-black underline bg-gray-100 py-0.5 px-1 rounded inline-block text-black">
+                        ⚠️ LEVAR TROCO PARA: {order.changeFor}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] font-normal">(Cliente informou que não precisa de troco)</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border border-black p-1.5 text-center font-black text-xs rounded">
+                    COBRAR NA ENTREGA
+                  </div>
+                )}
+
                 {order.mercadoPagoPaymentId && (
                   <div className="flex justify-between items-center text-[10px] font-black text-black bg-gray-100 p-1 rounded border border-gray-300">
                     <span>MERCADO PAGO AUTORIZADO:</span>
                     <span className="font-mono">{order.mercadoPagoPaymentId}</span>
-                  </div>
-                )}
-
-                {order.changeFor && (
-                  <div className="flex justify-between items-center text-[11px] font-black text-amber-900 bg-amber-100 p-1 rounded border border-amber-300">
-                    <span>⚠️ LEVAR TROCO PARA:</span>
-                    <span>{order.changeFor}</span>
                   </div>
                 )}
               </div>

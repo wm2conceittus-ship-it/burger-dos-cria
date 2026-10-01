@@ -402,7 +402,12 @@ export default function App() {
       paymentMethod,
       changeFor,
       mercadoPagoPaymentId,
-      paymentStatus: mercadoPagoPaymentId ? 'aprovado' : undefined,
+      paymentStatus:
+        mercadoPagoPaymentId ||
+        paymentMethod.toLowerCase().includes('online') ||
+        paymentMethod.toLowerCase().includes('pix')
+          ? 'aprovado'
+          : 'pendente',
       items: cartItems.map(ci => ({
         name: `${ci.product.name}${ci.pizzaSize ? ` [Tam: ${ci.pizzaSize}]` : ''}${ci.juiceSize ? ` [${ci.juiceSize === '1L' ? '1 Litro (1lt)' : ci.juiceSize}]` : ''}${ci.meatDoneness ? ` (${ci.meatDoneness})` : ''}`,
         quantity: ci.quantity,

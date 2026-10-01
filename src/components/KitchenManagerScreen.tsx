@@ -51,6 +51,8 @@ import {
   Ticket,
   Percent,
   Tag,
+  CreditCard,
+  Banknote,
 } from 'lucide-react';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
@@ -963,6 +965,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 const isEntregue = order.status === 'entregue';
                 const isRecusado = order.status === 'recusado';
 
+                const isOnlinePaid =
+                  order.paymentStatus === 'aprovado' ||
+                  Boolean(
+                    order.paymentMethod &&
+                      (order.paymentMethod.toLowerCase().includes('online') ||
+                        order.paymentMethod.toLowerCase().includes('pix'))
+                  );
+
+                const isNeedMachine =
+                  Boolean(
+                    order.paymentMethod &&
+                      (order.paymentMethod.toLowerCase().includes('maquininha') ||
+                        order.paymentMethod.toLowerCase().includes('vale') ||
+                        order.paymentMethod.toLowerCase().includes('vr') ||
+                        order.paymentMethod.toLowerCase().includes('crédito') ||
+                        order.paymentMethod.toLowerCase().includes('débito')) &&
+                      !isOnlinePaid
+                  );
+
+                const isCash = Boolean(
+                  order.paymentMethod && order.paymentMethod.toLowerCase().includes('dinheiro')
+                );
+
                 if (order.isUrgent) {
                   return (
                     <div
@@ -990,12 +1015,44 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <h3 className="font-['Montserrat'] font-bold text-base text-white">
-                                {order.orderNumber} - {order.customerName}
-                              </h3>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                                  {order.orderNumber} - {order.customerName}
+                                </h3>
+                                {isOnlinePaid ? (
+                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                    Pago Online
+                                  </span>
+                                ) : isNeedMachine ? (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                    Levar Maquininha
+                                  </span>
+                                ) : isCash ? (
+                                  <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                    Dinheiro
+                                  </span>
+                                ) : null}
+                              </div>
                               <p className="text-xs text-[#b4b5b5]">
                                 {order.timeAgo} • {order.type}
                               </p>
+                              {order.type === 'Delivery' && order.address && (
+                                <div className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] mt-1 pt-1 border-t border-[#353535]/40">
+                                  <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+                                  <span className="truncate flex-1 text-white">{order.address}</span>
+                                  <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-[#141414] px-1.5 py-0.5 rounded border border-[#353535]"
+                                    title="Abrir rota no Google Maps"
+                                  >
+                                    <Navigation className="w-2.5 h-2.5 text-[#019ad8]" />
+                                    <span>Rota</span>
+                                    <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                                  </a>
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-1">
                               <button
@@ -1009,7 +1066,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
                           </div>
 
-                          <div className="space-y-1 mb-4 text-xs text-[#e5e2e1]">
+                          <div className="space-y-1 mb-3 text-xs text-[#e5e2e1]">
                             {order.items.map((item, idx) => (
                               <div key={idx} className="flex justify-between">
                                 <span>{item.quantity}x {item.name}</span>
@@ -1018,6 +1075,67 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 </span>
                               </div>
                             ))}
+                          </div>
+
+                          {/* Payment Instruction Banner */}
+                          <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-[#8e8f8f] font-medium">Total:</span>
+                              <span className="font-['Montserrat'] font-black text-sm text-[#ff5722]">
+                                R$ {order.total.toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+
+                            {isOnlinePaid ? (
+                              <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                                <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                  <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="truncate">PAGO ONLINE ({order.paymentMethod})</span>
+                                </div>
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                  NÃO COBRAR
+                                </span>
+                              </div>
+                            ) : isNeedMachine ? (
+                              <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                                <div className="flex items-center justify-between text-amber-300 font-bold">
+                                  <span className="flex items-center gap-1.5">
+                                    <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                    <span>LEVAR MAQUININHA 💳</span>
+                                  </span>
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                    COBRAR NA ENTREGA
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-[#ffdad6] block truncate">
+                                  Forma: {order.paymentMethod}
+                                </span>
+                              </div>
+                            ) : isCash ? (
+                              <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                                <div className="flex items-center justify-between text-blue-300 font-bold">
+                                  <span className="flex items-center gap-1.5">
+                                    <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                    <span>COBRAR EM DINHEIRO 💵</span>
+                                  </span>
+                                  <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                    NA ENTREGA
+                                  </span>
+                                </div>
+                                {order.changeFor ? (
+                                  <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
+                                    ⚠️ Levar troco para: {order.changeFor}
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="bg-[#262626] border border-[#383838] rounded-xl p-2 flex items-center justify-between text-[11px] text-[#b4b5b5]">
+                                <span className="truncate">Forma: {order.paymentMethod}</span>
+                                <span className="text-[9px] text-white font-semibold shrink-0">Pagar na Entrega</span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1037,13 +1155,107 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 Aceitar Agora
                               </button>
                             </>
-                          ) : (
+                          ) : isPreparando ? (
                             <button
                               onClick={() => onAdvanceToReady(order.id)}
                               className="w-full bg-[#2a2a2a] text-[#ff8a65] border border-[#ff5722]/30 hover:bg-[#ff5722]/10 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all"
                             >
                               Mudar para Pronto
                             </button>
+                          ) : isPronto ? (
+                            <div className="w-full space-y-1.5">
+                              <button
+                                onClick={() => {
+                                  const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
+                                  if (activeCouriers.length > 1) {
+                                    setDispatchOrderTarget(order);
+                                  } else if (activeCouriers.length === 1) {
+                                    const c = activeCouriers[0];
+                                    onAdvanceToDelivery(order.id, {
+                                      name: c.name,
+                                      phone: c.phone,
+                                      avatar: c.avatar,
+                                      vehicle: c.vehicleModel || (c.vehicle ? `Veículo (${c.vehicle})` : undefined),
+                                      plate: c.plate,
+                                    });
+                                  } else {
+                                    onAdvanceToDelivery(order.id);
+                                  }
+                                }}
+                                className="w-full bg-[#019ad8]/20 text-[#86cfff] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#019ad8]/40 hover:bg-[#019ad8]/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                              >
+                                <Bike className="w-4 h-4" /> Despachar Entrega Urgente
+                              </button>
+                              {(storeSettings.couriers || []).filter(c => c.active).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDispatchOrderTarget(order)}
+                                  className="w-full text-[10px] text-[#86cfff]/80 hover:text-white text-center py-0.5 underline transition-colors"
+                                >
+                                  Escolher entregador
+                                </button>
+                              )}
+                            </div>
+                          ) : isEmEntrega ? (
+                            <div className="w-full space-y-2">
+                              <div className="p-2.5 bg-[#1c1b1b] rounded-lg border border-[#353535] space-y-2 text-[11px]">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className="w-7 h-7 rounded-full overflow-hidden border border-[#ff5722]/50 bg-[#252525] flex-shrink-0">
+                                      <img
+                                        src={order.courierAvatar || APP_IMAGES.driverAvatar}
+                                        alt="Entregador"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="text-white font-bold truncate block">
+                                        {order.courierName || 'Entregador Despachado'}
+                                      </span>
+                                      {order.courierVehicle && (
+                                        <span className="text-[10px] text-[#b4b5b5] truncate block">
+                                          {order.courierVehicle} {order.courierPlate ? `• ${order.courierPlate}` : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {order.courierPhone && (
+                                    <a
+                                      href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.courierName}, tudo bem? Mensagem sobre o pedido URGENTE ${order.orderNumber}:`)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
+                                    >
+                                      <Phone className="w-3 h-3" /> WhatsApp
+                                    </a>
+                                  )}
+                                </div>
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full bg-[#182026] hover:bg-[#1f2b33] border border-[#019ad8]/40 text-[#86cfff] py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
+                                >
+                                  <Navigation className="w-3.5 h-3.5 text-[#019ad8]" />
+                                  <span>Acompanhar Rota no Google Maps</span>
+                                  <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
+                                </a>
+                              </div>
+                              <button
+                                onClick={() => onCompleteOrder(order.id)}
+                                className="w-full bg-emerald-500/20 text-emerald-400 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-emerald-500/40 hover:bg-emerald-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                              >
+                                <CheckCircle className="w-4 h-4" /> Finalizar como Entregue
+                              </button>
+                            </div>
+                          ) : isEntregue ? (
+                            <div className="w-full py-2 text-center text-xs text-emerald-400 font-semibold flex items-center justify-center gap-1">
+                              <CheckCircle className="w-4 h-4" /> Pedido Concluído
+                            </div>
+                          ) : (
+                            <div className="w-full py-2 text-center text-xs text-[#ffb4ab] font-semibold flex items-center justify-center gap-1">
+                              <AlertTriangle className="w-4 h-4" /> Pedido Recusado
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1080,12 +1292,44 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           )}
                         </div>
                         <div>
-                          <h3 className="font-['Montserrat'] font-bold text-sm md:text-base text-white">
-                            {order.orderNumber} - {order.customerName}
-                          </h3>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h3 className="font-['Montserrat'] font-bold text-sm md:text-base text-white">
+                              {order.orderNumber} - {order.customerName}
+                            </h3>
+                            {isOnlinePaid ? (
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                Pago Online
+                              </span>
+                            ) : isNeedMachine ? (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                Levar Maquininha
+                              </span>
+                            ) : isCash ? (
+                              <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                Dinheiro
+                              </span>
+                            ) : null}
+                          </div>
                           <p className="text-xs text-[#b4b5b5]">
                             {order.timeAgo} • {order.type}
                           </p>
+                          {order.type === 'Delivery' && order.address && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] mt-1 pt-1 border-t border-[#353535]/40">
+                              <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+                              <span className="truncate flex-1 text-white">{order.address}</span>
+                              <a
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-[#141414] px-1.5 py-0.5 rounded border border-[#353535]"
+                                title="Abrir rota no Google Maps"
+                              >
+                                <Navigation className="w-2.5 h-2.5 text-[#019ad8]" />
+                                <span>Rota</span>
+                                <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                              </a>
+                            </div>
+                          )}
                         </div>
                         <button
                           onClick={() => onPrintOrder(order)}
@@ -1115,6 +1359,67 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             )}
                           </div>
                         ))}
+                      </div>
+
+                      {/* Payment Instruction Banner */}
+                      <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#8e8f8f] font-medium">Total:</span>
+                          <span className="font-['Montserrat'] font-black text-sm text-[#ff5722]">
+                            R$ {order.total.toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+
+                        {isOnlinePaid ? (
+                          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                              <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">PAGO ONLINE ({order.paymentMethod})</span>
+                            </div>
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                              NÃO COBRAR
+                            </span>
+                          </div>
+                        ) : isNeedMachine ? (
+                          <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                            <div className="flex items-center justify-between text-amber-300 font-bold">
+                              <span className="flex items-center gap-1.5">
+                                <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <span>LEVAR MAQUININHA 💳</span>
+                              </span>
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                COBRAR NA ENTREGA
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-[#ffdad6] block truncate">
+                              Forma: {order.paymentMethod}
+                            </span>
+                          </div>
+                        ) : isCash ? (
+                          <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                            <div className="flex items-center justify-between text-blue-300 font-bold">
+                              <span className="flex items-center gap-1.5">
+                                <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                <span>COBRAR EM DINHEIRO 💵</span>
+                              </span>
+                              <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                NA ENTREGA
+                              </span>
+                            </div>
+                            {order.changeFor ? (
+                              <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
+                                ⚠️ Levar troco para: {order.changeFor}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="bg-[#262626] border border-[#383838] rounded-xl p-2 flex items-center justify-between text-[11px] text-[#b4b5b5]">
+                            <span className="truncate">Forma: {order.paymentMethod}</span>
+                            <span className="text-[9px] text-white font-semibold shrink-0">Pagar na Entrega</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1184,29 +1489,50 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                       {isEmEntrega && (
                         <div className="space-y-2">
-                          <div className="p-2 bg-[#1c1b1b] rounded-lg border border-[#353535] flex items-center justify-between text-[11px]">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full overflow-hidden border border-[#ff5722]/50 bg-[#252525] flex-shrink-0">
-                                <img
-                                  src={order.courierAvatar || APP_IMAGES.driverAvatar}
-                                  alt="Entregador"
-                                  className="w-full h-full object-cover"
-                                />
+                          <div className="p-2.5 bg-[#1c1b1b] rounded-lg border border-[#353535] space-y-2 text-[11px]">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-full overflow-hidden border border-[#ff5722]/50 bg-[#252525] flex-shrink-0">
+                                  <img
+                                    src={order.courierAvatar || APP_IMAGES.driverAvatar}
+                                    alt="Entregador"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-white font-bold truncate block">
+                                    {order.courierName || 'Entregador Despachado'}
+                                  </span>
+                                  {order.courierVehicle && (
+                                    <span className="text-[10px] text-[#b4b5b5] truncate block">
+                                      {order.courierVehicle} {order.courierPlate ? `• ${order.courierPlate}` : ''}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <span className="text-white font-medium truncate max-w-[120px]">
-                                {order.courierName || 'Entregador Despachado'}
-                              </span>
+                              {order.courierPhone && (
+                                <a
+                                  href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.courierName}, tudo bem? Mensagem da cozinha sobre o pedido ${order.orderNumber}:`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
+                                >
+                                  <Phone className="w-3 h-3" /> WhatsApp
+                                </a>
+                              )}
                             </div>
-                            {order.courierPhone && (
-                              <a
-                                href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1"
-                              >
-                                WhatsApp
-                              </a>
-                            )}
+
+                            {/* Live Route Link for Manager */}
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full bg-[#182026] hover:bg-[#1f2b33] border border-[#019ad8]/40 text-[#86cfff] py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
+                            >
+                              <Navigation className="w-3.5 h-3.5 text-[#019ad8]" />
+                              <span>Acompanhar Rota no Google Maps</span>
+                              <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
+                            </a>
                           </div>
                           <button
                             onClick={() => onCompleteOrder(order.id)}
