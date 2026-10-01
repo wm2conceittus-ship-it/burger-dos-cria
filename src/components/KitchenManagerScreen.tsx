@@ -11,6 +11,7 @@ import {
   Share2,
   MessageSquare,
   User,
+  Users,
   Settings,
   Receipt,
   UtensilsCrossed,
@@ -58,6 +59,8 @@ import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
 import { DeliveryRadiusControl } from './DeliveryRadiusControl';
+import { TableManagementView } from './TableManagementView';
+import { EmployeeManagementView } from './EmployeeManagementView';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -74,6 +77,7 @@ interface KitchenManagerScreenProps {
   onAdvanceToDelivery: (orderId: string, courier?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string }) => void;
   onCompleteOrder: (orderId: string) => void;
   onOpenManualOrder: () => void;
+  onAddOrder?: (newOrder: Order) => void;
   onPrintOrder: (order: Order) => void;
   onOpenChat: () => void;
   onNavigateToMenu: () => void;
@@ -112,13 +116,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onAdvanceToDelivery,
   onCompleteOrder,
   onOpenManualOrder,
+  onAddOrder,
   onPrintOrder,
   onOpenChat,
   onNavigateToMenu,
   onLockManager,
 }) => {
-  // Main Sub-Tab: 'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
+  // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
   const [mainFilter, setMainFilter] = useState<'abertos' | 'agendados'>('abertos');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -141,7 +146,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
-  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'area' | 'entregadores' | 'formas' | 'cupons'>('area');
+  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'funcionarios' | 'area' | 'entregadores' | 'formas' | 'cupons'>('geral');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
@@ -706,6 +711,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           <div className="flex gap-2">
             {[
               { id: 'pedidos' as const, label: 'Pedidos (KDS)', icon: Receipt, badge: novosOrders.length },
+              {
+                id: 'mesas' as const,
+                label: 'Mesas & Salão',
+                icon: UtensilsCrossed,
+                badge: (storeSettings.tables || []).filter(t => t.status === 'ocupada' || t.status === 'conta_pedida').length,
+              },
               { id: 'cardapio' as const, label: 'Cardápio & Estoque', icon: Layers },
               { id: 'relatorios' as const, label: 'Finanças & DRE', icon: DollarSign },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
@@ -1610,7 +1621,19 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
         )}
 
-        {/* ================= ABA 2: CARDÁPIO & ESTOQUE ================= */}
+        {/* ================= ABA 2: MESAS & SALÃO ================= */}
+        {activeTab === 'mesas' && (
+          <TableManagementView
+            storeSettings={storeSettings}
+            products={products}
+            orders={orders}
+            onUpdateStoreSettings={onUpdateStoreSettings}
+            onAddOrder={onAddOrder}
+            onPrintOrder={onPrintOrder}
+          />
+        )}
+
+        {/* ================= ABA 3: CARDÁPIO & ESTOQUE ================= */}
         {activeTab === 'cardapio' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2139,103 +2162,123 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </p>
             </div>
 
-            {/* Sub-abas dentro das Configurações */}
-            <div className="flex gap-2 p-1.5 bg-[#1c1b1b] rounded-md border border-[#353535] overflow-x-auto justify-start sm:justify-center">
-              <button
-                type="button"
-                onClick={() => setConfigTab('gateway')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'gateway'
-                    ? 'bg-[#009ee3] text-white shadow-lg shadow-[#009ee3]/25 ring-1 ring-[#009ee3]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <div className="w-4 h-4 rounded bg-white text-[#009ee3] text-[9px] font-black flex items-center justify-center shadow-sm">
-                  MP
-                </div>
-                <span>Gateway</span>
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                  API
-                </span>
-              </button>
+            {/* Sub-abas dentro das Configurações - Alinhamento sempre à esquerda (justify-start) para nunca cortar o primeiro botão */}
+            <div className="w-full overflow-hidden bg-[#1c1b1b] rounded-xl border border-[#353535] p-1.5">
+              <div className="flex gap-2 overflow-x-auto justify-start items-center scrollbar-thin pb-1 sm:pb-0 px-0.5">
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('geral')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'geral'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-white" />
+                  <span>Geral & Operação</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setConfigTab('geral')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'geral'
-                    ? 'bg-[#ff5722] text-white shadow-md'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <Settings className="w-3.5 h-3.5" />
-                <span>Geral & Operação</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('funcionarios')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'funcionarios'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Funcionários & Funções</span>
+                  {((storeSettings.employees || []).filter(e => e.active).length > 0) && (
+                    <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                      {(storeSettings.employees || []).filter(e => e.active).length} no plantão
+                    </span>
+                  )}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setConfigTab('entregadores')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'entregadores'
-                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <Bike className="w-3.5 h-3.5" />
-                <span>Entregadores & Motoboys</span>
-                {((storeSettings.couriers || []).filter(c => c.active).length > 0) && (
-                  <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                    {(storeSettings.couriers || []).filter(c => c.active).length} no plantão
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('area')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'area'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span>Área de Atuação</span>
+                  <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded font-extrabold uppercase">
+                    {storeSettings.deliveryArea?.radiusKm || 7} km
                   </span>
-                )}
-              </button>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setConfigTab('area')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'area'
-                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Área de Atuação</span>
-                <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded font-extrabold uppercase">
-                  {storeSettings.deliveryArea?.radiusKm || 7} km
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('entregadores')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'entregadores'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Bike className="w-4 h-4" />
+                  <span>Entregadores & Motoboys</span>
+                  {((storeSettings.couriers || []).filter(c => c.active).length > 0) && (
+                    <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                      {(storeSettings.couriers || []).filter(c => c.active).length} no plantão
+                    </span>
+                  )}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setConfigTab('formas')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'formas'
-                    ? 'bg-[#ff5722] text-white shadow-md'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Formas de Pagamento Locais</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('formas')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'formas'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>Formas de Pagamento Locais</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setConfigTab('cupons')}
-                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
-                  configTab === 'cupons'
-                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                }`}
-              >
-                <Ticket className="w-3.5 h-3.5" />
-                <span>Cupons & Promoções</span>
-                {((storeSettings.coupons || []).filter(c => c.active).length > 0) && (
-                  <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
-                    {(storeSettings.coupons || []).filter(c => c.active).length} ativos
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('cupons')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'cupons'
+                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Ticket className="w-4 h-4" />
+                  <span>Cupons & Promoções</span>
+                  {((storeSettings.coupons || []).filter(c => c.active).length > 0) && (
+                    <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                      {(storeSettings.coupons || []).filter(c => c.active).length} ativos
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setConfigTab('gateway')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'gateway'
+                      ? 'bg-[#009ee3] text-white shadow-lg shadow-[#009ee3]/25 ring-1 ring-[#009ee3]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <div className="w-4 h-4 rounded bg-white text-[#009ee3] text-[9px] font-black flex items-center justify-center shadow-sm">
+                    MP
+                  </div>
+                  <span>Gateway Mercado Pago</span>
+                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                    API
                   </span>
-                )}
-              </button>
+                </button>
+              </div>
             </div>
 
             {/* Toast da Área de Atuação */}
@@ -2252,6 +2295,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <CheckCircle className="w-4 h-4 text-emerald-400" />
                 <span>{couponToast}</span>
               </div>
+            )}
+
+            {/* ABA FUNCIONÁRIOS & FUNÇÕES */}
+            {configTab === 'funcionarios' && (
+              <EmployeeManagementView
+                storeSettings={storeSettings}
+                onUpdateStoreSettings={onUpdateStoreSettings}
+              />
             )}
 
             {/* ABA ÁREA DE ATUAÇÃO & ENTREGAS (COMPONENTE VISUAL DINÂMICO FIREBASE) */}
@@ -2290,6 +2341,99 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <Power className="w-3.5 h-3.5" />
                   <span>{storeSettings.isOpen ? 'Aberta' : 'Fechada'}</span>
                 </button>
+              </div>
+
+              {/* Store Identity & Physical Address Section */}
+              <div className="bg-[#1c1b1b] p-4 rounded-xl border border-[#353535] space-y-3.5">
+                <div className="flex items-center gap-2 pb-2 border-b border-[#353535]/50">
+                  <MapPin className="w-4 h-4 text-[#ff5722]" />
+                  <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white">
+                    Identificação & Endereço do Estabelecimento
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-[#b4b5b5] mb-1 font-semibold">
+                      Nome da Hamburgueria / Loja
+                    </label>
+                    <input
+                      type="text"
+                      value={storeSettings.storeName}
+                      onChange={e =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          storeName: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: Burguer dos Crias"
+                      className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#b4b5b5] mb-1 font-semibold">
+                      Horário de Funcionamento
+                    </label>
+                    <input
+                      type="text"
+                      value={storeSettings.openingHours || ''}
+                      onChange={e =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          openingHours: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: Terça a Domingo, 18h - 00h"
+                      className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+                </div>
+
+                {/* Endereço Completo da Loja Física */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[#b4b5b5] font-semibold flex items-center gap-1.5">
+                      <span>Endereço Completo do Estabelecimento (Loja Física / Cozinha)</span>
+                    </label>
+                    {(storeSettings.address || storeSettings.deliveryArea?.baseAddress) && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          storeSettings.address || storeSettings.deliveryArea?.baseAddress || ''
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#86cfff] hover:text-white text-[10px] font-bold flex items-center gap-1"
+                      >
+                        <span>Ver no Maps</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={storeSettings.address || storeSettings.deliveryArea?.baseAddress || ''}
+                      onChange={e => {
+                        const newAddr = e.target.value;
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          address: newAddr,
+                          deliveryArea: {
+                            ...storeSettings.deliveryArea,
+                            baseAddress: newAddr,
+                          },
+                        });
+                      }}
+                      placeholder="Ex: Rua Augusta, 1000 - Consolação, São Paulo - SP"
+                      className="w-full bg-[#121212] border border-[#353535] rounded-lg pl-9 pr-3 py-2.5 text-white font-medium focus:outline-none focus:border-[#ff5722] text-xs"
+                    />
+                    <MapPin className="w-4 h-4 text-[#ff5722] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  <span className="text-[10px] text-[#8e8f8f] mt-1 block">
+                    📍 Este endereço é a base de saída dos motoboys e o local de retirada pelos clientes.
+                  </span>
+                </div>
               </div>
 
               {/* Delivery and Kitchen times */}

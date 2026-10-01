@@ -32,6 +32,9 @@ import {
   X,
   ChevronRight,
   Lock,
+  UtensilsCrossed,
+  ShoppingBag,
+  Bike,
 } from 'lucide-react';
 
 interface CartScreenProps {
@@ -50,7 +53,9 @@ interface CartScreenProps {
     paymentMethod: string,
     discountAmount: number,
     changeFor?: string,
-    mercadoPagoPaymentId?: string
+    mercadoPagoPaymentId?: string,
+    orderType?: 'Delivery' | 'Retirada' | 'Mesa',
+    tableNumber?: number
   ) => void;
 }
 
@@ -68,6 +73,21 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   onOpenChat,
   onCheckout,
 }) => {
+  // Order Type Mode: 'Delivery' | 'Retirada' | 'Mesa'
+  const [orderType, setOrderType] = useState<'Delivery' | 'Retirada' | 'Mesa'>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mesa')) {
+      return 'Mesa';
+    }
+    return 'Delivery';
+  });
+
+  const [tableNumber, setTableNumber] = useState<number>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mesaParam = urlParams.get('mesa');
+    return mesaParam ? parseInt(mesaParam) || 1 : 1;
+  });
+
   const [couponCode, setCouponCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [fixedDiscount, setFixedDiscount] = useState<number>(0);
@@ -166,18 +186,18 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         const brand = getCardBrand(cleanNumber);
         const finalMethod = `${paymentMethod} Online (${brand} •••• ${last4}${installments !== '1' ? `, ${installments}x` : ''})`;
         setShowPaymentModal(false);
-        onCheckout(finalMethod, discountAmount, changeFor);
+        onCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
         return;
       } else {
         const finalMethod = `${paymentMethod} (Maquininha na Entrega)`;
         setShowPaymentModal(false);
-        onCheckout(finalMethod, discountAmount, changeFor);
+        onCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
         return;
       }
     }
 
     setShowPaymentModal(false);
-    onCheckout(paymentMethod, discountAmount, changeFor);
+    onCheckout(paymentMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
   };
 
   const handleSelectPaymentMethod = (methodName: string) => {
@@ -251,8 +271,9 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     subtotal >= storeSettings.deliveryArea.freeDeliveryThreshold
   );
 
-  const isPickup = addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
-  const rawDeliveryFee = items.length > 0 && !isPickup ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
+  const isPickup = orderType === 'Retirada' || addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
+  const isTable = orderType === 'Mesa';
+  const rawDeliveryFee = items.length > 0 && !isPickup && !isTable ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
   const deliveryFee = isFreeShippingCoupon ? 0.00 : rawDeliveryFee;
   const discountAmount = (subtotal * discountPercent) + fixedDiscount;
   const total = Math.max(0, subtotal + deliveryFee - discountAmount);
@@ -565,32 +586,150 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           )}
         </section>
 
-        {/* Endereço de Entrega */}
-        <section className="space-y-1.5">
-          <h3 className="text-xs font-medium text-[#b4b5b5]">
-            Endereço de Entrega
+        {/* Modalidade do Pedido: Delivery, Retirada no Balcão ou Consumir na Mesa */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold text-white font-['Montserrat'] flex items-center justify-between">
+            <span>Como deseja receber seu pedido?</span>
+            {orderType === 'Mesa' && (
+              <span className="text-[10px] text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded font-extrabold uppercase">
+                Consumo no Local
+              </span>
+            )}
           </h3>
-          <div className="bg-[#20201f] rounded-lg p-4 flex items-center justify-between border border-[#353535]/50 shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white">
-                  {deliveryAddress.split(' - ')[0] || deliveryAddress}
-                </span>
-                <span className="text-xs text-[#b4b5b5]">
-                  {deliveryAddress.split(' - ')[1] || 'Centro, São Paulo - SP'}
-                </span>
-              </div>
-            </div>
+
+          <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={onOpenAddressModal}
-              className="text-[#ffb5a0] hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-md hover:bg-[#353535] border border-[#353535] transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              type="button"
+              onClick={() => setOrderType('Delivery')}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                orderType === 'Delivery'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
+              }`}
             >
-              <Navigation className="w-3.5 h-3.5 text-[#ff5722]" /> Usar GPS / Alterar
+              <Bike className="w-5 h-5" />
+              <span className="text-xs font-bold font-['Montserrat']">Delivery</span>
+              <span className="text-[9px] opacity-80">Entrega</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOrderType('Retirada')}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                orderType === 'Retirada'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
+              }`}
+            >
+              <ShoppingBag className="w-5 h-5" />
+              <span className="text-xs font-bold font-['Montserrat']">Retirada</span>
+              <span className="text-[9px] opacity-80">Balcão (Grátis)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOrderType('Mesa')}
+              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                orderType === 'Mesa'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
+              }`}
+            >
+              <UtensilsCrossed className="w-5 h-5" />
+              <span className="text-xs font-bold font-['Montserrat']">Na Mesa</span>
+              <span className="text-[9px] opacity-80">Salão (Grátis)</span>
             </button>
           </div>
+        </section>
+
+        {/* DETALHES DE ACORDO COM A MODALIDADE */}
+        {orderType === 'Mesa' && (
+          <section className="bg-[#1c1b1b] rounded-xl p-4 border border-[#ff5722]/40 space-y-3 shadow-lg animate-in fade-in">
+            <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="w-4 h-4 text-[#ff5722]" />
+                <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white">
+                  Identificação da sua Mesa no Salão
+                </h4>
+              </div>
+              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+                Sem Taxa de Entrega
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-[#b4b5b5] text-xs font-semibold mb-1.5">
+                Selecione o número da mesa em que você está sentado:
+              </label>
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                {(storeSettings?.tables || Array.from({ length: 10 }, (_, i) => ({ number: i + 1, label: `Mesa ${i + 1}` }))).map(t => (
+                  <button
+                    key={t.number}
+                    type="button"
+                    onClick={() => setTableNumber(t.number)}
+                    className={`py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex flex-col items-center justify-center transition-all ${
+                      tableNumber === t.number
+                        ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/40 scale-105 border border-white'
+                        : 'bg-[#121212] text-[#b4b5b5] hover:text-white border border-[#353535]'
+                    }`}
+                  >
+                    <span>Mesa</span>
+                    <span className="text-sm font-black font-mono">{t.number < 10 ? `0${t.number}` : t.number}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-black/40 rounded-lg border border-[#353535] text-[11px] text-[#b4b5b5] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#ff5722] shrink-0" />
+              <span>
+                Seu pedido entrará direto na chapa da cozinha e o garçom servirá quentinho na <strong>Mesa {tableNumber < 10 ? `0${tableNumber}` : tableNumber}</strong>!
+              </span>
+            </div>
+          </section>
+        )}
+
+        {orderType === 'Retirada' && (
+          <section className="bg-[#1c1b1b] rounded-xl p-4 border border-[#353535] space-y-2 animate-in fade-in">
+            <div className="flex items-center gap-2 text-white font-bold text-xs">
+              <ShoppingBag className="w-4 h-4 text-[#ff5722]" />
+              <span>Retirada no Balcão da Hamburgueria</span>
+            </div>
+            <p className="text-xs text-[#b4b5b5]">
+              Endereço: <strong className="text-white">{storeSettings?.address || storeSettings?.deliveryArea?.baseAddress || 'Rua Augusta, 1000 - Consolação, São Paulo - SP'}</strong>
+            </p>
+            <p className="text-[11px] text-emerald-400">
+              ✓ Economize a taxa de frete e retire seu lanche no balcão sem filas!
+            </p>
+          </section>
+        )}
+
+        {orderType === 'Delivery' && (
+          <section className="space-y-1.5">
+            <h3 className="text-xs font-medium text-[#b4b5b5]">
+              Endereço de Entrega
+            </h3>
+            <div className="bg-[#20201f] rounded-lg p-4 flex items-center justify-between border border-[#353535]/50 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white">
+                    {deliveryAddress.split(' - ')[0] || deliveryAddress}
+                  </span>
+                  <span className="text-xs text-[#b4b5b5]">
+                    {deliveryAddress.split(' - ')[1] || 'Centro, São Paulo - SP'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={onOpenAddressModal}
+                className="text-[#ffb5a0] hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-md hover:bg-[#353535] border border-[#353535] transition-colors flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Navigation className="w-3.5 h-3.5 text-[#ff5722]" /> Usar GPS / Alterar
+              </button>
+            </div>
 
           {/* Feedback do Raio de Atendimento da Loja */}
           {isOutsideRadius ? (
@@ -612,6 +751,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             </div>
           ) : null}
         </section>
+        )}
 
         {/* Possui um cupom? */}
         <section className="space-y-1.5">
@@ -954,13 +1094,25 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     </span>
                   </div>
 
-                  {/* QR Code Container */}
+                  {/* QR Code Container com Logo no Centro */}
                   <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30">
-                    <img
-                      src={pixQrCodeUrl}
-                      alt="QR Code Pix"
-                      className="w-36 h-36 object-contain rounded-lg"
-                    />
+                    <div className="relative w-36 h-36 flex items-center justify-center">
+                      <img
+                        src={pixQrCodeUrl}
+                        alt="QR Code Pix"
+                        className="w-36 h-36 object-contain rounded-lg"
+                      />
+                      {/* Logo da Hamburgueria no centro do QR Code */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-white p-1 shadow-2xl border-2 border-[#ff5722] flex items-center justify-center overflow-hidden">
+                          <img
+                            src={APP_IMAGES.logo}
+                            alt="Logo da Hamburgueria"
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
                     <div className="mt-1.5 flex items-center gap-1 text-[10px] text-zinc-800 font-extrabold uppercase tracking-wide">
                       <QrCode className="w-3.5 h-3.5 text-[#ff5722]" />
                       <span>Pague pelo seu banco</span>

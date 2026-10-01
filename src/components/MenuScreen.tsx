@@ -32,6 +32,8 @@ import {
   Lock,
   ChefHat,
   ArrowUp,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -50,14 +52,15 @@ interface MenuScreenProps {
 }
 
 export type CategoryFilter =
+  | 'todos'
   | 'burgers'
-  | 'pizzas'
   | 'combos'
+  | 'pizzas'
   | 'salgados'
   | 'sucos'
-  | 'bebidas'
   | 'refrigerantes'
-  | 'cervejas';
+  | 'cervejas'
+  | 'bebidas';
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({
   products,
@@ -145,6 +148,13 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
     }
   };
 
+  const scrollByAmount = (amount: number) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+      setTimeout(checkScroll, 200);
+    }
+  };
+
   const onMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
     isDraggingRef.current = true;
@@ -207,6 +217,32 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
     if (searchQuery.trim()) {
       return matchesSearch;
+    }
+    if (selectedCategory === 'todos') {
+      return true;
+    }
+    if (selectedCategory === 'refrigerantes') {
+      return (
+        p.category === 'bebidas' &&
+        (p.subCategory === 'refrigerantes' ||
+          p.name.toLowerCase().includes('coca') ||
+          p.name.toLowerCase().includes('guaraná') ||
+          p.name.toLowerCase().includes('fanta') ||
+          p.name.toLowerCase().includes('sprite'))
+      );
+    }
+    if (selectedCategory === 'cervejas') {
+      return (
+        p.category === 'bebidas' &&
+        (p.subCategory === 'cervejas' ||
+          p.name.toLowerCase().includes('cerveja') ||
+          p.name.toLowerCase().includes('heineken') ||
+          p.name.toLowerCase().includes('corona') ||
+          p.name.toLowerCase().includes('amstel') ||
+          p.name.toLowerCase().includes('stella') ||
+          p.name.toLowerCase().includes('budweiser') ||
+          p.name.toLowerCase().includes('brahma'))
+      );
     }
     return p.category === selectedCategory;
   });
@@ -367,54 +403,78 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 </div>
               )}
 
-              <nav className="space-y-2 text-sm font-['Montserrat']">
+              <nav className="space-y-1.5 text-sm font-['Montserrat']">
                 <button
-                  onClick={() => { setDrawerOpen(false); setSelectedCategory('burgers'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'burgers' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('todos'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'todos' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Utensils className="w-4 h-4" /> Burgers
+                  <Flame className="w-4 h-4 text-[#ff5722]" /> Ver Todos os Itens
                 </button>
                 <button
-                  onClick={() => { setDrawerOpen(false); setSelectedCategory('pizzas'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'pizzas' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('burgers'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'burgers' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Pizza className="w-4 h-4" /> Pizzas Artesanais
+                  <Utensils className="w-4 h-4" /> Burgers Artesanais
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('combos'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'combos' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'combos' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
                   <Layers className="w-4 h-4" /> Combos Especiais
                 </button>
                 <button
-                  onClick={() => { setDrawerOpen(false); setSelectedCategory('salgados'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'salgados' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('pizzas'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'pizzas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Croissant className="w-4 h-4" /> Salgados & Porções
+                  <Pizza className="w-4 h-4" /> Pizzas Artesanais
+                </button>
+                <button
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('salgados'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'salgados' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
+                  }`}
+                >
+                  <Croissant className="w-4 h-4" /> Salgados & Batatas
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('sucos'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'sucos' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'sucos' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Citrus className="w-4 h-4 text-[#ff9800]" /> Sucos Natural
+                  <Citrus className="w-4 h-4 text-[#ff9800]" /> Sucos Naturais
+                </button>
+                <button
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('refrigerantes'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'refrigerantes' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
+                  }`}
+                >
+                  <GlassWater className="w-4 h-4 text-[#00b0ff]" /> Refrigerantes em Lata
+                </button>
+                <button
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('cervejas'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'cervejas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
+                  }`}
+                >
+                  <Beer className="w-4 h-4 text-amber-400" /> Cervejas Geladas
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('bebidas'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-bold ${
-                    selectedCategory === 'bebidas' ? 'bg-[#ff5722]/10 text-[#ff8a65]' : 'text-[#e5e2e1]'
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'bebidas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <GlassWater className="w-4 h-4" /> Bebidas
+                  <Sparkles className="w-4 h-4" /> Todas as Bebidas
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); onOpenCart(); }}
@@ -517,15 +577,28 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         </section>
 
-        {/* Category Buttons Drag-to-Scroll Bar */}
-        <section className="sticky top-16 z-30 bg-[#0F0F0F]/95 backdrop-blur-md py-2.5 -mx-4 md:-mx-6 px-4 md:px-6 border-b border-[#353535]/30">
-          <div className="relative flex items-center justify-center max-w-5xl mx-auto">
-            {/* Subtle Left fade indicator */}
+        {/* Category Buttons Carousel Navigation Bar */}
+        <section className="sticky top-16 z-30 bg-[#0F0F0F]/95 backdrop-blur-md py-3 -mx-4 md:-mx-6 px-4 md:px-6 border-b border-[#353535]/40 shadow-md">
+          <div className="relative flex items-center max-w-5xl mx-auto">
+            {/* Scroll Left Button */}
             {canScrollLeft && (
-              <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#0F0F0F] to-transparent pointer-events-none z-10" />
+              <button
+                type="button"
+                onClick={() => scrollByAmount(-220)}
+                aria-label="Rolar categorias para a esquerda"
+                className="absolute left-0 z-20 w-8 h-8 rounded-full bg-[#1c1b1b]/95 border border-[#ff5722]/50 text-[#ff8a65] hover:text-white hover:bg-[#ff5722] flex items-center justify-center shadow-xl transition-all active:scale-90 -ml-1 sm:-ml-2.5"
+                title="Ver categorias anteriores"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
             )}
 
-            {/* Scrollable Container with Pure Drag, Swipe & Touch */}
+            {/* Subtle Left fade indicator */}
+            {canScrollLeft && (
+              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent pointer-events-none z-10" />
+            )}
+
+            {/* Scrollable Container with Pure Drag, Swipe, Arrows & Touch */}
             <div
               ref={scrollContainerRef}
               onScroll={checkScroll}
@@ -534,18 +607,20 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               onMouseMove={onMouseMove}
               onMouseUp={onMouseUpOrLeave}
               onMouseLeave={onMouseUpOrLeave}
-              className={`flex items-center gap-2.5 overflow-x-auto hide-scrollbar py-1 px-1 select-none w-full touch-pan-x overscroll-x-contain justify-start min-[880px]:justify-center ${
+              className={`flex items-center gap-2 overflow-x-auto hide-scrollbar py-1 px-1 select-none w-full touch-pan-x overscroll-x-contain scroll-smooth justify-start ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
             >
               {[
-                { id: 'burgers' as const, label: 'Burgers', icon: Utensils },
-                { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza },
-                { id: 'combos' as const, label: 'Combos', icon: Layers },
-                { id: 'salgados' as const, label: 'Salgados', icon: Croissant },
-                { id: 'sucos' as const, label: 'Sucos Natural', icon: Citrus },
-                { id: 'bebidas' as const, label: 'Bebidas', icon: GlassWater },
-                { id: 'refrigerantes' as const, label: 'Refrigerantes', icon: GlassWater },
+                { id: 'todos' as const, label: 'Todos', icon: Flame, count: products.length },
+                { id: 'burgers' as const, label: 'Burgers', icon: Utensils, count: burgers.length },
+                { id: 'combos' as const, label: 'Combos', icon: Layers, count: combos.length },
+                { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza, count: pizzas.length },
+                { id: 'salgados' as const, label: 'Porções & Salgados', icon: Croissant, count: salgados.length },
+                { id: 'sucos' as const, label: 'Sucos Naturais', icon: Citrus, count: sucos.length },
+                { id: 'refrigerantes' as const, label: 'Refrigerantes', icon: GlassWater, count: refrigerantes.length },
+                { id: 'cervejas' as const, label: 'Cervejas', icon: Beer, count: cervejas.length },
+                { id: 'bebidas' as const, label: 'Todas as Bebidas', icon: Sparkles, count: products.filter(p => p.category === 'bebidas').length },
               ].map(cat => {
                 const active = selectedCategory === cat.id && !searchQuery.trim();
                 const Icon = cat.icon;
@@ -562,14 +637,31 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                         block: 'nearest',
                       });
                     }}
-                    className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold whitespace-nowrap transition-all duration-200 active:scale-95 shadow-md flex-shrink-0 ${
+                    className={`group flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-['Montserrat'] font-bold whitespace-nowrap transition-all duration-200 active:scale-95 flex-shrink-0 shadow-sm ${
                       active
-                        ? 'bg-[#ff5722] text-white ring-2 ring-[#ff5722]/50 shadow-[0_4px_18px_rgba(255,87,34,0.45)]'
-                        : 'bg-[#20201f] text-[#b4b5b5] hover:bg-[#2a2a2a] hover:text-white border border-[#353535]/50'
+                        ? 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00] text-white ring-2 ring-[#ff5722]/50 shadow-[0_4px_16px_rgba(255,87,34,0.4)]'
+                        : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]/80 hover:border-[#ff5722]/50'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{cat.label}</span>
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                        active
+                          ? 'bg-white/20 text-white'
+                          : 'bg-[#2a2a2a] text-[#ff8a65] group-hover:bg-[#ff5722]/20'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="tracking-tight">{cat.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono transition-colors ${
+                        active
+                          ? 'bg-black/25 text-white font-extrabold'
+                          : 'bg-[#282726] text-[#8e8f8f] group-hover:text-white'
+                      }`}
+                    >
+                      {cat.count}
+                    </span>
                   </button>
                 );
               })}
@@ -577,7 +669,20 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
             {/* Subtle Right fade indicator */}
             {canScrollRight && (
-              <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0F0F0F] to-transparent pointer-events-none z-10" />
+              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent pointer-events-none z-10" />
+            )}
+
+            {/* Scroll Right Button */}
+            {canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollByAmount(220)}
+                aria-label="Rolar categorias para a direita"
+                className="absolute right-0 z-20 w-8 h-8 rounded-full bg-[#1c1b1b]/95 border border-[#ff5722]/50 text-[#ff8a65] hover:text-white hover:bg-[#ff5722] flex items-center justify-center shadow-xl transition-all active:scale-90 -mr-1 sm:-mr-2.5"
+                title="Ver próximas categorias"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             )}
           </div>
         </section>
@@ -619,7 +724,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         )}
 
         {/* ================= CATEGORIA 1: BURGERS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'burgers' && (
+        {!searchQuery.trim() && (selectedCategory === 'burgers' || selectedCategory === 'todos') && (
           <div className="space-y-7">
             {/* Hero Banner: Especial do Dia */}
             {dailySpecial && (
@@ -687,35 +792,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         )}
 
-        {/* ================= CATEGORIA: PIZZAS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'pizzas' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
-                <Pizza className="w-5 h-5 text-[#ff5722]" /> Pizzas Artesanais dos Crias
-              </h3>
-              <p className="text-xs text-[#b4b5b5] mt-0.5">
-                Massa de fermentação natural, molho de tomate pelado italiano e borda recheada
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pizzas.map(pizza => (
-                <ProductGridCard
-                  key={pizza.id}
-                  product={pizza}
-                  isFavorite={favorites.includes(pizza.id)}
-                  onToggleFavorite={e => toggleFavorite(pizza.id, e)}
-                  onSelect={() => onSelectProduct(pizza)}
-                  onQuickAdd={() => onQuickAdd(pizza)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* ================= CATEGORIA 2: COMBOS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'combos' && (
+        {!searchQuery.trim() && (selectedCategory === 'combos' || selectedCategory === 'todos') && (
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
@@ -787,8 +865,35 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         )}
 
+        {/* ================= CATEGORIA: PIZZAS ================= */}
+        {!searchQuery.trim() && (selectedCategory === 'pizzas' || selectedCategory === 'todos') && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
+                <Pizza className="w-5 h-5 text-[#ff5722]" /> Pizzas Artesanais dos Crias
+              </h3>
+              <p className="text-xs text-[#b4b5b5] mt-0.5">
+                Massa de fermentação natural, molho de tomate pelado italiano e borda recheada
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pizzas.map(pizza => (
+                <ProductGridCard
+                  key={pizza.id}
+                  product={pizza}
+                  isFavorite={favorites.includes(pizza.id)}
+                  onToggleFavorite={e => toggleFavorite(pizza.id, e)}
+                  onSelect={() => onSelectProduct(pizza)}
+                  onQuickAdd={() => onQuickAdd(pizza)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ================= CATEGORIA 3: SALGADOS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'salgados' && (
+        {!searchQuery.trim() && (selectedCategory === 'salgados' || selectedCategory === 'todos') && (
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
@@ -815,7 +920,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         )}
 
         {/* ================= CATEGORIA: SUCOS NATURAIS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'sucos' && (
+        {!searchQuery.trim() && (selectedCategory === 'sucos' || selectedCategory === 'todos') && (
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
@@ -839,15 +944,15 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         )}
 
-        {/* ================= CATEGORIA 4: BEBIDAS ================= */}
+        {/* ================= CATEGORIA 4: BEBIDAS GERAIS ================= */}
         {!searchQuery.trim() && selectedCategory === 'bebidas' && (
           <div className="space-y-8">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
-                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Bebidas & Cervejas
+                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Todas as Bebidas
               </h3>
               <p className="text-xs text-[#b4b5b5] mt-0.5">
-                Cervejas trincando de geladas, águas minerais e outras bebidas refrescantes
+                Refrigerantes, cervejas trincando de geladas e águas minerais
               </p>
             </div>
 
@@ -867,6 +972,28 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                       key={cerveja.id}
                       product={cerveja}
                       onQuickAdd={() => onQuickAdd(cerveja)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-seção: Refrigerantes */}
+            {refrigerantes.length > 0 && (
+              <div className="space-y-3.5">
+                <div className="flex justify-between items-center border-b border-[#353535]/50 pb-1.5">
+                  <h4 className="font-['Montserrat'] text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <GlassWater className="w-4 h-4 text-[#00b0ff]" /> Refrigerantes em Lata
+                  </h4>
+                  <span className="text-[11px] text-[#b4b5b5]">350ml Gelados</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                  {refrigerantes.map(refri => (
+                    <DrinkCard
+                      key={refri.id}
+                      product={refri}
+                      onQuickAdd={() => onQuickAdd(refri)}
                     />
                   ))}
                 </div>
@@ -897,8 +1024,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         )}
 
-        {/* ================= CATEGORIA: APENAS REFRIGERANTES ================= */}
-        {!searchQuery.trim() && selectedCategory === 'refrigerantes' && (
+        {/* ================= CATEGORIA: REFRIGERANTES ================= */}
+        {!searchQuery.trim() && (selectedCategory === 'refrigerantes' || selectedCategory === 'todos') && (
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
@@ -914,8 +1041,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         )}
 
-        {/* ================= CATEGORIA: APENAS CERVEJAS ================= */}
-        {!searchQuery.trim() && selectedCategory === 'cervejas' && (
+        {/* ================= CATEGORIA: CERVEJAS ================= */}
+        {!searchQuery.trim() && (selectedCategory === 'cervejas' || selectedCategory === 'todos') && (
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
@@ -930,6 +1057,25 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             </div>
           </div>
         )}
+
+        {/* Establishment Info Footer Card */}
+        <section className="mt-8 pt-6 border-t border-[#353535]/60 pb-6 text-center space-y-2">
+          <div className="flex items-center justify-center gap-2">
+            <Flame className="w-5 h-5 text-[#ff5722]" />
+            <h4 className="font-['Montserrat'] font-bold text-sm text-white">
+              {storeSettings?.storeName || 'BURGER DOS CRIAS'}
+            </h4>
+          </div>
+          {(storeSettings?.address || storeSettings?.deliveryArea?.baseAddress) && (
+            <p className="text-xs text-[#b4b5b5] flex items-center justify-center gap-1.5 max-w-md mx-auto">
+              <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+              <span>{storeSettings.address || storeSettings.deliveryArea?.baseAddress}</span>
+            </p>
+          )}
+          <p className="text-[11px] text-[#8e8f8f]">
+            {storeSettings?.openingHours || 'Terça a Domingo, 18h - 00h'} • WhatsApp: {storeSettings?.whatsappSupport || '(11) 98765-4321'}
+          </p>
+        </section>
       </main>
 
       {/* Floating Scroll-to-Top Button */}

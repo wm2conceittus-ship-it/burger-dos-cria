@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Order } from '../types';
+import { Order, StoreSettings } from '../types';
 import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
 
 interface PrintModalProps {
   order: Order | null;
+  storeSettings?: StoreSettings;
   onClose: () => void;
 }
 
-export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
+export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, onClose }) => {
   const [paperSize, setPaperSize] = useState<'58mm' | '80mm'>(() => {
     return (localStorage.getItem('receipt_paper_size') as '58mm' | '80mm') || '58mm';
   });
@@ -16,6 +17,10 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
   const [compactMode, setCompactMode] = useState(true);
 
   if (!order) return null;
+
+  const storeName = storeSettings?.storeName || 'BURGER DOS CRIAS';
+  const storeAddress = storeSettings?.address || storeSettings?.deliveryArea?.baseAddress || 'Rua Augusta, 1000 - Consolação, São Paulo - SP';
+  const storeWhatsApp = storeSettings?.whatsappSupport || '(11) 98765-4321';
 
   const isOnlinePaid =
     order.paymentStatus === 'aprovado' ||
@@ -83,10 +88,10 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, onClose }) => {
 
     const text = `
 ${doubleDivider}
-        BURGER DOS CRIAS
+        ${storeName.toUpperCase()}
    Hamburgueria & Pizzaria Artesanal
-     CNPJ: 45.892.120/0001-90
-    WhatsApp: (11) 98765-4321
+   End: ${storeAddress}
+   WhatsApp: ${storeWhatsApp}
 ${divider}
    DOCUMENTO AUXILIAR DE VENDA
        (CUPOM NÃO FISCAL)
@@ -223,16 +228,16 @@ ${doubleDivider}
                   />
                 </div>
                 <p className="font-black text-sm tracking-wider font-['Montserrat'] uppercase">
-                  BURGER DOS CRIAS
+                  {storeName}
                 </p>
                 <p className="text-[9px] font-bold text-gray-800 uppercase">
                   Hamburgueria & Pizzaria
                 </p>
-                <p className="text-[8px] text-gray-600">
-                  CNPJ: 45.892.120/0001-90
+                <p className="text-[8px] text-gray-600 px-1 leading-tight">
+                  {storeAddress}
                 </p>
                 <p className="text-[9px] font-bold text-gray-800">
-                  WhatsApp: (11) 98765-4321
+                  WhatsApp: {storeWhatsApp}
                 </p>
                 <div className="mt-1 bg-black text-white text-[9px] font-bold py-0.5 px-2 uppercase tracking-wider rounded-sm w-full">
                   DOC. AUXILIAR DE VENDA (NÃO FISCAL)
@@ -244,7 +249,7 @@ ${doubleDivider}
                 <div className="flex justify-between items-center">
                   <span className="font-black text-base">{order.orderNumber}</span>
                   <span className="font-black text-xs px-1.5 py-0.2 bg-black text-white uppercase rounded-sm">
-                    {order.type}
+                    {order.type === 'Mesa' ? `MESA ${order.tableNumber || ''}` : order.type}
                   </span>
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-700">
@@ -401,13 +406,16 @@ ${doubleDivider}
                     />
                   </div>
                   <h2 className="font-extrabold text-base tracking-wider uppercase font-['Montserrat'] text-black leading-tight">
-                    BURGER DOS CRIAS
+                    {storeName}
                   </h2>
                   <p className="text-[10px] text-gray-700 font-bold uppercase tracking-widest mt-0.5">
                     • COMANDA DE PRODUÇÃO & EXPEDIÇÃO •
                   </p>
+                  <p className="text-[9px] text-gray-600 font-sans">
+                    Endereço: {storeAddress}
+                  </p>
                   <p className="text-[9px] text-gray-500 font-sans">
-                    WhatsApp: (11) 98765-4321 • O Mais Brabo da Quebrada
+                    WhatsApp: {storeWhatsApp} • Atendimento Oficial
                   </p>
                 </div>
               </div>
@@ -417,7 +425,7 @@ ${doubleDivider}
                 <div className="flex justify-between items-center bg-gray-100 print:bg-transparent px-2 py-1 rounded">
                   <span className="font-black text-sm">PEDIDO {order.orderNumber}</span>
                   <span className="px-2 py-0.5 bg-black text-white text-[10px] font-bold rounded uppercase">
-                    {order.type}
+                    {order.type === 'Mesa' ? `🍽️ MESA ${order.tableNumber || ''} (SALÃO)` : order.type}
                   </span>
                 </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Order } from '../types';
 import { APP_IMAGES } from '../data/mockData';
-import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation, ExternalLink, UtensilsCrossed } from 'lucide-react';
 
 interface OrderTrackingScreenProps {
   order: Order;
@@ -16,17 +16,40 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   onOpenChatWithDriver,
   onOpenHelp,
 }) => {
+  const isTable = order.type === 'Mesa';
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(1); // 0: Recebido, 1: Preparo, 2: Entrega, 3: Entregue
   const [showItemsList, setShowItemsList] = useState(false);
 
-  const steps = [
-    { label: 'Pedido\nRecebido', icon: Check },
-    { label: 'Em\nPreparo', icon: Flame },
-    { label: 'Saiu para\nEntrega', icon: Bike },
-    { label: 'Pedido\nEntregue', icon: CheckCircle2 },
-  ];
+  const steps = isTable
+    ? [
+        { label: 'Pedido\nConfirmado', icon: Check },
+        { label: 'Na Chapa\n(Preparo)', icon: Flame },
+        { label: 'Pronto p/\nServir', icon: UtensilsCrossed },
+        { label: 'Entregue na\nMesa', icon: CheckCircle2 },
+      ]
+    : [
+        { label: 'Pedido\nRecebido', icon: Check },
+        { label: 'Em\nPreparo', icon: Flame },
+        { label: 'Saiu para\nEntrega', icon: Bike },
+        { label: 'Pedido\nEntregue', icon: CheckCircle2 },
+      ];
 
   const getStatusText = () => {
+    if (isTable) {
+      switch (currentStepIndex) {
+        case 0:
+          return 'PEDIDO CONFIRMADO NO SALÃO';
+        case 1:
+          return 'BURGER NA CHAPA 🔥';
+        case 2:
+          return 'PRONTO PARA SERVIR NA MESA';
+        case 3:
+          return 'SERVIDO NA SUA MESA';
+        default:
+          return 'NA COZINHA';
+      }
+    }
+
     switch (currentStepIndex) {
       case 0:
         return 'PEDIDO RECEBIDO';
@@ -44,6 +67,21 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   const courierFirstName = (order.courierName || 'Ricardo').split(' ')[0];
 
   const getCourierStatus = () => {
+    if (isTable) {
+      switch (currentStepIndex) {
+        case 0:
+          return `Mesa ${order.tableNumber || 1}: pedido recebido pela cozinha`;
+        case 1:
+          return `O chapa está grelhando seu lanche para a Mesa ${order.tableNumber || 1}`;
+        case 2:
+          return `O garçom está levando seu pedido para a Mesa ${order.tableNumber || 1}`;
+        case 3:
+          return `Pedido servido com sucesso na Mesa ${order.tableNumber || 1}! Bom apetite 🔥`;
+        default:
+          return `Pedido em atendimento na Mesa ${order.tableNumber || 1}`;
+      }
+    }
+
     switch (currentStepIndex) {
       case 0:
         return 'A cozinha já confirmou seu pedido';

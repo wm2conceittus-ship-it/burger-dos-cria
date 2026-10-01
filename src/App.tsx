@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
-import { PRODUCTS, INITIAL_ORDERS } from './data/mockData';
+import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES } from './data/mockData';
 import {
   testFirestoreConnection,
   subscribeToOrders,
@@ -41,12 +41,17 @@ export default function App() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
     isOpen: true,
     storeName: 'Burguer dos Crias',
+    address: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
     defaultDeliveryFee: 7.00,
     estimatedDeliveryTime: '20-30 min',
     autoPrintReceipts: true,
     soundAlerts: true,
     allowManualOrders: true,
     autoAcceptOrders: false,
+    allowTableOrders: true,
+    serviceFeePercentage: 10,
+    tables: INITIAL_RESTAURANT_TABLES,
+    employees: INITIAL_EMPLOYEES,
     whatsappSupport: '(11) 98765-4321',
     openingHours: 'Terça a Domingo, 18h - 00h',
     pixKey: '11987654321',
@@ -298,7 +303,14 @@ export default function App() {
     // Subscribe to store settings in Firestore
     const unsubscribeSettings = subscribeToStoreSettings(remoteSettings => {
       if (remoteSettings && remoteSettings.storeName) {
-        setStoreSettings(prev => ({ ...prev, ...remoteSettings }));
+        const cleanedEmployees = remoteSettings.employees
+          ? remoteSettings.employees.filter((e: any) => e.role !== 'motoboy')
+          : undefined;
+        setStoreSettings(prev => ({
+          ...prev,
+          ...remoteSettings,
+          employees: cleanedEmployees || prev.employees,
+        }));
       }
     });
 
@@ -309,8 +321,14 @@ export default function App() {
   }, []);
 
   const handleUpdateStoreSettings = (newSettings: StoreSettings) => {
-    setStoreSettings(newSettings);
-    saveStoreSettingsToFirestore(newSettings);
+    const cleanedSettings: StoreSettings = {
+      ...newSettings,
+      employees: newSettings.employees
+        ? newSettings.employees.filter((e: any) => e.role !== 'motoboy')
+        : newSettings.employees,
+    };
+    setStoreSettings(cleanedSettings);
+    saveStoreSettingsToFirestore(cleanedSettings);
     showToast('Configurações sincronizadas no Firebase!');
   };
 
@@ -373,7 +391,9 @@ export default function App() {
     paymentMethod: string,
     discountAmount: number,
     changeFor?: string,
-    mercadoPagoPaymentId?: string
+    mercadoPagoPaymentId?: string,
+    orderType: 'Delivery' | 'Retirada' | 'Mesa' = 'Delivery',
+    tableNumber?: number
   ) => {
     if (!customerProfile) {
       setIsCustomerRegisterOpen(true);
@@ -381,24 +401,35 @@ export default function App() {
       return;
     }
 
+    const isTableOrder = orderType === 'Mesa';
+    const isPickupOrder = orderType === 'Retirada';
     const subtotal = cartItems.reduce((acc, it) => acc + it.totalPrice, 0);
-    const deliveryFee = storeSettings.defaultDeliveryFee;
+    const deliveryFee = isTableOrder || isPickupOrder ? 0.00 : storeSettings.defaultDeliveryFee;
     const total = Math.max(0, subtotal + deliveryFee - discountAmount);
-    const newOrderNum = `#${Math.floor(1000 + Math.random() * 9000)}`;
+    const newOrderNum = isTableOrder
+      ? `#MESA-${tableNumber || 1}`
+      : `#${Math.floor(1000 + Math.random() * 9000)}`;
 
     const isAutoAccept = Boolean(storeSettings.autoAcceptOrders);
     const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
-    const assignedCourier = activeCouriers.length > 0 ? activeCouriers[0] : undefined;
+    const assignedCourier = !isTableOrder && !isPickupOrder && activeCouriers.length > 0 ? activeCouriers[0] : undefined;
+
+    const effectiveAddress = isTableOrder
+      ? `Consumo no Local • Mesa ${tableNumber || 1}`
+      : isPickupOrder
+      ? 'Retirada no Balcão da Loja'
+      : customerProfile.address || deliveryAddress;
 
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber: newOrderNum,
       customerName: customerProfile.name,
       customerPhone: customerProfile.phone,
-      type: 'Delivery',
+      type: orderType,
+      tableNumber: isTableOrder ? tableNumber || 1 : undefined,
       status: isAutoAccept ? 'preparando' : 'novo',
       timeAgo: isAutoAccept ? 'Aceito automaticamente' : 'Acabou de ser feito',
-      address: customerProfile.address || deliveryAddress,
+      address: effectiveAddress,
       paymentMethod,
       changeFor,
       mercadoPagoPaymentId,
@@ -419,8 +450,8 @@ export default function App() {
       subtotal,
       deliveryFee,
       total,
-      courierName: assignedCourier?.name || 'Ricardo Souza',
-      courierPhone: assignedCourier?.phone || '(11) 98765-1122',
+      courierName: assignedCourier?.name,
+      courierPhone: assignedCourier?.phone,
       courierAvatar: assignedCourier?.avatar,
       courierVehicle: assignedCourier?.vehicleModel || (assignedCourier?.vehicle ? `Veículo (${assignedCourier.vehicle})` : undefined),
       courierPlate: assignedCourier?.plate,
@@ -429,10 +460,41 @@ export default function App() {
 
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder);
+
+    // If it's a table order, sync with storeSettings.tables!
+    if (isTableOrder && tableNumber) {
+      const currentTables = storeSettings.tables || [];
+      const updatedTables = currentTables.map(t => {
+        if (t.number === tableNumber) {
+          const newItems = cartItems.map(ci => ({
+            id: `ti-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            name: ci.product.name,
+            quantity: ci.quantity,
+            price: ci.product.price,
+            notes: ci.notes,
+            orderedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }));
+          return {
+            ...t,
+            status: 'ocupada' as const,
+            customerName: customerProfile.name,
+            peopleCount: t.peopleCount || 2,
+            openedAt: t.openedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            items: [...t.items, ...newItems],
+            serviceFeeEnabled: true,
+          };
+        }
+        return t;
+      });
+      handleUpdateStoreSettings({ ...storeSettings, tables: updatedTables });
+    }
+
     setActiveTrackingOrder(newOrder);
     setCartItems([]);
     showToast(
-      isAutoAccept
+      isTableOrder
+        ? `Pedido da Mesa ${tableNumber || 1} enviado direto para a chapa da cozinha! 🍽️🔥`
+        : isAutoAccept
         ? `Pedido ${newOrderNum} realizado e salvo no Firebase! Aceito na cozinha 🔥`
         : `Pedido ${newOrderNum} realizado e sincronizado no Firebase! 🔥`
     );
@@ -631,6 +693,7 @@ export default function App() {
           onAdvanceToDelivery={handleKitchenAdvanceToDelivery}
           onCompleteOrder={handleKitchenCompleteOrder}
           onOpenManualOrder={() => setIsManualOrderOpen(true)}
+          onAddOrder={handleManualOrderAdd}
           onPrintOrder={order => setPrintOrder(order)}
           onOpenChat={() => setIsDriverChatOpen(true)}
           onNavigateToMenu={() => setCurrentScreen('menu')}
@@ -735,6 +798,7 @@ export default function App() {
       {printOrder && (
         <PrintModal
           order={printOrder}
+          storeSettings={storeSettings}
           onClose={() => setPrintOrder(null)}
         />
       )}

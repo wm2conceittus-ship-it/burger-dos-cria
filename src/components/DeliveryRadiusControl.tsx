@@ -155,6 +155,7 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
 
     const newSettings: StoreSettings = {
       ...storeSettings,
+      address: baseAddress,
       defaultDeliveryFee: baseFee,
       deliveryArea: newDeliveryArea,
     };
@@ -243,6 +244,39 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
 
       {/* Visual Radius Control Deck */}
       <div className="bg-[#20201f] border border-[#353535] rounded-xl p-5 space-y-5 shadow-xl">
+        {/* Endereço Base da Loja (Ponto de Partida) */}
+        <div className="bg-[#181818] p-4 rounded-xl border border-[#353535] space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-white flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-[#ff5722]" />
+              <span>Endereço do Estabelecimento (Ponto Central de Partida do Delivery)</span>
+            </label>
+            {baseAddress && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(baseAddress)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#86cfff] hover:text-white text-[10px] font-bold flex items-center gap-1"
+              >
+                <span>Ver no Google Maps</span>
+              </a>
+            )}
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={baseAddress}
+              onChange={e => setBaseAddress(e.target.value)}
+              placeholder="Ex: Rua Augusta, 1000 - Consolação, São Paulo - SP"
+              className="w-full bg-[#121212] border border-[#353535] rounded-lg pl-9 pr-3 py-2.5 text-white font-medium focus:outline-none focus:border-[#ff5722] text-xs"
+            />
+            <MapPin className="w-4 h-4 text-[#ff5722] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+          <span className="text-[10px] text-[#8e8f8f] block">
+            📍 É a partir deste endereço que a distância em km e as taxas de entrega para os clientes são calculadas automaticamente.
+          </span>
+        </div>
+
         {/* Slider & Radius Value Display */}
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">

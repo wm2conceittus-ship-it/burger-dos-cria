@@ -108,15 +108,46 @@ export interface Coupon {
   usageCount?: number;
 }
 
+export type EmployeeRole =
+  | 'garcom'
+  | 'chapeiro'
+  | 'cozinha'
+  | 'atendente'
+  | 'caixa'
+  | 'gerente'
+  | 'outros';
+
+export interface Employee {
+  id: string;
+  name: string;
+  role: EmployeeRole;
+  customRoleTitle?: string;
+  phone: string;
+  email?: string;
+  pixKey?: string;
+  active: boolean; // No plantão / Ativo hoje
+  shift?: 'manha' | 'tarde' | 'noite' | 'integral';
+  salary?: number; // Salário mensal ou diária (R$)
+  salaryType?: 'diaria' | 'mensal';
+  registeredAt?: string;
+  notes?: string;
+  avatar?: string;
+}
+
 export interface StoreSettings {
   isOpen: boolean;
   storeName: string;
+  address?: string;
   defaultDeliveryFee: number;
   estimatedDeliveryTime: string;
   autoPrintReceipts: boolean;
   soundAlerts: boolean;
   allowManualOrders: boolean;
   autoAcceptOrders?: boolean;
+  allowTableOrders?: boolean;
+  serviceFeePercentage?: number;
+  tables?: RestaurantTable[];
+  employees?: Employee[];
   whatsappSupport: string;
   openingHours: string;
   pixKey?: string;
@@ -126,6 +157,34 @@ export interface StoreSettings {
   managerPin?: string;
   deliveryArea?: DeliveryAreaConfig;
   coupons?: Coupon[];
+}
+
+export type TableStatus = 'livre' | 'ocupada' | 'conta_pedida' | 'reservada';
+
+export interface TableOrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  pizzaSize?: PizzaSize;
+  juiceSize?: JuiceSize;
+  notes?: string;
+  orderedAt: string;
+}
+
+export interface RestaurantTable {
+  id: string;
+  number: number;
+  label: string;
+  capacity: number;
+  status: TableStatus;
+  customerName?: string;
+  peopleCount?: number;
+  openedAt?: string;
+  waiterName?: string;
+  notes?: string;
+  items: TableOrderItem[];
+  serviceFeeEnabled?: boolean;
 }
 
 export type PizzaSize = 'P' | 'M' | 'G' | 'Família';
@@ -152,6 +211,9 @@ export interface Order {
   customerName: string;
   customerPhone?: string;
   type: 'Delivery' | 'Retirada' | 'Mesa';
+  tableNumber?: number;
+  peopleCount?: number;
+  waiterName?: string;
   status: OrderStatus;
   items: {
     name: string;
