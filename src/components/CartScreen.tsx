@@ -65,6 +65,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 }) => {
   const [couponCode, setCouponCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [fixedDiscount, setFixedDiscount] = useState<number>(0);
+  const [isFreeShippingCoupon, setIsFreeShippingCoupon] = useState<boolean>(false);
   const [couponError, setCouponError] = useState<string>('');
   const [appliedCouponName, setAppliedCouponName] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Pix');
@@ -134,8 +136,9 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   );
 
   const isPickup = addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
-  const deliveryFee = items.length > 0 && !isPickup ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
-  const discountAmount = subtotal * discountPercent;
+  const rawDeliveryFee = items.length > 0 && !isPickup ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
+  const deliveryFee = isFreeShippingCoupon ? 0.00 : rawDeliveryFee;
+  const discountAmount = (subtotal * discountPercent) + fixedDiscount;
   const total = Math.max(0, subtotal + deliveryFee - discountAmount);
 
   // Pix QR Code and EMV Payload State
@@ -175,16 +178,56 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const handleApplyCoupon = () => {
     setCouponError('');
     const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Digite um código de cupom.');
+      return;
+    }
+
+    // Check custom coupons from storeSettings
+    const matched = storeSettings?.coupons?.find(
+      c => c.active && c.code.toUpperCase() === code
+    );
+
+    if (matched) {
+      if (matched.minOrderValue && subtotal < matched.minOrderValue) {
+        setCouponError(`Pedido mínimo para este cupom é de R$ ${matched.minOrderValue.toFixed(2)}.`);
+        return;
+      }
+      if (matched.discountType === 'percentage') {
+        setDiscountPercent(matched.discountValue / 100);
+        setFixedDiscount(0);
+        setIsFreeShippingCoupon(false);
+      } else if (matched.discountType === 'fixed') {
+        setDiscountPercent(0);
+        setFixedDiscount(matched.discountValue);
+        setIsFreeShippingCoupon(false);
+      } else if (matched.discountType === 'free_shipping') {
+        setDiscountPercent(0);
+        setFixedDiscount(0);
+        setIsFreeShippingCoupon(true);
+      }
+      setAppliedCouponName(matched.code);
+      return;
+    }
+
+    // Fallbacks
     if (code === 'CRIAS10' || code === 'BURGER10' || code === 'DESCONTO') {
       setDiscountPercent(0.10);
+      setFixedDiscount(0);
+      setIsFreeShippingCoupon(false);
       setAppliedCouponName(code);
     } else if (code === 'FOGO20') {
       setDiscountPercent(0.20);
+      setFixedDiscount(0);
+      setIsFreeShippingCoupon(false);
       setAppliedCouponName(code);
-    } else if (!code) {
-      setCouponError('Digite um código de cupom.');
+    } else if (code === 'FRETEGRATIS') {
+      setDiscountPercent(0);
+      setFixedDiscount(0);
+      setIsFreeShippingCoupon(true);
+      setAppliedCouponName(code);
     } else {
-      setCouponError('Cupom inválido. Tente CRIAS10 ou FOGO20');
+      setCouponError('Cupom inválido ou expirado.');
     }
   };
 

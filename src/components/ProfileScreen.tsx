@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CustomerProfile, Order, StoreSettings } from '../types';
+import { CustomerProfile, Order, StoreSettings, Coupon } from '../types';
 import {
   User,
   Phone,
@@ -257,43 +257,48 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <div className="bg-[#181818] p-3 rounded-xl border border-dashed border-[#ff5722]/50 flex items-center justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-black text-xs text-[#ff5722]">CRIAS10</span>
-                  <span className="text-[9px] bg-[#ff5722]/20 text-[#ff8a65] px-1.5 py-0.2 rounded font-bold">10% OFF</span>
+            {((storeSettings?.coupons && storeSettings.coupons.length > 0
+              ? storeSettings.coupons.filter(c => c.active)
+              : [
+                  { id: '1', code: 'CRIAS10', discountType: 'percentage', discountValue: 10, description: '10% de desconto em todo o pedido', active: true, minOrderValue: 30 },
+                  { id: '2', code: 'FOGO20', discountType: 'percentage', discountValue: 20, description: '20% OFF exclusivo primeiro pedido', active: true, minOrderValue: 45 },
+                ] as Coupon[]
+            )).map(coupon => {
+              const label =
+                coupon.discountType === 'percentage'
+                  ? `${coupon.discountValue}% OFF`
+                  : coupon.discountType === 'fixed'
+                  ? `R$ ${coupon.discountValue.toFixed(2)} OFF`
+                  : 'Frete Grátis';
+
+              return (
+                <div
+                  key={coupon.id || coupon.code}
+                  className="bg-[#181818] p-3 rounded-xl border border-dashed border-[#ff5722]/50 flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono font-black text-xs text-[#ff5722]">{coupon.code}</span>
+                      <span className="text-[9px] bg-[#ff5722]/20 text-[#ff8a65] px-1.5 py-0.2 rounded font-bold">
+                        {label}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#8e8f8f] block mt-0.5 truncate">
+                      {coupon.description || (coupon.minOrderValue ? `Mínimo R$ ${coupon.minOrderValue.toFixed(2)}` : 'Válido em todo cardápio')}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCoupon(coupon.code)}
+                    className="bg-[#252525] hover:bg-[#333] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shrink-0"
+                  >
+                    {copiedCoupon === coupon.code ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedCoupon === coupon.code ? 'Copiado' : 'Copiar'}</span>
+                  </button>
                 </div>
-                <span className="text-[10px] text-[#8e8f8f] block mt-0.5">Válido em todo o cardápio</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleCopyCoupon('CRIAS10')}
-                className="bg-[#252525] hover:bg-[#333] text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-              >
-                {copiedCoupon === 'CRIAS10' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedCoupon === 'CRIAS10' ? 'Copiado' : 'Copiar'}</span>
-              </button>
-            </div>
-
-            <div className="bg-[#181818] p-3 rounded-xl border border-dashed border-amber-500/50 flex items-center justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-black text-xs text-amber-400">FOGO20</span>
-                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded font-bold">20% OFF</span>
-                </div>
-                <span className="text-[10px] text-[#8e8f8f] block mt-0.5">Válido no primeiro pedido</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleCopyCoupon('FOGO20')}
-                className="bg-[#252525] hover:bg-[#333] text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-              >
-                {copiedCoupon === 'FOGO20' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedCoupon === 'FOGO20' ? 'Copiado' : 'Copiar'}</span>
-              </button>
-            </div>
+              );
+            })}
           </div>
         </section>
 

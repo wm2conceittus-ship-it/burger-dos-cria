@@ -129,6 +129,48 @@ export default function App() {
         { id: 'zone-7', name: 'Vila Madalena', fee: 10.0, estimatedTime: '40-55 min', active: true },
       ],
     },
+    coupons: [
+      {
+        id: 'coup-1',
+        code: 'CRIAS10',
+        description: '10% de desconto em todo o pedido',
+        discountType: 'percentage',
+        discountValue: 10,
+        minOrderValue: 30,
+        active: true,
+        usageCount: 142,
+      },
+      {
+        id: 'coup-2',
+        code: 'FOGO20',
+        description: '20% OFF exclusivo para novos clientes',
+        discountType: 'percentage',
+        discountValue: 20,
+        minOrderValue: 45,
+        active: true,
+        usageCount: 89,
+      },
+      {
+        id: 'coup-3',
+        code: 'FRETEGRATIS',
+        description: 'Taxa de entrega grátis para compras acima de R$ 50',
+        discountType: 'free_shipping',
+        discountValue: 0,
+        minOrderValue: 50,
+        active: true,
+        usageCount: 64,
+      },
+      {
+        id: 'coup-4',
+        code: 'BURGER15',
+        description: 'R$ 15,00 de desconto no combo',
+        discountType: 'fixed',
+        discountValue: 15,
+        minOrderValue: 60,
+        active: true,
+        usageCount: 31,
+      },
+    ],
   });
   
   // Initial cart populated with the exact 2 items from the reference cart screen

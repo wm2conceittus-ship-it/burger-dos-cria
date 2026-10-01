@@ -97,6 +97,17 @@ export interface DeliveryAreaConfig {
   zones?: DeliveryZone[];
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  description?: string;
+  discountType: 'percentage' | 'fixed' | 'free_shipping';
+  discountValue: number;
+  minOrderValue?: number;
+  active: boolean;
+  usageCount?: number;
+}
+
 export interface StoreSettings {
   isOpen: boolean;
   storeName: string;
@@ -114,6 +125,7 @@ export interface StoreSettings {
   couriers?: Courier[];
   managerPin?: string;
   deliveryArea?: DeliveryAreaConfig;
+  coupons?: Coupon[];
 }
 
 export type PizzaSize = 'P' | 'M' | 'G' | 'Família';

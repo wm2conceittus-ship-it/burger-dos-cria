@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Order, Product, StoreSettings, Courier, DeliveryZone } from '../types';
+import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
   Timer,
@@ -48,6 +48,9 @@ import {
   Flame,
   GlassWater,
   Beer,
+  Ticket,
+  Percent,
+  Tag,
 } from 'lucide-react';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
@@ -115,7 +118,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   // Main Sub-Tab: 'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'
   const [activeTab, setActiveTab] = useState<'pedidos' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
   const [mainFilter, setMainFilter] = useState<'abertos' | 'agendados'>('abertos');
-  const [statusFilter, setStatusFilter] = useState<'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'pizzas' | 'salgados' | 'sucos' | 'bebidas'>('all');
   const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '1234');
@@ -136,11 +139,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
-  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'area' | 'entregadores' | 'formas'>('area');
+  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'area' | 'entregadores' | 'formas' | 'cupons'>('area');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
+
+  // Coupon Management State
+  const [couponToast, setCouponToast] = useState<string | null>(null);
+  const [showAddCouponModal, setShowAddCouponModal] = useState(false);
+  const [newCouponCode, setNewCouponCode] = useState('');
+  const [newCouponDesc, setNewCouponDesc] = useState('');
+  const [newCouponType, setNewCouponType] = useState<'percentage' | 'fixed' | 'free_shipping'>('percentage');
+  const [newCouponValue, setNewCouponValue] = useState('10');
+  const [newCouponMinOrder, setNewCouponMinOrder] = useState('');
 
   // Delivery Area & Zones State
   const [newZoneName, setNewZoneName] = useState('');
@@ -400,6 +412,71 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     });
     setAreaToast(`Bairro "${name}" removido.`);
     setTimeout(() => setAreaToast(null), 3000);
+  };
+
+  // Coupon Handlers
+  const handleSaveCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = newCouponCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!cleanCode) {
+      alert('Por favor, informe o código do cupom (ex: CRIAS10).');
+      return;
+    }
+
+    const currentCoupons = storeSettings.coupons || [];
+    if (currentCoupons.some(c => c.code.toUpperCase() === cleanCode)) {
+      alert(`Já existe um cupom com o código "${cleanCode}". Escolha outro código.`);
+      return;
+    }
+
+    const parsedVal = parseFloat(newCouponValue) || 0;
+    const parsedMin = parseFloat(newCouponMinOrder) || 0;
+
+    const newCoupon: Coupon = {
+      id: `coup-${Date.now()}`,
+      code: cleanCode,
+      description: newCouponDesc.trim() || undefined,
+      discountType: newCouponType,
+      discountValue: newCouponType === 'free_shipping' ? 0 : parsedVal,
+      minOrderValue: parsedMin > 0 ? parsedMin : undefined,
+      active: true,
+      usageCount: 0,
+    };
+
+    onUpdateStoreSettings({
+      ...storeSettings,
+      coupons: [newCoupon, ...currentCoupons],
+    });
+
+    setCouponToast(`Cupom "${cleanCode}" criado com sucesso!`);
+    setTimeout(() => setCouponToast(null), 3500);
+    setNewCouponCode('');
+    setNewCouponDesc('');
+    setNewCouponValue('10');
+    setNewCouponMinOrder('');
+    setShowAddCouponModal(false);
+  };
+
+  const handleToggleCoupon = (couponId: string) => {
+    const currentCoupons = storeSettings.coupons || [];
+    const updated = currentCoupons.map(c =>
+      c.id === couponId ? { ...c, active: !c.active } : c
+    );
+    onUpdateStoreSettings({
+      ...storeSettings,
+      coupons: updated,
+    });
+  };
+
+  const handleDeleteCoupon = (couponId: string, code: string) => {
+    if (!confirm(`Deseja realmente excluir o cupom "${code}"?`)) return;
+    const currentCoupons = storeSettings.coupons || [];
+    onUpdateStoreSettings({
+      ...storeSettings,
+      coupons: currentCoupons.filter(c => c.id !== couponId),
+    });
+    setCouponToast(`Cupom "${code}" excluído.`);
+    setTimeout(() => setCouponToast(null), 3000);
   };
 
   // Stats calculation
@@ -670,135 +747,203 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         {/* ================= ABA 1: PEDIDOS (KDS) ================= */}
         {activeTab === 'pedidos' && (
           <div className="space-y-6">
-            {/* Header Summary */}
-            <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h1 className="font-['Montserrat'] text-2xl md:text-3xl font-extrabold text-white">
-                  Gestor de Pedidos
-                </h1>
-                <p className="text-xs md:text-sm text-[#b4b5b5] mt-1 font-light">
-                  Gerencie o fluxo da sua cozinha em tempo real.
-                </p>
+            {/* Header Summary & Operational Toolbar */}
+            <section className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
+              {/* Linha Superior: Título & Status */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="font-['Montserrat'] text-xl md:text-2xl font-black text-white tracking-tight">
+                      Gestor de Pedidos (KDS)
+                    </h1>
+                    <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-extrabold flex items-center gap-1.5 uppercase tracking-wide">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Ao Vivo
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#b4b5b5] font-light">
+                    Controle de fila de produção, tempos de chapa e despacho de motoboys.
+                  </p>
+                </div>
+
+                <div className="text-[11px] text-[#8e8f8f] font-['Montserrat'] font-medium hidden sm:flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Cozinha Sincronizada em Tempo Real</span>
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-                <button
-                  onClick={() => setShowDailyReportModal(true)}
-                  className="bg-[#20201f] text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/15 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
-                  title="Ver e exportar lista detalhada de pedidos do dia"
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Relatório do Dia</span>
-                </button>
-
-                <button
-                  onClick={() => setShowGuideModal(true)}
-                  className="bg-[#ff5722]/15 hover:bg-[#ff5722]/25 text-[#ff8a65] border border-[#ff5722]/40 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
-                  title="Como Fazer a Gestão"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#ff5722]" />
-                  <span>Guia de Gestão</span>
-                </button>
-
-                <button
-                  onClick={() =>
-                    onUpdateStoreSettings({
-                      ...storeSettings,
-                      autoAcceptOrders: !storeSettings.autoAcceptOrders,
-                    })
-                  }
-                  className={`px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ${
-                    storeSettings.autoAcceptOrders
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30'
-                      : 'bg-[#20201f] text-[#b4b5b5] border border-[#353535] hover:text-white hover:border-[#ff5722]/50'
-                  }`}
-                  title="Clique para ligar ou desligar o aceite automático de pedidos"
-                >
-                  <Zap className={`w-3.5 h-3.5 ${storeSettings.autoAcceptOrders ? 'text-emerald-400' : 'text-[#8e8f8f]'}`} />
-                  <span>Auto-Aceite: {storeSettings.autoAcceptOrders ? 'ATIVADO' : 'MANUAL'}</span>
-                </button>
-
-                <div className="flex items-center gap-1.5 bg-[#20201f] p-1 rounded-md border border-[#353535]/40">
+              {/* Linha de Baixo: Seletor Pedidos Abertos & Botões de Ação */}
+              <div className="pt-3 border-t border-[#353535]/60 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                {/* Segmented View Switch: Abertos vs Agendados */}
+                <div className="inline-flex items-center p-1 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
                   <button
                     onClick={() => setMainFilter('abertos')}
-                    className={`px-3.5 py-1.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all ${
+                    className={`h-7 px-3.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'abertos'
                         ? 'bg-[#ff5722] text-white shadow-md'
                         : 'text-[#b4b5b5] hover:text-white'
                     }`}
                   >
-                    Abertos ({abertosOrders.length})
+                    <span>Pedidos Abertos</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                      mainFilter === 'abertos' ? 'bg-white/20 text-white' : 'bg-[#252525] text-[#8e8f8f]'
+                    }`}>
+                      {abertosOrders.length}
+                    </span>
                   </button>
+
                   <button
                     onClick={() => setMainFilter('agendados')}
-                    className={`px-3.5 py-1.5 rounded-md text-xs font-medium font-['Montserrat'] transition-all ${
+                    className={`h-7 px-3.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'agendados'
                         ? 'bg-[#ff5722] text-white shadow-md'
                         : 'text-[#b4b5b5] hover:text-white'
                     }`}
                   >
-                    Agendados (3)
+                    <span>Agendados</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                      mainFilter === 'agendados' ? 'bg-white/20 text-white' : 'bg-[#252525] text-[#8e8f8f]'
+                    }`}>
+                      3
+                    </span>
+                  </button>
+                </div>
+
+                {/* Botões de Ação na mesma sequência */}
+                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
+                  <button
+                    onClick={() => setShowDailyReportModal(true)}
+                    className="h-9 px-3.5 bg-[#242322] hover:bg-[#2e2d2c] text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    title="Ver e exportar lista detalhada de pedidos do dia"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Relatório do Dia</span>
+                  </button>
+
+                  <button
+                    onClick={onOpenManualOrder}
+                    className="h-9 px-3.5 btn-flame text-white border border-[#ff5722]/50 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/30 active:scale-95 transition-all leading-none shrink-0"
+                    title="Lançar pedido presencial ou telefônico no sistema"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    <span>Pedido Balcão</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowGuideModal(true)}
+                    className="h-9 px-3 bg-[#242322] hover:bg-[#2e2d2c] text-[#ff8a65] border border-[#ff5722]/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
+                    title="Como Fazer a Gestão"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+                    <span>Guia de Gestão</span>
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        autoAcceptOrders: !storeSettings.autoAcceptOrders,
+                      })
+                    }
+                    className={`h-9 px-3.5 rounded-xl text-xs font-['Montserrat'] font-bold border inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm leading-none shrink-0 ${
+                      storeSettings.autoAcceptOrders
+                        ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/70'
+                        : 'bg-[#242322] border-[#383838] text-[#8e8f8f] hover:text-white hover:border-[#555]'
+                    }`}
+                    title="Clique para alternar o aceite automático de pedidos da cozinha"
+                  >
+                    <Zap className={`w-3.5 h-3.5 ${storeSettings.autoAcceptOrders ? 'text-emerald-400 fill-emerald-400' : 'text-[#8e8f8f]'}`} />
+                    <span>Auto-Aceite:</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-black uppercase ${
+                      storeSettings.autoAcceptOrders ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#2a2a2a] text-[#888]'
+                    }`}>
+                      {storeSettings.autoAcceptOrders ? 'ATIVADO' : 'MANUAL'}
+                    </span>
                   </button>
                 </div>
               </div>
             </section>
 
-            {/* Status Toggles Horizontal Scroll */}
-            <section className="flex gap-2.5 overflow-x-auto pb-2 hide-scrollbar">
+            {/* Status Toggles Horizontal Filter Bar */}
+            <section className="bg-[#1b1a19] border border-[#353535] rounded-xl p-2 flex items-center gap-2 overflow-x-auto hide-scrollbar shadow-inner">
+              <span className="text-[10px] font-bold uppercase text-[#8e8f8f] pl-2 font-['Montserrat'] whitespace-nowrap hidden sm:inline">
+                Filtrar:
+              </span>
+
+              <button
+                onClick={() => setStatusFilter('todos')}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === 'todos'
+                    ? 'bg-[#ff5722] text-white shadow-sm font-bold'
+                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                }`}
+              >
+                <span>Todos</span>
+                <span className="text-[10px] opacity-80 font-mono">({orders.length})</span>
+              </button>
+
               <button
                 onClick={() => setStatusFilter('novos')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold transition-all border ${
+                className={`flex-shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                   statusFilter === 'novos'
-                    ? 'border-[#ff5722] bg-[#ff5722]/15 text-[#ff8a65] shadow-sm'
-                    : 'border-[#353535] bg-[#20201f] text-[#b4b5b5] hover:border-[#ff5722]/40'
+                    ? 'border-[#ff5722] bg-[#ff5722]/20 text-[#ff8a65] shadow-sm ring-1 ring-[#ff5722]/40'
+                    : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
                 <span className="w-2 h-2 bg-[#ff5722] rounded-full animate-ping" />
-                Novos ({novosOrders.length})
+                <span>Novos</span>
+                <span className="text-[10px] font-mono text-[#ff8a65] font-black">({novosOrders.length})</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('preparando')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all border ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                   statusFilter === 'preparando'
-                    ? 'border-[#ff5722] bg-[#ff5722]/15 text-[#ff8a65] font-bold'
-                    : 'border-[#353535] bg-[#20201f] text-[#b4b5b5] hover:border-[#ff5722]/40'
+                    ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold'
+                    : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
-                Preparando ({preparandoOrders.length})
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                <span>Preparando</span>
+                <span className="text-[10px] font-mono opacity-80">({preparandoOrders.length})</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('prontos')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all border ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                   statusFilter === 'prontos'
-                    ? 'border-[#ff5722] bg-[#ff5722]/15 text-[#ff8a65] font-bold'
-                    : 'border-[#353535] bg-[#20201f] text-[#b4b5b5] hover:border-[#ff5722]/40'
+                    ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 font-bold'
+                    : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
-                Prontos ({prontosOrders.length})
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                <span>Prontos</span>
+                <span className="text-[10px] font-mono opacity-80">({prontosOrders.length})</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('em_entrega')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all border ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                   statusFilter === 'em_entrega'
-                    ? 'border-[#ff5722] bg-[#ff5722]/15 text-[#ff8a65] font-bold'
-                    : 'border-[#353535] bg-[#20201f] text-[#b4b5b5] hover:border-[#ff5722]/40'
+                    ? 'border-blue-500/60 bg-blue-500/20 text-blue-300 font-bold'
+                    : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
-                Em Entrega ({emEntregaOrders.length})
+                <Bike className="w-3.5 h-3.5" />
+                <span>Em Entrega</span>
+                <span className="text-[10px] font-mono opacity-80">({emEntregaOrders.length})</span>
               </button>
 
               <button
                 onClick={() => setStatusFilter('historico')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-xs font-medium transition-all border ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                   statusFilter === 'historico'
-                    ? 'border-[#ff5722] bg-[#ff5722]/15 text-[#ff8a65] font-bold'
-                    : 'border-[#353535] bg-[#20201f] text-[#b4b5b5] hover:border-[#ff5722]/40'
+                    ? 'border-[#ff5722]/50 bg-[#ff5722]/15 text-[#ff8a65] font-bold'
+                    : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
-                Histórico ({historicoOrders.length})
+                <span>Histórico</span>
+                <span className="text-[10px] font-mono opacity-80">({historicoOrders.length})</span>
               </button>
             </section>
 
@@ -1747,6 +1892,24 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <Wallet className="w-3.5 h-3.5" />
                 <span>Formas de Pagamento Locais</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setConfigTab('cupons')}
+                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  configTab === 'cupons'
+                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                }`}
+              >
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Cupons & Promoções</span>
+                {((storeSettings.coupons || []).filter(c => c.active).length > 0) && (
+                  <span className="text-[9px] bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase">
+                    {(storeSettings.coupons || []).filter(c => c.active).length} ativos
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Toast da Área de Atuação */}
@@ -1754,6 +1917,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <div className="p-3 bg-emerald-500/20 border border-emerald-500 text-emerald-300 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in">
                 <CheckCircle className="w-4 h-4 text-emerald-400" />
                 <span>{areaToast}</span>
+              </div>
+            )}
+
+            {/* Toast de Cupons */}
+            {couponToast && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500 text-emerald-300 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>{couponToast}</span>
               </div>
             )}
 
@@ -2054,6 +2225,314 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       )
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ABA CUPONS DE DESCONTO */}
+            {configTab === 'cupons' && (
+              <div className="space-y-4">
+                {/* Header Card */}
+                <div className="bg-[#20201f] rounded-2xl p-5 border border-[#353535]/50 shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center shrink-0">
+                        <Ticket className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-['Montserrat'] font-bold text-base text-white flex items-center gap-2">
+                          <span>Gestão de Cupons Promocionais</span>
+                          <span className="text-[10px] bg-[#ff5722]/20 text-[#ff8a65] px-2 py-0.5 rounded-full font-bold">
+                            {(storeSettings.coupons || []).length} cadastrado(s)
+                          </span>
+                        </h3>
+                        <p className="text-xs text-[#b4b5b5] mt-0.5">
+                          Crie códigos de desconto em porcentagem (%), valor em reais (R$) ou frete grátis para atrair e fidelizar clientes.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCouponModal(true)}
+                      className="btn-flame text-white px-4 py-2.5 rounded-xl font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0 self-start sm:self-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Criar Novo Cupom</span>
+                    </button>
+                  </div>
+
+                  {/* Summary Metric Badges */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-[#353535]/50 text-xs">
+                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
+                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Total de Cupons</span>
+                      <span className="text-lg font-black text-white mt-0.5 block font-mono">
+                        {(storeSettings.coupons || []).length}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
+                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Cupons Ativos</span>
+                      <span className="text-lg font-black text-emerald-400 mt-0.5 block font-mono">
+                        {(storeSettings.coupons || []).filter(c => c.active).length}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
+                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Mais Usado</span>
+                      <span className="text-sm font-black text-[#ff8a65] mt-1 block font-mono truncate">
+                        {(storeSettings.coupons || []).slice().sort((a,b) => (b.usageCount || 0) - (a.usageCount || 0))[0]?.code || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
+                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Uso no Carrinho</span>
+                      <span className="text-xs font-semibold text-white mt-1 block">
+                        Validação instantânea
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form inline / modal to add coupon */}
+                {showAddCouponModal && (
+                  <form
+                    onSubmit={handleSaveCoupon}
+                    className="bg-[#242322] rounded-2xl p-5 border-2 border-[#ff5722]/50 shadow-2xl space-y-4 animate-in fade-in"
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-[#ff5722]" />
+                        <h4 className="font-['Montserrat'] font-bold text-sm text-white">
+                          Cadastrar Novo Cupom de Desconto
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCouponModal(false)}
+                        className="text-[#8e8f8f] hover:text-white p-1 rounded-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[#b4b5b5] font-semibold mb-1">
+                          Código do Cupom *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newCouponCode}
+                          onChange={e => setNewCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Ex: QUINTA15, BURGERTOP"
+                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono font-bold uppercase focus:outline-none focus:border-[#ff5722]"
+                        />
+                        <span className="text-[10px] text-[#8e8f8f] mt-0.5 block">
+                          Sem espaços. O cliente digitará esse código.
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[#b4b5b5] font-semibold mb-1">
+                          Tipo de Desconto *
+                        </label>
+                        <select
+                          value={newCouponType}
+                          onChange={e => setNewCouponType(e.target.value as any)}
+                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+                        >
+                          <option value="percentage">Porcentagem (%)</option>
+                          <option value="fixed">Valor Fixo em Reais (R$)</option>
+                          <option value="free_shipping">Frete Grátis (R$ 0,00)</option>
+                        </select>
+                      </div>
+
+                      {newCouponType !== 'free_shipping' ? (
+                        <div>
+                          <label className="block text-[#b4b5b5] font-semibold mb-1">
+                            Valor do Desconto *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              required
+                              step="0.5"
+                              min="1"
+                              value={newCouponValue}
+                              onChange={e => setNewCouponValue(e.target.value)}
+                              placeholder={newCouponType === 'percentage' ? '10' : '15.00'}
+                              className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-[#ff5722]"
+                            />
+                            <span className="absolute right-3 top-2 font-bold text-[#8e8f8f]">
+                              {newCouponType === 'percentage' ? '%' : 'R$'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[#b4b5b5] font-semibold mb-1">
+                            Benefício
+                          </label>
+                          <div className="bg-[#181818] border border-emerald-500/30 text-emerald-400 px-3 py-2 rounded-xl font-bold flex items-center gap-1.5">
+                            <Bike className="w-4 h-4" />
+                            <span>100% Taxa de Entrega Grátis</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-[#b4b5b5] font-semibold mb-1">
+                          Descrição / Regra (Exibida para o cliente)
+                        </label>
+                        <input
+                          type="text"
+                          value={newCouponDesc}
+                          onChange={e => setNewCouponDesc(e.target.value)}
+                          placeholder="Ex: 15% de desconto em pedidos acima de R$ 40"
+                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[#b4b5b5] font-semibold mb-1">
+                          Pedido Mínimo (R$)
+                        </label>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={newCouponMinOrder}
+                          onChange={e => setNewCouponMinOrder(e.target.value)}
+                          placeholder="0 (Sem pedido mínimo)"
+                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#ff5722]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-[#353535]/50">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCouponModal(false)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-[#b4b5b5] hover:text-white bg-[#1c1b1b] border border-[#353535]"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-flame text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Salvar e Ativar Cupom</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Coupons List Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(!storeSettings.coupons || storeSettings.coupons.length === 0) ? (
+                    <div className="col-span-full bg-[#20201f] rounded-2xl p-8 text-center border border-[#353535] text-[#b4b5b5] space-y-2">
+                      <Ticket className="w-8 h-8 text-[#ff5722] mx-auto opacity-60" />
+                      <p className="font-bold text-white text-sm">Nenhum cupom cadastrado ainda</p>
+                      <p className="text-xs">Clique no botão acima para criar seu primeiro cupom de desconto!</p>
+                    </div>
+                  ) : (
+                    storeSettings.coupons.map(coupon => {
+                      const discountBadge =
+                        coupon.discountType === 'percentage'
+                          ? `${coupon.discountValue}% OFF`
+                          : coupon.discountType === 'fixed'
+                          ? `R$ ${coupon.discountValue.toFixed(2)} OFF`
+                          : 'Frete Grátis';
+
+                      return (
+                        <div
+                          key={coupon.id}
+                          className={`bg-[#20201f] rounded-2xl p-4 border transition-all space-y-3 shadow-md ${
+                            coupon.active
+                              ? 'border-[#353535] hover:border-[#ff5722]/50'
+                              : 'border-[#2d2d2d] opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-sm text-white bg-[#141414] px-2.5 py-1 rounded-lg border border-[#353535] tracking-wider">
+                                  {coupon.code}
+                                </span>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    coupon.discountType === 'free_shipping'
+                                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                      : 'bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40'
+                                  }`}
+                                >
+                                  {discountBadge}
+                                </span>
+                              </div>
+                              <p className="text-xs text-[#b4b5b5] mt-1.5 leading-snug">
+                                {coupon.description || 'Desconto aplicado diretamente no checkout.'}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCoupon(coupon.id)}
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${
+                                coupon.active
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : 'bg-[#2a2a2a] text-[#8e8f8f] border border-[#383838]'
+                              }`}
+                              title={coupon.active ? 'Clique para pausar cupom' : 'Clique para reativar'}
+                            >
+                              {coupon.active ? 'Ativo' : 'Pausado'}
+                            </button>
+                          </div>
+
+                          <div className="pt-2 border-t border-[#353535]/50 flex items-center justify-between text-[11px] text-[#8e8f8f]">
+                            <div className="space-y-0.5">
+                              {coupon.minOrderValue && coupon.minOrderValue > 0 ? (
+                                <span className="block text-amber-400 font-medium">
+                                  Mínimo: R$ {coupon.minOrderValue.toFixed(2)}
+                                </span>
+                              ) : (
+                                <span className="block">Sem valor mínimo</span>
+                              )}
+                              <span className="block text-[10px]">
+                                {coupon.usageCount || 0} pedido(s) usaram
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(coupon.code);
+                                  setCouponToast(`Código "${coupon.code}" copiado!`);
+                                  setTimeout(() => setCouponToast(null), 2500);
+                                }}
+                                className="p-1.5 bg-[#181818] hover:bg-[#252525] text-[#b4b5b5] hover:text-white rounded-lg border border-[#353535] transition-colors"
+                                title="Copiar código"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCoupon(coupon.id, coupon.code)}
+                                className="p-1.5 bg-[#181818] hover:bg-red-500/20 text-[#8e8f8f] hover:text-red-400 rounded-lg border border-[#353535] transition-colors"
+                                title="Excluir cupom"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
