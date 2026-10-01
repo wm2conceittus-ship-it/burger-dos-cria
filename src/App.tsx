@@ -21,6 +21,7 @@ import { ProductDetailScreen } from './components/ProductDetailScreen';
 import { CartScreen } from './components/CartScreen';
 import { OrderTrackingScreen } from './components/OrderTrackingScreen';
 import { KitchenManagerScreen } from './components/KitchenManagerScreen';
+import { ProfileScreen } from './components/ProfileScreen';
 import { BottomNav } from './components/BottomNav';
 import { ScreenSwitcherBanner } from './components/ScreenSwitcherBanner';
 import { ContactDriverModal } from './components/ContactDriverModal';
@@ -113,6 +114,21 @@ export default function App() {
       },
     ],
     managerPin: '1234',
+    deliveryArea: {
+      baseAddress: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
+      radiusKm: 7,
+      freeDeliveryThreshold: 120.0,
+      allowPickup: true,
+      zones: [
+        { id: 'zone-1', name: 'Consolação', fee: 5.0, estimatedTime: '20-30 min', active: true },
+        { id: 'zone-2', name: 'Bela Vista / Bixiga', fee: 6.0, estimatedTime: '25-35 min', active: true },
+        { id: 'zone-3', name: 'Centro Histórico', fee: 7.0, estimatedTime: '30-40 min', active: true },
+        { id: 'zone-4', name: 'Jardins / Cerqueira César', fee: 8.0, estimatedTime: '30-45 min', active: true },
+        { id: 'zone-5', name: 'Higienópolis', fee: 7.5, estimatedTime: '25-35 min', active: true },
+        { id: 'zone-6', name: 'Pinheiros', fee: 9.0, estimatedTime: '35-50 min', active: true },
+        { id: 'zone-7', name: 'Vila Madalena', fee: 10.0, estimatedTime: '40-55 min', active: true },
+      ],
+    },
   });
   
   // Initial cart populated with the exact 2 items from the reference cart screen
@@ -572,6 +588,35 @@ export default function App() {
           onOpenChat={() => setIsDriverChatOpen(true)}
           onNavigateToMenu={() => setCurrentScreen('menu')}
           onLockManager={handleLockManager}
+        />
+      )}
+
+      {currentScreen === 'profile' && (
+        <ProfileScreen
+          customerProfile={customerProfile}
+          orders={orders}
+          storeSettings={storeSettings}
+          onEditProfile={() => setIsCustomerRegisterOpen(true)}
+          onNavigateToTracking={() => setCurrentScreen('tracking')}
+          onNavigateToMenu={() => setCurrentScreen('menu')}
+          onReorder={order => {
+            const newCartItems: CartItem[] = order.items.map((it, idx) => {
+              const matchedProd = products.find(p => p.name === it.name) || products[0];
+              return {
+                id: `reorder-${order.id}-${idx}-${Date.now()}`,
+                product: matchedProd,
+                quantity: it.quantity,
+                pizzaSize: it.pizzaSize,
+                juiceSize: it.juiceSize,
+                notes: it.notes,
+                additionals: [],
+                totalPrice: it.price * it.quantity,
+              };
+            });
+            setCartItems(newCartItems);
+            setCurrentScreen('cart');
+            showToast('Itens do pedido adicionados ao carrinho! 🔥');
+          }}
         />
       )}
 

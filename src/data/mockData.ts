@@ -499,6 +499,12 @@ export const PRODUCTS: Product[] = [
     description: 'Molho de tomate pelado italiano, mussarela derretida, fatias finas de calabresa defumada artesanal, cebola roxa e orégano.',
     image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80',
     ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela', 'Calabresa artesanal', 'Cebola roxa', 'Orégano'],
+    pizzaPrices: {
+      P: 37.90,
+      M: 43.90,
+      G: 49.90,
+      Família: 65.90,
+    },
     options: {
       additionals: [
         { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
@@ -518,6 +524,12 @@ export const PRODUCTS: Product[] = [
     description: 'Mussarela especial, provolone defumado, queijo gorgonzola suave e requeijão cremoso tipo catupiry com azeitonas pretas.',
     image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
     ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela', 'Provolone', 'Gorgonzola', 'Catupiry original'],
+    pizzaPrices: {
+      P: 42.90,
+      M: 48.90,
+      G: 54.90,
+      Família: 70.90,
+    },
     options: {
       additionals: [
         { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
@@ -534,6 +546,12 @@ export const PRODUCTS: Product[] = [
     description: 'Mussarela de búfala, rodelas de tomate fresco selecionado, folhas frescas de manjericão e azeite extravirgem.',
     image: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=800&q=80',
     ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Mussarela de búfala', 'Tomate fresco', 'Manjericão', 'Azeite'],
+    pizzaPrices: {
+      P: 34.90,
+      M: 40.90,
+      G: 46.90,
+      Família: 62.90,
+    },
     options: {
       additionals: [
         { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
@@ -551,6 +569,12 @@ export const PRODUCTS: Product[] = [
     description: 'Peito de frango desfiado temperado com especiarias, coberto com muito Catupiry legítimo e orégano.',
     image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
     ingredients: ['Massa artesanal', 'Molho de tomate pelado', 'Frango desfiado', 'Catupiry original', 'Milho doce', 'Orégano'],
+    pizzaPrices: {
+      P: 39.90,
+      M: 45.90,
+      G: 52.00,
+      Família: 68.00,
+    },
     options: {
       additionals: [
         { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },

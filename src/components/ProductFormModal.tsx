@@ -36,6 +36,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       ? initialProduct.juicePrices['1L'].toString()
       : initialProduct?.price ? (initialProduct.price + 8).toFixed(2) : '19.90'
   );
+  const [pizzaPPrice, setPizzaPPrice] = useState(
+    initialProduct?.pizzaPrices?.P !== undefined
+      ? initialProduct.pizzaPrices.P.toString()
+      : initialProduct?.price ? Math.max(15, initialProduct.price - 12).toFixed(2) : '37.90'
+  );
+  const [pizzaMPrice, setPizzaMPrice] = useState(
+    initialProduct?.pizzaPrices?.M !== undefined
+      ? initialProduct.pizzaPrices.M.toString()
+      : initialProduct?.price ? Math.max(15, initialProduct.price - 6).toFixed(2) : '43.90'
+  );
+  const [pizzaGPrice, setPizzaGPrice] = useState(
+    initialProduct?.pizzaPrices?.G !== undefined
+      ? initialProduct.pizzaPrices.G.toString()
+      : initialProduct?.price ? initialProduct.price.toString() : '49.90'
+  );
+  const [pizzaFamPrice, setPizzaFamPrice] = useState(
+    initialProduct?.pizzaPrices?.Família !== undefined
+      ? initialProduct.pizzaPrices.Família.toString()
+      : initialProduct?.price ? (initialProduct.price + 16).toFixed(2) : '65.90'
+  );
   const [description, setDescription] = useState(initialProduct?.description || '');
   const [image, setImage] = useState(
     initialProduct?.image ||
@@ -51,10 +71,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || (!price && category !== 'sucos')) return;
+    if (!name.trim() || (!price && category !== 'sucos' && category !== 'pizzas')) return;
 
     const basePrice = category === 'sucos'
       ? (parseFloat(juice500Price) || parseFloat(price) || 11.90)
+      : category === 'pizzas'
+      ? (parseFloat(pizzaGPrice) || parseFloat(price) || 49.90)
       : (parseFloat(price) || 0);
 
     const savedProduct: Product = {
@@ -71,6 +93,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         '300ml': parseFloat(juice300Price) || Math.max(0, basePrice - 3),
         '500ml': parseFloat(juice500Price) || basePrice,
         '1L': parseFloat(juice1LPrice) || (basePrice + 8),
+      } : undefined,
+      pizzaPrices: category === 'pizzas' ? {
+        P: parseFloat(pizzaPPrice) || Math.max(15, basePrice - 12),
+        M: parseFloat(pizzaMPrice) || Math.max(15, basePrice - 6),
+        G: parseFloat(pizzaGPrice) || basePrice,
+        Família: parseFloat(pizzaFamPrice) || (basePrice + 16),
       } : undefined,
       options: category === 'burgers' ? {
         meatDoneness: true,
@@ -92,18 +120,27 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
-        <div className="p-4 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b]">
-          <h3 className="font-['Montserrat'] font-bold text-base text-white">
-            {initialProduct ? 'Editar Item do Cardápio' : 'Novo Item no Cardápio'}
-          </h3>
-          <button onClick={onClose} className="text-[#b4b5b5] hover:text-white p-1">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="bg-[#20201f] border border-[#353535] rounded-2xl w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_20px_rgba(255,87,34,0.15)] flex flex-col max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-5 py-3.5 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b] flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">
+              {category === 'pizzas' ? '🍕' : category === 'sucos' ? '🥤' : '🍔'}
+            </span>
+            <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+              {initialProduct ? 'Editar Item do Cardápio' : 'Novo Item no Cardápio'}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#b4b5b5] hover:text-white p-1.5 rounded-lg hover:bg-[#2a2a2a] transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} id="product-form" className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
           <div>
             <label className="block text-[#b4b5b5] mb-1">Nome do Produto *</label>
             <input
@@ -134,17 +171,35 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#b4b5b5] mb-1 font-medium">Preço de Venda (R$) *</label>
-              <input
-                type="number"
-                step="0.50"
-                min="0"
-                required
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                placeholder="Ex: 38.00"
-                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722] font-semibold"
-              />
+              <label className="block text-[#b4b5b5] mb-1 font-medium flex items-center justify-between">
+                <span>
+                  {category === 'pizzas'
+                    ? 'Preço Base (Tam. G)'
+                    : category === 'sucos'
+                    ? 'Preço Base (500ml)'
+                    : 'Preço de Venda (R$)'} *
+                </span>
+                {(category === 'pizzas' || category === 'sucos') && (
+                  <span className="text-[10px] text-[#ff8a65] font-semibold">Tamanho Padrão</span>
+                )}
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-xs font-bold text-[#8e8f8f]">R$</span>
+                <input
+                  type="number"
+                  step="0.50"
+                  min="0"
+                  required
+                  value={price}
+                  onChange={e => {
+                    setPrice(e.target.value);
+                    if (category === 'pizzas') setPizzaGPrice(e.target.value);
+                    if (category === 'sucos') setJuice500Price(e.target.value);
+                  }}
+                  placeholder="Ex: 38.00"
+                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722] font-semibold"
+                />
+              </div>
             </div>
 
             <div>
@@ -152,15 +207,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 <label className="block text-[#b4b5b5] font-medium">Preço de Custo (R$)</label>
                 <span className="text-[10px] text-emerald-400 font-semibold">Insumos/CMV</span>
               </div>
-              <input
-                type="number"
-                step="0.10"
-                min="0"
-                value={costPrice}
-                onChange={e => setCostPrice(e.target.value)}
-                placeholder="Ex: 12.50"
-                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-semibold"
-              />
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-xs font-bold text-emerald-500/70">R$</span>
+                <input
+                  type="number"
+                  step="0.10"
+                  min="0"
+                  value={costPrice}
+                  onChange={e => setCostPrice(e.target.value)}
+                  placeholder="Ex: 12.50"
+                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-emerald-500 font-semibold"
+                />
+              </div>
             </div>
           </div>
 
@@ -193,78 +251,161 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {category === 'pizzas' && (
-            <div className="p-2.5 bg-[#ff5722]/10 border border-[#ff5722]/30 rounded-xl text-[11px] text-[#ffb5a0] flex items-center gap-2">
-              <span className="text-base">🍕</span>
-              <span>
-                O valor acima refere-se ao tamanho <strong>Grande (G - 8 fatias)</strong>. Os tamanhos <strong>P (4 fatias)</strong>, <strong>M (6 fatias)</strong> e <strong>Família (12 fatias)</strong> são calculados dinamicamente no cardápio.
-              </span>
+            <div className="p-3 bg-gradient-to-br from-[#24201e] to-[#1a1817] border border-[#ff5722]/40 rounded-xl space-y-2.5 shadow-lg shadow-black/60 ring-1 ring-[#ff5722]/20">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-['Montserrat'] font-bold text-white flex items-center gap-1.5">
+                  🍕 Preços por Tamanho (P, M, G, Família)
+                </span>
+                <span className="text-[10px] text-[#ff8a65] font-semibold">Tabela de Valores</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* P */}
+                <div className="flex items-center justify-between bg-[#171616] px-2.5 py-1.5 rounded-lg border border-[#353535] focus-within:border-[#ff5722] transition-colors shadow-sm">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">P (4 fat.)</span>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#8e8f8f]">R$</span>
+                    <input
+                      type="number"
+                      step="0.50"
+                      min="0"
+                      required
+                      value={pizzaPPrice}
+                      onChange={e => setPizzaPPrice(e.target.value)}
+                      placeholder="37.90"
+                      className="w-full bg-[#101010] border border-[#353535] rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+                </div>
+
+                {/* M */}
+                <div className="flex items-center justify-between bg-[#171616] px-2.5 py-1.5 rounded-lg border border-[#353535] focus-within:border-[#ff5722] transition-colors shadow-sm">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">M (6 fat.)</span>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#8e8f8f]">R$</span>
+                    <input
+                      type="number"
+                      step="0.50"
+                      min="0"
+                      required
+                      value={pizzaMPrice}
+                      onChange={e => setPizzaMPrice(e.target.value)}
+                      placeholder="43.90"
+                      className="w-full bg-[#101010] border border-[#353535] rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+                </div>
+
+                {/* G */}
+                <div className="flex items-center justify-between bg-[#171616] px-2.5 py-1.5 rounded-lg border border-[#ff5722]/60 ring-1 ring-[#ff5722]/30 focus-within:border-[#ff5722] transition-colors shadow-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="font-['Montserrat'] font-bold text-xs text-white">G (8 fat.)</span>
+                    <span className="text-[8px] bg-[#ff5722] text-white px-1 py-0.2 rounded font-extrabold uppercase">Padrão</span>
+                  </div>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#ff8a65]">R$</span>
+                    <input
+                      type="number"
+                      step="0.50"
+                      min="0"
+                      required
+                      value={pizzaGPrice}
+                      onChange={e => {
+                        setPizzaGPrice(e.target.value);
+                        setPrice(e.target.value);
+                      }}
+                      placeholder="49.90"
+                      className="w-full bg-[#101010] border border-[#ff5722]/60 rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+                </div>
+
+                {/* Família */}
+                <div className="flex items-center justify-between bg-[#171616] px-2.5 py-1.5 rounded-lg border border-[#353535] focus-within:border-[#ff5722] transition-colors shadow-sm">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">Família (12 f.)</span>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#8e8f8f]">R$</span>
+                    <input
+                      type="number"
+                      step="0.50"
+                      min="0"
+                      required
+                      value={pizzaFamPrice}
+                      onChange={e => setPizzaFamPrice(e.target.value)}
+                      placeholder="65.90"
+                      className="w-full bg-[#101010] border border-[#353535] rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff5722]"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {category === 'sucos' && (
-            <div className="p-3 bg-[#ff9800]/10 border border-[#ff9800]/30 rounded-xl space-y-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-base">🥤</span>
-                <div>
-                  <h4 className="font-['Montserrat'] font-bold text-xs text-white">
-                    Preços Individuais por Tamanho de Suco
-                  </h4>
-                  <p className="text-[10px] text-[#ffd180]">
-                    Defina o valor exato que o cliente pagará para cada tamanho:
-                  </p>
-                </div>
+            <div className="p-2.5 bg-[#ff9800]/10 border border-[#ff9800]/30 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-['Montserrat'] font-bold text-white flex items-center gap-1.5">
+                  🥤 Preços por Tamanho
+                </span>
+                <span className="text-[10px] text-[#ffd180]">300ml, 500ml e 1L</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-white mb-1">
-                    Copo 300ml (R$) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.10"
-                    min="0"
-                    required
-                    value={juice300Price}
-                    onChange={e => setJuice300Price(e.target.value)}
-                    placeholder="8.90"
-                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex items-center justify-between bg-[#1c1b1b] px-2.5 py-1.5 rounded-lg border border-[#353535] focus-within:border-[#ff9800] transition-colors">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">300ml</span>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#8e8f8f]">R$</span>
+                    <input
+                      type="number"
+                      step="0.10"
+                      min="0"
+                      required
+                      value={juice300Price}
+                      onChange={e => setJuice300Price(e.target.value)}
+                      placeholder="8.90"
+                      className="w-full bg-[#141414] border border-[#353535] rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff9800]"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-white mb-1">
-                    Copo 500ml (R$) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.10"
-                    min="0"
-                    required
-                    value={juice500Price}
-                    onChange={e => {
-                      setJuice500Price(e.target.value);
-                      setPrice(e.target.value);
-                    }}
-                    placeholder="11.90"
-                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
-                  />
+                <div className="flex items-center justify-between bg-[#1c1b1b] px-2.5 py-1.5 rounded-lg border border-[#ff9800]/50 ring-1 ring-[#ff9800]/30 focus-within:border-[#ff9800] transition-colors">
+                  <div className="flex items-center gap-1">
+                    <span className="font-['Montserrat'] font-bold text-xs text-white">500ml</span>
+                    <span className="text-[8px] bg-[#ff9800] text-black px-1 py-0.2 rounded font-extrabold uppercase">Padrão</span>
+                  </div>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#ff9800]">R$</span>
+                    <input
+                      type="number"
+                      step="0.10"
+                      min="0"
+                      required
+                      value={juice500Price}
+                      onChange={e => {
+                        setJuice500Price(e.target.value);
+                        setPrice(e.target.value);
+                      }}
+                      placeholder="11.90"
+                      className="w-full bg-[#141414] border border-[#ff9800]/60 rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff9800]"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-white mb-1">
-                    1 Litro (1lt) (R$) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.10"
-                    min="0"
-                    required
-                    value={juice1LPrice}
-                    onChange={e => setJuice1LPrice(e.target.value)}
-                    placeholder="19.90"
-                    className="w-full bg-[#1c1b1b] border border-[#ff9800]/40 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-[#ff9800]"
-                  />
+                <div className="flex items-center justify-between bg-[#1c1b1b] px-2.5 py-1.5 rounded-lg border border-[#353535] focus-within:border-[#ff9800] transition-colors">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">1 Litro</span>
+                  <div className="relative flex items-center w-20 sm:w-24">
+                    <span className="absolute left-2 text-[11px] font-bold text-[#8e8f8f]">R$</span>
+                    <input
+                      type="number"
+                      step="0.10"
+                      min="0"
+                      required
+                      value={juice1LPrice}
+                      onChange={e => setJuice1LPrice(e.target.value)}
+                      placeholder="19.90"
+                      className="w-full bg-[#141414] border border-[#353535] rounded pl-6 pr-1.5 py-1 text-white font-bold text-xs text-right focus:outline-none focus:border-[#ff9800]"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -307,23 +448,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             </div>
           </div>
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-white py-2.5 rounded-md font-['Montserrat'] font-semibold"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 btn-flame text-white py-2.5 rounded-md font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md"
-            >
-              <Check className="w-4 h-4" /> Salvar Produto
-            </button>
-          </div>
         </form>
+
+        <div className="px-5 py-3 border-t border-[#353535] bg-[#1c1b1b] flex gap-2.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-white py-2.5 rounded-xl font-['Montserrat'] font-semibold transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="product-form"
+            className="flex-1 btn-flame text-white py-2.5 rounded-xl font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-[#ff5722]/25"
+          >
+            <Check className="w-4 h-4" /> Salvar Produto
+          </button>
+        </div>
       </div>
     </div>
   );

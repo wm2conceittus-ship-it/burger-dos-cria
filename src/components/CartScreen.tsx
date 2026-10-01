@@ -26,6 +26,7 @@ import {
   UserCheck,
   UserPlus,
   Phone,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface CartScreenProps {
@@ -110,7 +111,30 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0);
-  const deliveryFee = items.length > 0 ? 7.00 : 0.00;
+
+  // Dynamic delivery fee calculation based on store deliveryArea zones and rules
+  const addrLower = (deliveryAddress || '').toLowerCase();
+  const radiusLimit = storeSettings?.deliveryArea?.radiusKm || 7;
+  const matchedZone = storeSettings?.deliveryArea?.zones?.find(
+    z => z.active && addrLower.includes(z.name.toLowerCase())
+  );
+
+  const isOutsideRadius = Boolean(
+    matchedZone && matchedZone.distanceKm && matchedZone.distanceKm > radiusLimit
+  );
+
+  const baseDeliveryFee = matchedZone
+    ? matchedZone.fee
+    : (storeSettings?.defaultDeliveryFee ?? 7.00);
+
+  const isFreeDelivery = Boolean(
+    storeSettings?.deliveryArea?.freeDeliveryThreshold &&
+    storeSettings.deliveryArea.freeDeliveryThreshold > 0 &&
+    subtotal >= storeSettings.deliveryArea.freeDeliveryThreshold
+  );
+
+  const isPickup = addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
+  const deliveryFee = items.length > 0 && !isPickup ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
   const discountAmount = subtotal * discountPercent;
   const total = Math.max(0, subtotal + deliveryFee - discountAmount);
 
@@ -408,6 +432,26 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               <Navigation className="w-3.5 h-3.5 text-[#ff5722]" /> Usar GPS / Alterar
             </button>
           </div>
+
+          {/* Feedback do Raio de Atendimento da Loja */}
+          {isOutsideRadius ? (
+            <div className="p-2.5 bg-red-950/60 border border-red-500/40 rounded-lg text-xs text-red-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span>
+                Atenção: Este endereço fica a ~{matchedZone?.distanceKm} km (além do raio de atendimento de {radiusLimit} km). Considere a opção de Retirada no Balcão ou altere o endereço.
+              </span>
+            </div>
+          ) : matchedZone ? (
+            <div className="p-2 bg-emerald-950/40 border border-emerald-500/30 rounded-lg text-xs text-emerald-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[11px]">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Área atendida: <strong>{matchedZone.name}</strong> (~{matchedZone.distanceKm || 3} km da base)</span>
+              </span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">
+                {matchedZone.estimatedTime || '25-35 min'}
+              </span>
+            </div>
+          ) : null}
         </section>
 
         {/* Possui um cupom? */}
@@ -713,10 +757,21 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           </div>
 
           <div className="flex justify-between items-center text-xs">
-            <span className="text-[#b4b5b5]">Taxa de entrega</span>
-            <span className="text-white font-medium">
-              R$ {deliveryFee.toFixed(2).replace('.', ',')}
+            <span className="text-[#b4b5b5] flex items-center gap-1.5">
+              <span>Taxa de entrega</span>
+              {matchedZone && (
+                <span className="text-[10px] text-[#ff8a65] font-semibold">({matchedZone.name})</span>
+              )}
             </span>
+            {isPickup ? (
+              <span className="text-emerald-400 font-bold uppercase text-[11px]">Retirada no Balcão (Grátis)</span>
+            ) : isFreeDelivery ? (
+              <span className="text-emerald-400 font-bold uppercase text-[11px]">Grátis (Promocional)</span>
+            ) : (
+              <span className="text-white font-medium">
+                R$ {deliveryFee.toFixed(2).replace('.', ',')}
+              </span>
+            )}
           </div>
 
           {discountAmount > 0 && (

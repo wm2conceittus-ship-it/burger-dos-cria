@@ -37,7 +37,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     const juiceConfig = JUICE_SIZES.find(s => s.id === juiceSize) || JUICE_SIZES[1];
 
     const finalPrice = prod.category === 'pizzas'
-      ? Math.max(15, prod.price + sizeConfig.priceOffset)
+      ? (prod.pizzaPrices?.[pizzaSize] ?? Math.max(15, prod.price + sizeConfig.priceOffset))
       : prod.category === 'sucos'
       ? (prod.juicePrices?.[juiceSize] ?? Math.max(5, prod.price + juiceConfig.priceOffset))
       : prod.price;

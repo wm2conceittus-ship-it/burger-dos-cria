@@ -35,6 +35,7 @@
         "autoPrintReceipts": { "type": "boolean" },
         "soundAlerts": { "type": "boolean" },
         "couriers": { "type": "array" },
+        "deliveryArea": { "type": "object" },
         "updatedAt": { "type": "string" }
       },
       "required": ["isOpen", "storeName"]

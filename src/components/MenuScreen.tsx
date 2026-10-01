@@ -1085,7 +1085,7 @@ const ProductGridCard: React.FC<{
               <div className="text-right">
                 <span className="text-[10px] text-[#b4b5b5] block leading-none">A partir de</span>
                 <span className="font-['Montserrat'] font-bold text-sm text-[#ff5722]">
-                  R$ {(product.price - 12).toFixed(2).replace('.', ',')}
+                  R$ {(product.pizzaPrices?.P ?? Math.max(15, product.price - 12)).toFixed(2).replace('.', ',')}
                 </span>
               </div>
             ) : (

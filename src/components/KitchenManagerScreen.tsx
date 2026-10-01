@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Order, Product, StoreSettings, Courier } from '../types';
+import { Order, Product, StoreSettings, Courier, DeliveryZone } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
   Timer,
@@ -52,6 +52,7 @@ import {
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
+import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -135,11 +136,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
-  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'entregadores' | 'formas'>('gateway');
+  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'area' | 'entregadores' | 'formas'>('area');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
+
+  // Delivery Area & Zones State
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneFee, setNewZoneFee] = useState('');
+  const [newZoneTime, setNewZoneTime] = useState('25-35 min');
+  const [areaToast, setAreaToast] = useState<string | null>(null);
 
   // Courier Management State
   const [showCourierModal, setShowCourierModal] = useState(false);
@@ -340,6 +347,59 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       });
     }
     setNewPaymentMethodInput('');
+  };
+
+  const handleAddZone = () => {
+    if (!newZoneName.trim()) return;
+    const feeNum = parseFloat(newZoneFee.replace(',', '.')) || (storeSettings.defaultDeliveryFee || 7.0);
+    const newZone: DeliveryZone = {
+      id: 'zone-' + Date.now(),
+      name: newZoneName.trim(),
+      fee: feeNum,
+      estimatedTime: newZoneTime.trim() || '25-35 min',
+      active: true,
+    };
+    const currentZones = storeSettings.deliveryArea?.zones || [];
+    onUpdateStoreSettings({
+      ...storeSettings,
+      deliveryArea: {
+        ...(storeSettings.deliveryArea || {
+          baseAddress: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
+          radiusKm: 7,
+          freeDeliveryThreshold: 120,
+          allowPickup: true,
+        }),
+        zones: [...currentZones, newZone],
+      },
+    });
+    setNewZoneName('');
+    setNewZoneFee('');
+    setAreaToast(`Bairro "${newZone.name}" adicionado com sucesso!`);
+    setTimeout(() => setAreaToast(null), 3000);
+  };
+
+  const handleToggleZone = (zoneId: string) => {
+    const currentZones = storeSettings.deliveryArea?.zones || [];
+    onUpdateStoreSettings({
+      ...storeSettings,
+      deliveryArea: {
+        ...(storeSettings.deliveryArea || {}),
+        zones: currentZones.map(z => (z.id === zoneId ? { ...z, active: !z.active } : z)),
+      },
+    });
+  };
+
+  const handleDeleteZone = (zoneId: string, name: string) => {
+    const currentZones = storeSettings.deliveryArea?.zones || [];
+    onUpdateStoreSettings({
+      ...storeSettings,
+      deliveryArea: {
+        ...(storeSettings.deliveryArea || {}),
+        zones: currentZones.filter(z => z.id !== zoneId),
+      },
+    });
+    setAreaToast(`Bairro "${name}" removido.`);
+    setTimeout(() => setAreaToast(null), 3000);
   };
 
   // Stats calculation
@@ -1661,6 +1721,22 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
               <button
                 type="button"
+                onClick={() => setConfigTab('area')}
+                className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  configTab === 'area'
+                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Área de Atuação</span>
+                <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded font-extrabold uppercase">
+                  {storeSettings.deliveryArea?.radiusKm || 7} km
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setConfigTab('formas')}
                 className={`px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                   configTab === 'formas'
@@ -1672,6 +1748,22 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <span>Formas de Pagamento Locais</span>
               </button>
             </div>
+
+            {/* Toast da Área de Atuação */}
+            {areaToast && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500 text-emerald-300 rounded-lg text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>{areaToast}</span>
+              </div>
+            )}
+
+            {/* ABA ÁREA DE ATUAÇÃO & ENTREGAS (COMPONENTE VISUAL DINÂMICO FIREBASE) */}
+            {configTab === 'area' && (
+              <DeliveryRadiusControl
+                storeSettings={storeSettings}
+                onUpdateStoreSettings={onUpdateStoreSettings}
+              />
+            )}
 
             {/* ABA GERAL */}
             {configTab === 'geral' && (

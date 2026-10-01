@@ -81,8 +81,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         </button>
 
         <button
-          onClick={() => onNavigate('menu')}
-          className="flex flex-col items-center justify-center px-3 py-1 rounded-md text-[#b4b5b5] hover:text-[#ffb5a0] transition-all duration-150 active:scale-90"
+          onClick={() => onNavigate('profile')}
+          className={`flex flex-col items-center justify-center px-3 py-1 rounded-md transition-all duration-150 active:scale-90 ${
+            currentScreen === 'profile'
+              ? 'text-[#ff5722] bg-[#ff5722]/10 font-bold'
+              : 'text-[#b4b5b5] hover:text-[#ffb5a0]'
+          }`}
         >
           <User className="w-5 h-5 mb-0.5" />
           <span className="text-[11px] font-['Montserrat']">Perfil</span>

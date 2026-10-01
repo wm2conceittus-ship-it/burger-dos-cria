@@ -1,4 +1,4 @@
-export type Screen = 'menu' | 'product_detail' | 'cart' | 'tracking' | 'kitchen';
+export type Screen = 'menu' | 'product_detail' | 'cart' | 'tracking' | 'kitchen' | 'profile';
 
 export interface CustomerProfile {
   id?: string;
@@ -21,6 +21,13 @@ export interface JuicePrices {
   '1L': number;
 }
 
+export interface PizzaPrices {
+  P: number;
+  M: number;
+  G: number;
+  Família?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -36,6 +43,7 @@ export interface Product {
   ingredients?: string[];
   isAvailable?: boolean;
   juicePrices?: JuicePrices;
+  pizzaPrices?: PizzaPrices;
   options?: {
     meatDoneness?: boolean;
     additionals?: { id: string; name: string; subtitle: string; price: number }[];
@@ -68,6 +76,27 @@ export interface Courier {
   notes?: string;
 }
 
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  fee: number;
+  estimatedTime?: string;
+  distanceKm?: number;
+  active: boolean;
+}
+
+export interface DeliveryAreaConfig {
+  baseAddress?: string;
+  radiusKm?: number;
+  baseFee?: number;
+  baseRadiusKm?: number;
+  feePerKm?: number;
+  freeDeliveryThreshold?: number;
+  allowPickup?: boolean;
+  calculationMode?: 'dynamic_km' | 'zones' | 'fixed';
+  zones?: DeliveryZone[];
+}
+
 export interface StoreSettings {
   isOpen: boolean;
   storeName: string;
@@ -84,6 +113,7 @@ export interface StoreSettings {
   mercadoPago?: MercadoPagoConfig;
   couriers?: Courier[];
   managerPin?: string;
+  deliveryArea?: DeliveryAreaConfig;
 }
 
 export type PizzaSize = 'P' | 'M' | 'G' | 'Família';

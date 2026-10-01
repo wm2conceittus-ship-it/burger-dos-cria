@@ -29,6 +29,14 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const selectedSizeConfig = PIZZA_SIZES.find(s => s.id === pizzaSize) || PIZZA_SIZES[2];
   const selectedJuiceSizeConfig = JUICE_SIZES.find(s => s.id === juiceSize) || JUICE_SIZES[1];
 
+  const getPizzaPrice = (sizeId: PizzaSize) => {
+    if (product.pizzaPrices?.[sizeId] !== undefined) {
+      return product.pizzaPrices[sizeId]!;
+    }
+    const cfg = PIZZA_SIZES.find(s => s.id === sizeId);
+    return Math.max(15, product.price + (cfg ? cfg.priceOffset : 0));
+  };
+
   const getJuicePrice = (sizeId: JuiceSize) => {
     if (product.juicePrices?.[sizeId] !== undefined) {
       return product.juicePrices[sizeId]!;
@@ -56,7 +64,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
   // Calculate base price based on pizza or juice size offset
   const basePriceWithSize = isPizza
-    ? Math.max(15, product.price + selectedSizeConfig.priceOffset)
+    ? getPizzaPrice(pizzaSize)
     : isJuice
     ? getJuicePrice(juiceSize)
     : product.price;
@@ -162,7 +170,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {PIZZA_SIZES.map(size => {
                 const isSelected = pizzaSize === size.id;
-                const calculatedPrice = Math.max(15, product.price + size.priceOffset);
+                const calculatedPrice = getPizzaPrice(size.id);
 
                 return (
                   <div
