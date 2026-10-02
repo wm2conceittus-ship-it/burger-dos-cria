@@ -1067,13 +1067,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                 onClick={() => onPrintOrder(order)}
-                                className="text-[#b4b5b5] hover:text-[#ff5722] p-1 rounded-full transition-colors"
-                                title="Imprimir comanda"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-[#282828] hover:bg-[#ff5722] text-[#ffdad6] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#404040] transition-all active:scale-95 shadow-sm"
+                                title="Imprimir comanda térmica (58mm/80mm)"
                               >
-                                <Printer className="w-4 h-4" />
+                                <Printer className="w-3.5 h-3.5 text-[#ff8a65]" />
+                                <span>Imprimir</span>
                               </button>
                               <Zap className="w-5 h-5 text-[#ff5722] fill-[#ff5722]" />
                             </div>
@@ -1346,10 +1347,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </div>
                         <button
                           onClick={() => onPrintOrder(order)}
-                          className="ml-auto text-[#b4b5b5] hover:text-[#ff5722] p-1.5 rounded-full transition-colors"
-                          title="Imprimir Pedido"
+                          className="ml-auto flex items-center gap-1 px-2.5 py-1 bg-[#252525] hover:bg-[#ff5722] text-[#b4b5b5] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#383838] transition-all active:scale-95 shadow-sm shrink-0"
+                          title="Imprimir comanda térmica (58mm/80mm)"
                         >
-                          <Printer className="w-4 h-4" />
+                          <Printer className="w-3.5 h-3.5 text-[#ff5722]" />
+                          <span>Imprimir</span>
                         </button>
                       </div>
 
