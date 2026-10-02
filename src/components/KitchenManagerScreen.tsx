@@ -61,6 +61,7 @@ import { FinancialPdfModal } from './FinancialPdfModal';
 import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
+import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -139,6 +140,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
   const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
   const [financialToast, setFinancialToast] = useState<string | null>(null);
+  const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre'>('graficos');
 
   // New expense form
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
@@ -718,7 +720,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 badge: (storeSettings.tables || []).filter(t => t.status === 'ocupada' || t.status === 'conta_pedida').length,
               },
               { id: 'cardapio' as const, label: 'Cardápio & Estoque', icon: Layers },
-              { id: 'relatorios' as const, label: 'Finanças & DRE', icon: DollarSign },
+              { id: 'relatorios' as const, label: 'Finanças & Gráficos', icon: BarChart3 },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
             ].map(tab => {
               const isActive = activeTab === tab.id;
@@ -1800,8 +1802,47 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Sub-abas de Relatórios Financeiros */}
+            <div className="w-full bg-[#1c1b1b] rounded-xl border border-[#353535] p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFinancialSubTab('graficos')}
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                  financialSubTab === 'graficos'
+                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20'
+                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                <span>📊 Painel de Gráficos (Diário, Semanal & Mensal)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFinancialSubTab('dre')}
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                  financialSubTab === 'dre'
+                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20'
+                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                <span>📑 DRE Operacional & Saídas de Caixa</span>
+              </button>
+            </div>
+
+            {financialSubTab === 'graficos' && (
+              <FinancialReportsDashboard
+                orders={orders}
+                storeSettings={storeSettings}
+                products={products}
+              />
+            )}
+
+            {financialSubTab === 'dre' && (
+              <>
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
               <div className="bg-[#20201f] rounded-lg p-4 border border-[#353535]/50 shadow-md">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] text-[#b4b5b5]">Faturamento Bruto</span>
@@ -2147,6 +2188,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               </div>
             </div>
+            </>
+          )}
           </div>
         )}
 

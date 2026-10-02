@@ -21,6 +21,8 @@ import {
   Percent,
   Wallet,
   Calendar,
+  Phone,
+  MessageCircle,
   XCircle,
   AlertTriangle,
 } from 'lucide-react';
@@ -67,6 +69,17 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
   const [newTablePeople, setNewTablePeople] = useState(2);
   const [newTableWaiter, setNewTableWaiter] = useState('Danilo (Garçom)');
   const [newTableNotes, setNewTableNotes] = useState('');
+
+  // Reservation State
+  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  const [tableToReserve, setTableToReserve] = useState<RestaurantTable | null>(null);
+  const [reserveTableNumber, setReserveTableNumber] = useState<number>(7);
+  const [reserveCustomer, setReserveCustomer] = useState('');
+  const [reservePhone, setReservePhone] = useState('');
+  const [reserveTime, setReserveTime] = useState('20:30');
+  const [reservePeople, setReservePeople] = useState(4);
+  const [reserveWaiter, setReserveWaiter] = useState('Danilo (Garçom)');
+  const [reserveNotes, setReserveNotes] = useState('');
 
   // Add Product Search
   const [productSearch, setProductSearch] = useState('');
@@ -146,6 +159,113 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
     setNewTableCustomer('');
     setNewTableNotes('');
     showToast(`Mesa ${table.number} aberta com sucesso! 🍽️`);
+  };
+
+  // Open Reservation Modal
+  const handleOpenReservationModal = (table?: RestaurantTable) => {
+    if (table) {
+      setTableToReserve(table);
+      setReserveTableNumber(table.number);
+      setReserveCustomer(table.customerName || '');
+      setReservePhone(table.customerPhone || '');
+      setReserveTime(table.reservationTime || '20:30');
+      setReservePeople(table.peopleCount || table.capacity || 4);
+      setReserveWaiter(table.waiterName || 'Danilo (Garçom)');
+      setReserveNotes(table.notes || '');
+    } else {
+      const free = tables.find(t => t.status === 'livre');
+      const target = free || tables[0];
+      setTableToReserve(null);
+      setReserveTableNumber(target ? target.number : 1);
+      setReserveCustomer('');
+      setReservePhone('');
+      setReserveTime('20:30');
+      setReservePeople(target?.capacity || 4);
+      setReserveWaiter('Danilo (Garçom)');
+      setReserveNotes('');
+    }
+    setIsReservationModalOpen(true);
+  };
+
+  // Save Reservation
+  const handleSaveReservation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reserveCustomer.trim()) {
+      showToast('Por favor, informe o nome do cliente da reserva.');
+      return;
+    }
+
+    const updated = tables.map(t => {
+      if (t.number === reserveTableNumber) {
+        return {
+          ...t,
+          status: 'reservada' as const,
+          customerName: reserveCustomer.trim(),
+          customerPhone: reservePhone.trim() || undefined,
+          reservationTime: reserveTime || '20:30',
+          peopleCount: reservePeople || t.capacity || 4,
+          waiterName: reserveWaiter || 'Salão',
+          notes: reserveNotes.trim() || undefined,
+          serviceFeeEnabled: true,
+          items: t.items || [],
+        };
+      }
+      return t;
+    });
+
+    onUpdateStoreSettings({ ...storeSettings, tables: updated });
+    setIsReservationModalOpen(false);
+    showToast(`Mesa ${reserveTableNumber} reservada para ${reserveCustomer} às ${reserveTime}! 📅`);
+  };
+
+  // Check-in (Client arrived at reserved table)
+  const handleCheckInReservation = (table: RestaurantTable) => {
+    const updated = tables.map(t => {
+      if (t.id === table.id) {
+        return {
+          ...t,
+          status: 'ocupada' as const,
+          openedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        };
+      }
+      return t;
+    });
+
+    onUpdateStoreSettings({ ...storeSettings, tables: updated });
+    setIsReservationModalOpen(false);
+    const target = updated.find(t => t.id === table.id);
+    if (target) {
+      setSelectedTable(target);
+      setSplitCount(target.peopleCount || 1);
+    }
+    showToast(`Cliente chegou! Comanda da Mesa ${table.number} aberta! 🟢`);
+  };
+
+  // Cancel Reservation & Free Table
+  const handleCancelReservation = (tableId: string) => {
+    const table = tables.find(t => t.id === tableId);
+    const updated = tables.map(t => {
+      if (t.id === tableId) {
+        return {
+          ...t,
+          status: 'livre' as const,
+          customerName: undefined,
+          customerPhone: undefined,
+          reservationTime: undefined,
+          peopleCount: undefined,
+          openedAt: undefined,
+          waiterName: undefined,
+          notes: undefined,
+          items: [],
+          serviceFeeEnabled: true,
+        };
+      }
+      return t;
+    });
+
+    onUpdateStoreSettings({ ...storeSettings, tables: updated });
+    setIsReservationModalOpen(false);
+    showToast(`Reserva da Mesa ${table?.number} cancelada e mesa liberada! 🟢`);
   };
 
   // Add Item to Table
@@ -416,6 +536,14 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
         {/* Quick Actions */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={() => handleOpenReservationModal()}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>+ Fazer Reserva</span>
+          </button>
+
+          <button
             onClick={() => setIsOpenNewTableModal(true)}
             className="btn-flame text-white px-3.5 py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
           >
@@ -544,6 +672,8 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                   setNewTableNumber(table.number);
                   setNewTableLabel(table.label);
                   setIsOpenNewTableModal(true);
+                } else if (isReserved) {
+                  handleOpenReservationModal(table);
                 } else {
                   setSelectedTable(table);
                   setSplitCount(table.peopleCount || 1);
@@ -656,6 +786,42 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                       + Clique para abrir atendimento
                     </span>
                   </div>
+                ) : isReserved ? (
+                  <div className="bg-blue-950/40 border border-blue-500/40 rounded-xl p-2.5 text-xs space-y-1.5 shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-white font-['Montserrat'] block truncate text-xs">
+                        {table.customerName || 'Reserva'}
+                      </strong>
+                      <span className="text-[10px] bg-blue-500/25 text-blue-300 border border-blue-500/40 px-2 py-0.5 rounded font-mono font-bold">
+                        ⏰ {table.reservationTime || '20:30'}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#b4b5b5] flex items-center justify-between">
+                      <span>{table.peopleCount || table.capacity} pessoas</span>
+                      {table.customerPhone && (
+                        <span className="text-emerald-400 font-mono flex items-center gap-1">
+                          <Phone className="w-2.5 h-2.5" />
+                          {table.customerPhone}
+                        </span>
+                      )}
+                    </div>
+                    {table.notes && (
+                      <p className="text-[10px] text-blue-200/80 italic truncate bg-black/30 p-1 rounded">
+                        "{table.notes}"
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleCheckInReservation(table);
+                      }}
+                      className="w-full mt-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-['Montserrat'] font-bold text-[11px] rounded-lg shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Chegou! Abrir Comanda</span>
+                    </button>
+                  </div>
                 ) : (
                   <>
                     <div className="text-xs">
@@ -688,14 +854,14 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               <div className="pt-2 border-t border-white/10 flex items-center justify-between">
                 <div>
                   <span className="text-[9px] text-[#8e8f8f] uppercase block font-semibold">
-                    {isFree ? 'Capacidade' : 'Total Parcial'}
+                    {isFree ? 'Capacidade' : isReserved ? 'Reserva' : 'Total Parcial'}
                   </span>
                   <span
                     className={`font-mono font-bold text-sm ${
-                      isFree ? 'text-[#8e8f8f]' : isBillRequested ? 'text-amber-300' : 'text-[#ff5722]'
+                      isFree ? 'text-[#8e8f8f]' : isReserved ? 'text-blue-300' : isBillRequested ? 'text-amber-300' : 'text-[#ff5722]'
                     }`}
                   >
-                    {isFree ? `${table.capacity} Lugares` : `R$ ${total.toFixed(2).replace('.', ',')}`}
+                    {isFree ? `${table.capacity} Lugares` : isReserved ? `${table.reservationTime || '20:30'}` : `R$ ${total.toFixed(2).replace('.', ',')}`}
                   </span>
                 </div>
 
@@ -706,6 +872,17 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                       className="px-2.5 py-1 rounded-lg bg-white/5 group-hover:bg-[#ff5722] text-[#b4b5b5] group-hover:text-white text-xs font-bold font-['Montserrat'] transition-all"
                     >
                       Abrir
+                    </button>
+                  ) : isReserved ? (
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleOpenReservationModal(table);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-bold font-['Montserrat'] border border-blue-500/40 transition-all"
+                    >
+                      Ver Reserva
                     </button>
                   ) : (
                     <button
@@ -1104,27 +1281,42 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsOpenNewTableModal(false)}
-                className="px-4 py-2 rounded-lg bg-[#252525] text-[#b4b5b5] hover:text-white font-bold text-xs"
-              >
-                Cancelar
-              </button>
-
+            <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-t border-[#353535]">
               <button
                 type="button"
                 onClick={() => {
                   const targetTable = tables.find(t => t.number === newTableNumber);
-                  if (targetTable) {
-                    handleOpenTable(targetTable.id);
-                  }
+                  setIsOpenNewTableModal(false);
+                  handleOpenReservationModal(targetTable);
                 }}
-                className="btn-flame text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md active:scale-95"
+                className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center justify-center sm:justify-start gap-1.5 py-1"
               >
-                Confirmar & Abrir Mesa
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Agendar Reserva para mais tarde</span>
               </button>
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOpenNewTableModal(false)}
+                  className="px-4 py-2 rounded-lg bg-[#252525] text-[#b4b5b5] hover:text-white font-bold text-xs"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetTable = tables.find(t => t.number === newTableNumber);
+                    if (targetTable) {
+                      handleOpenTable(targetTable.id);
+                    }
+                  }}
+                  className="btn-flame text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md active:scale-95"
+                >
+                  Confirmar & Abrir Mesa
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1521,6 +1713,230 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                 <span>Sim, Liberar Mesa</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL 8: RESERVA DE MESA                                       */}
+      {/* ============================================================== */}
+      {isReservationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-4 bg-[#191e26] border-b border-[#353535] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                    {tableToReserve && tableToReserve.status === 'reservada'
+                      ? `Reserva • Mesa ${tableToReserve.number}`
+                      : 'Agendar Reserva de Mesa'}
+                  </h3>
+                  <span className="text-[11px] text-[#b4b5b5]">
+                    {tableToReserve && tableToReserve.status === 'reservada'
+                      ? 'Gerencie a reserva existente ou dê entrada quando o cliente chegar.'
+                      : 'Defina o horário, quantidade de pessoas e dados do cliente.'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReservationModalOpen(false)}
+                className="text-[#8e8f8f] hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveReservation} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
+              {/* Select Table if creating new */}
+              <div>
+                <label className="block text-[#b4b5b5] font-semibold mb-1">
+                  Selecione a Mesa *
+                </label>
+                <select
+                  value={reserveTableNumber}
+                  onChange={e => setReserveTableNumber(parseInt(e.target.value))}
+                  disabled={tableToReserve !== null && tableToReserve.status === 'reservada'}
+                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-blue-500 disabled:opacity-60"
+                >
+                  {tables.map(t => (
+                    <option
+                      key={t.id}
+                      value={t.number}
+                      disabled={t.status === 'ocupada' || t.status === 'conta_pedida'}
+                    >
+                      Mesa {t.number} • {t.label} ({t.capacity} lugares) - [{t.status.toUpperCase()}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Customer Name */}
+              <div>
+                <label className="block text-[#b4b5b5] font-semibold mb-1">
+                  Nome do Cliente / Responsável *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={reserveCustomer}
+                  onChange={e => setReserveCustomer(e.target.value)}
+                  placeholder="Ex: Renata Albuquerque ou Família Santos"
+                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Phone & Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#b4b5b5] font-semibold mb-1">
+                    WhatsApp / Telefone de Contato
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={reservePhone}
+                      onChange={e => setReservePhone(e.target.value)}
+                      placeholder="(11) 98765-4321"
+                      className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                    {reservePhone && (
+                      <a
+                        href={`https://wa.me/55${reservePhone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center justify-center shrink-0"
+                        title="Falar no WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[#b4b5b5] font-semibold mb-1">
+                    Horário da Reserva *
+                  </label>
+                  <input
+                    type="time"
+                    value={reserveTime}
+                    onChange={e => setReserveTime(e.target.value)}
+                    className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* People Count & Waiter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#b4b5b5] font-semibold mb-1">
+                    Qtd. de Pessoas
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={reservePeople}
+                    onChange={e => setReservePeople(parseInt(e.target.value) || 1)}
+                    className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#b4b5b5] font-semibold mb-1">
+                    Garçom de Referência
+                  </label>
+                  <select
+                    value={reserveWaiter}
+                    onChange={e => setReserveWaiter(e.target.value)}
+                    className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    {(storeSettings.employees || [])
+                      .filter(emp => emp.active)
+                      .map(emp => (
+                        <option key={emp.id} value={`${emp.name} (${emp.customRoleTitle || emp.role})`}>
+                          {emp.name} ({emp.customRoleTitle || emp.role})
+                        </option>
+                      ))}
+                    {(!storeSettings.employees || storeSettings.employees.length === 0) && (
+                      <option value="Danilo (Garçom)">Danilo (Garçom)</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[#b4b5b5] font-semibold mb-1">
+                  Observações / Ocasião Especial (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={reserveNotes}
+                  onChange={e => setReserveNotes(e.target.value)}
+                  placeholder="Ex: Aniversário, trazer vela e sobremesa, mesa perto da janela..."
+                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-[#353535] flex flex-wrap items-center justify-between gap-2">
+                {tableToReserve && tableToReserve.status === 'reservada' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleCancelReservation(tableToReserve.id)}
+                      className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs flex items-center gap-1.5"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Cancelar Reserva</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleCheckInReservation(tableToReserve)}
+                        className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Cliente Chegou! Abrir Mesa</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-['Montserrat'] font-bold text-xs active:scale-95"
+                      >
+                        Salvar Alterações
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsReservationModalOpen(false)}
+                      className="px-4 py-2 rounded-lg bg-[#252525] text-[#b4b5b5] hover:text-white font-bold text-xs"
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-['Montserrat'] font-bold text-xs shadow-md active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Confirmar Reserva</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </form>
           </div>
         </div>
       )}

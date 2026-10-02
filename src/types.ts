@@ -179,6 +179,8 @@ export interface RestaurantTable {
   capacity: number;
   status: TableStatus;
   customerName?: string;
+  customerPhone?: string;
+  reservationTime?: string;
   peopleCount?: number;
   openedAt?: string;
   waiterName?: string;
