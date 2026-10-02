@@ -32,7 +32,7 @@ export interface Product {
   id: string;
   name: string;
   category: 'burgers' | 'combos' | 'salgados' | 'bebidas' | 'pizzas' | 'sucos';
-  subCategory?: 'cervejas' | 'refrigerantes';
+  subCategory?: 'cervejas' | 'refrigerantes' | 'quentes';
   price: number;
   originalPrice?: number;
   costPrice?: number; // Preço de custo / CMV unitário dos insumos

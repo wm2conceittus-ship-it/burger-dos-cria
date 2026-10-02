@@ -32,8 +32,6 @@ import {
   Lock,
   ChefHat,
   ArrowUp,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -122,36 +120,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const scrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 6);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
-    }
-  };
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, []);
 
   const handleWheel = (e: React.WheelEvent) => {
     if (scrollContainerRef.current) {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         scrollContainerRef.current.scrollLeft += e.deltaY;
-        checkScroll();
       }
-    }
-  };
-
-  const scrollByAmount = (amount: number) => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
-      setTimeout(checkScroll, 200);
     }
   };
 
@@ -172,14 +146,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       hasDraggedRef.current = true;
     }
     scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
-    checkScroll();
   };
 
   const onMouseUpOrLeave = () => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     setIsDragging(false);
-    checkScroll();
     // Reset hasDragged after click event dispatch cycle
     setTimeout(() => {
       hasDraggedRef.current = false;
@@ -231,17 +203,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           p.name.toLowerCase().includes('sprite'))
       );
     }
-    if (selectedCategory === 'cervejas') {
+    if (selectedCategory === 'cervejas' || selectedCategory === 'bebidas') {
       return (
         p.category === 'bebidas' &&
-        (p.subCategory === 'cervejas' ||
-          p.name.toLowerCase().includes('cerveja') ||
-          p.name.toLowerCase().includes('heineken') ||
-          p.name.toLowerCase().includes('corona') ||
-          p.name.toLowerCase().includes('amstel') ||
-          p.name.toLowerCase().includes('stella') ||
-          p.name.toLowerCase().includes('budweiser') ||
-          p.name.toLowerCase().includes('brahma'))
+        p.subCategory !== 'refrigerantes' &&
+        !p.name.toLowerCase().includes('coca') &&
+        !p.name.toLowerCase().includes('guaraná') &&
+        !p.name.toLowerCase().includes('fanta') &&
+        !p.name.toLowerCase().includes('sprite')
       );
     }
     return p.category === selectedCategory;
@@ -458,23 +427,15 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                     selectedCategory === 'refrigerantes' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <GlassWater className="w-4 h-4 text-[#00b0ff]" /> Refrigerantes em Lata
-                </button>
-                <button
-                  onClick={() => { setDrawerOpen(false); setSelectedCategory('cervejas'); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
-                    selectedCategory === 'cervejas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
-                  }`}
-                >
-                  <Beer className="w-4 h-4 text-amber-400" /> Cervejas Geladas
+                  <GlassWater className="w-4 h-4 text-[#00b0ff]" /> Refrigerantes
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('bebidas'); }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
-                    selectedCategory === 'bebidas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
+                    selectedCategory === 'bebidas' || selectedCategory === 'cervejas' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" /> Todas as Bebidas
+                  <Beer className="w-4 h-4 text-amber-400" /> Bebidas
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); onOpenCart(); }}
@@ -580,28 +541,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         {/* Category Buttons Carousel Navigation Bar */}
         <section className="sticky top-16 z-30 bg-[#0F0F0F]/95 backdrop-blur-md py-3 -mx-4 md:-mx-6 px-4 md:px-6 border-b border-[#353535]/40 shadow-md">
           <div className="relative flex items-center max-w-5xl mx-auto">
-            {/* Scroll Left Button */}
-            {canScrollLeft && (
-              <button
-                type="button"
-                onClick={() => scrollByAmount(-220)}
-                aria-label="Rolar categorias para a esquerda"
-                className="absolute left-0 z-20 w-8 h-8 rounded-full bg-[#1c1b1b]/95 border border-[#ff5722]/50 text-[#ff8a65] hover:text-white hover:bg-[#ff5722] flex items-center justify-center shadow-xl transition-all active:scale-90 -ml-1 sm:-ml-2.5"
-                title="Ver categorias anteriores"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Subtle Left fade indicator */}
-            {canScrollLeft && (
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent pointer-events-none z-10" />
-            )}
-
-            {/* Scrollable Container with Pure Drag, Swipe, Arrows & Touch */}
+            {/* Scrollable Container with Pure Drag, Swipe & Touch */}
             <div
               ref={scrollContainerRef}
-              onScroll={checkScroll}
               onWheel={handleWheel}
               onMouseDown={onMouseDown}
               onMouseMove={onMouseMove}
@@ -612,15 +554,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               }`}
             >
               {[
-                { id: 'todos' as const, label: 'Todos', icon: Flame, count: products.length },
-                { id: 'burgers' as const, label: 'Burgers', icon: Utensils, count: burgers.length },
-                { id: 'combos' as const, label: 'Combos', icon: Layers, count: combos.length },
-                { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza, count: pizzas.length },
-                { id: 'salgados' as const, label: 'Porções & Salgados', icon: Croissant, count: salgados.length },
-                { id: 'sucos' as const, label: 'Sucos Naturais', icon: Citrus, count: sucos.length },
-                { id: 'refrigerantes' as const, label: 'Refrigerantes', icon: GlassWater, count: refrigerantes.length },
-                { id: 'cervejas' as const, label: 'Cervejas', icon: Beer, count: cervejas.length },
-                { id: 'bebidas' as const, label: 'Todas as Bebidas', icon: Sparkles, count: products.filter(p => p.category === 'bebidas').length },
+                { id: 'todos' as const, label: 'Todos', icon: Flame },
+                { id: 'burgers' as const, label: 'Burgers', icon: Utensils },
+                { id: 'combos' as const, label: 'Combos', icon: Layers },
+                { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza },
+                { id: 'salgados' as const, label: 'Porções & Salgados', icon: Croissant },
+                { id: 'sucos' as const, label: 'Sucos Naturais', icon: Citrus },
+                { id: 'refrigerantes' as const, label: 'Refrigerantes', icon: GlassWater },
+                { id: 'bebidas' as const, label: 'Bebidas', icon: Beer },
               ].map(cat => {
                 const active = selectedCategory === cat.id && !searchQuery.trim();
                 const Icon = cat.icon;
@@ -637,14 +578,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                         block: 'nearest',
                       });
                     }}
-                    className={`group flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-['Montserrat'] font-bold whitespace-nowrap transition-all duration-200 active:scale-95 flex-shrink-0 shadow-sm ${
+                    className={`group flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-['Montserrat'] font-bold whitespace-nowrap transition-all duration-200 active:scale-95 flex-shrink-0 shadow-sm ${
                       active
                         ? 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00] text-white ring-2 ring-[#ff5722]/50 shadow-[0_4px_16px_rgba(255,87,34,0.4)]'
                         : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]/80 hover:border-[#ff5722]/50'
                     }`}
                   >
                     <span
-                      className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
                         active
                           ? 'bg-white/20 text-white'
                           : 'bg-[#2a2a2a] text-[#ff8a65] group-hover:bg-[#ff5722]/20'
@@ -653,37 +594,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                       <Icon className="w-3.5 h-3.5" />
                     </span>
                     <span className="tracking-tight">{cat.label}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono transition-colors ${
-                        active
-                          ? 'bg-black/25 text-white font-extrabold'
-                          : 'bg-[#282726] text-[#8e8f8f] group-hover:text-white'
-                      }`}
-                    >
-                      {cat.count}
-                    </span>
                   </button>
                 );
               })}
             </div>
-
-            {/* Subtle Right fade indicator */}
-            {canScrollRight && (
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0F0F0F] via-[#0F0F0F]/80 to-transparent pointer-events-none z-10" />
-            )}
-
-            {/* Scroll Right Button */}
-            {canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollByAmount(220)}
-                aria-label="Rolar categorias para a direita"
-                className="absolute right-0 z-20 w-8 h-8 rounded-full bg-[#1c1b1b]/95 border border-[#ff5722]/50 text-[#ff8a65] hover:text-white hover:bg-[#ff5722] flex items-center justify-center shadow-xl transition-all active:scale-90 -mr-1 sm:-mr-2.5"
-                title="Ver próximas categorias"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </section>
 
@@ -949,10 +863,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           <div className="space-y-8">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
-                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Todas as Bebidas
+                <Beer className="w-5 h-5 text-amber-400" /> Bebidas & Cervejas
               </h3>
               <p className="text-xs text-[#b4b5b5] mt-0.5">
-                Refrigerantes, cervejas trincando de geladas e águas minerais
+                Cervejas trincando de geladas e águas minerais
               </p>
             </div>
 
@@ -972,28 +886,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                       key={cerveja.id}
                       product={cerveja}
                       onQuickAdd={() => onQuickAdd(cerveja)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Sub-seção: Refrigerantes */}
-            {refrigerantes.length > 0 && (
-              <div className="space-y-3.5">
-                <div className="flex justify-between items-center border-b border-[#353535]/50 pb-1.5">
-                  <h4 className="font-['Montserrat'] text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <GlassWater className="w-4 h-4 text-[#00b0ff]" /> Refrigerantes em Lata
-                  </h4>
-                  <span className="text-[11px] text-[#b4b5b5]">350ml Gelados</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                  {refrigerantes.map(refri => (
-                    <DrinkCard
-                      key={refri.id}
-                      product={refri}
-                      onQuickAdd={() => onQuickAdd(refri)}
                     />
                   ))}
                 </div>
@@ -1029,9 +921,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           <div className="space-y-6">
             <div>
               <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
-                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Refrigerantes em Lata
+                <GlassWater className="w-5 h-5 text-[#ff5722]" /> Refrigerantes
               </h3>
-              <p className="text-xs text-[#b4b5b5] mt-0.5">Geladinhos de 350ml para acompanhar seu lanche</p>
+              <p className="text-xs text-[#b4b5b5] mt-0.5">Geladinhos para acompanhar seu lanche</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
               {refrigerantes.map(refri => (
