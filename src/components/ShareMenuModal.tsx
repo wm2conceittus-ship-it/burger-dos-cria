@@ -17,12 +17,14 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
 
   if (!isOpen) return null;
 
-  const publicUrl = tableNumber
+  const defaultUrl = tableNumber
     ? getPublicMenuUrl(`/?mesa=${tableNumber}`)
     : getPublicMenuUrl();
 
+  const [customUrl, setCustomUrl] = useState(defaultUrl);
+
   const handleCopy = async () => {
-    const success = await copyToClipboard(publicUrl);
+    const success = await copyToClipboard(customUrl || defaultUrl);
     if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -30,8 +32,8 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
   };
 
   const whatsappMessage = tableNumber
-    ? `Olá! Faça seu pedido na Mesa ${tableNumber} pelo nosso cardápio digital:\n${publicUrl}`
-    : `Olá! Confira o cardápio do Burguer dos Crias e faça seu pedido online com entrega rápida:\n${publicUrl}`;
+    ? `Olá! Faça seu pedido na Mesa ${tableNumber} pelo nosso cardápio digital:\n${customUrl || defaultUrl}`
+    : `Olá! Confira o cardápio do Burguer dos Crias e faça seu pedido online com entrega rápida:\n${customUrl || defaultUrl}`;
 
   const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
 
@@ -81,8 +83,8 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
               <Globe className="w-4 h-4 text-[#ff5722] shrink-0" />
               <input
                 type="text"
-                readOnly
-                value={publicUrl}
+                value={customUrl}
+                onChange={e => setCustomUrl(e.target.value)}
                 className="bg-transparent text-white font-mono text-[11px] w-full focus:outline-none select-all truncate"
                 onClick={e => (e.target as HTMLInputElement).select()}
               />
@@ -113,7 +115,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
             </a>
 
             <a
-              href={publicUrl}
+              href={customUrl || defaultUrl}
               target="_blank"
               rel="noreferrer"
               className="w-full bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white font-['Montserrat'] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs text-center"

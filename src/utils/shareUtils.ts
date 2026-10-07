@@ -2,26 +2,18 @@
  * Utilitários para compartilhamento do link público do cardápio para clientes.
  */
 
-export const PUBLIC_APP_URL = 'https://ais-pre-qknixhdqt45vxqtx4kdi6f-358992445078.us-east5.run.app';
+export const DEFAULT_APP_URL = 'https://ais-dev-qknixhdqt45vxqtx4kdi6f-358992445078.us-east5.run.app';
 
 /**
- * Retorna sempre o link público que qualquer cliente consegue abrir no celular/WhatsApp.
- * Converte automaticamente URLs de desenvolvimento interno (ais-dev-...) para a URL pública (ais-pre-...).
+ * Retorna sempre o link ativo da aplicação onde o servidor está rodando no momento.
  */
 export function getPublicMenuUrl(extraQueryOrPath = ''): string {
   if (typeof window === 'undefined') {
-    return PUBLIC_APP_URL + extraQueryOrPath;
+    return DEFAULT_APP_URL + extraQueryOrPath;
   }
 
-  let origin = window.location.origin;
-
-  // Se estiver no ambiente restrito do desenvolvedor (ais-dev), converte para o link público (ais-pre)
-  if (origin.includes('ais-dev-')) {
-    origin = origin.replace('ais-dev-', 'ais-pre-');
-  } else if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    origin = PUBLIC_APP_URL;
-  }
-
+  // Sempre utiliza o origin real onde o app está hospedado e ativo
+  const origin = window.location.origin;
   return origin + extraQueryOrPath;
 }
 

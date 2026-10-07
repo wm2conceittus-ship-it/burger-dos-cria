@@ -600,6 +600,13 @@ export default function App() {
     showToast('Pedido marcado como Entregue!');
   };
 
+  const handleKitchenUpdateStatus = (orderId: string, newStatus: any) => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    updateOrderStatusInFirestore(orderId, newStatus);
+  };
+
   const handleManualOrderAdd = (newOrder: Order) => {
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder);
@@ -760,6 +767,7 @@ export default function App() {
           onOpenChat={() => setIsDriverChatOpen(true)}
           onNavigateToMenu={() => setCurrentScreen('menu')}
           onLockManager={handleLockManager}
+          onUpdateOrderStatus={handleKitchenUpdateStatus}
         />
       )}
 
