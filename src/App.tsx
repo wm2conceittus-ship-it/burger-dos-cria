@@ -17,6 +17,7 @@ import {
   saveCustomerProfileToFirestore,
   subscribeToProducts,
   saveProductToFirestore,
+  deleteProductFromFirestore,
   saveAllProductsToFirestore,
 } from './services/firebase';
 import { MenuScreen } from './components/MenuScreen';
@@ -38,19 +39,28 @@ import { Toast } from './components/Toast';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
+  const [kitchenTab, setKitchenTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
   const [products, setProducts] = useState<Product[]>(() => {
+    let deletedIds: string[] = [];
+    try {
+      deletedIds = JSON.parse(localStorage.getItem('burger_deleted_products') || '[]');
+    } catch {
+      deletedIds = [];
+    }
+    const isNotDeleted = (p: Product) => !deletedIds.includes(p.id);
+
     try {
       const cached = localStorage.getItem('burger_products');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.filter(isNotDeleted);
         }
       }
     } catch {
       // fallback
     }
-    return PRODUCTS;
+    return PRODUCTS.filter(isNotDeleted);
   });
   const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]); // Gourmet Truffle Burger
 
@@ -252,6 +262,16 @@ export default function App() {
   };
 
   const handleOpenKitchen = () => {
+    setKitchenTab('pedidos');
+    if (isManagerAuthenticated) {
+      setCurrentScreen('kitchen');
+    } else {
+      setIsPinModalOpen(true);
+    }
+  };
+
+  const handleOpenManageMenu = () => {
+    setKitchenTab('cardapio');
     if (isManagerAuthenticated) {
       setCurrentScreen('kitchen');
     } else {
@@ -328,11 +348,19 @@ export default function App() {
     // Subscribe to products in Firestore
     const unsubscribeProducts = subscribeToProducts(firestoreProducts => {
       if (firestoreProducts && firestoreProducts.length > 0) {
+        let deletedIds: string[] = [];
+        try {
+          deletedIds = JSON.parse(localStorage.getItem('burger_deleted_products') || '[]');
+        } catch {
+          deletedIds = [];
+        }
+        const isNotDeleted = (p: Product) => !deletedIds.includes(p.id);
+
         setProducts(prev => {
           const map = new Map<string, Product>();
-          prev.forEach(p => map.set(p.id, p));
-          firestoreProducts.forEach(p => map.set(p.id, p));
-          const merged = Array.from(map.values());
+          prev.filter(isNotDeleted).forEach(p => map.set(p.id, p));
+          firestoreProducts.filter(isNotDeleted).forEach(p => map.set(p.id, p));
+          const merged = Array.from(map.values()).filter(isNotDeleted);
           try {
             localStorage.setItem('burger_products', JSON.stringify(merged));
           } catch {
@@ -676,6 +704,57 @@ export default function App() {
     setEditingProduct(null);
   };
 
+  const handleDeleteProduct = async (productId: string) => {
+    const prodToDelete = products.find(p => p.id === productId);
+    const prodName = prodToDelete ? prodToDelete.name : 'Item';
+
+    // Persist deleted product ID so mock/cached data never restores it
+    try {
+      const deletedIds: string[] = JSON.parse(localStorage.getItem('burger_deleted_products') || '[]');
+      if (!deletedIds.includes(productId)) {
+        deletedIds.push(productId);
+        localStorage.setItem('burger_deleted_products', JSON.stringify(deletedIds));
+      }
+    } catch {
+      // ignore
+    }
+
+    // 1. Update React state immediately
+    setProducts(prev => {
+      const next = prev.filter(p => p.id !== productId);
+      try {
+        localStorage.setItem('burger_products', JSON.stringify(next));
+      } catch (err) {
+        console.warn('Erro ao atualizar localStorage após exclusão:', err);
+      }
+      return next;
+    });
+
+    // Also remove from cart
+    setCartItems(prev => prev.filter(it => it.product.id !== productId));
+
+    // Also clear selectedProduct if it was the deleted one
+    setSelectedProduct(prev => {
+      if (prev.id === productId) {
+        const remaining = products.filter(p => p.id !== productId);
+        return remaining[0] || prev;
+      }
+      return prev;
+    });
+
+    // 2. Remove from Firestore
+    try {
+      await deleteProductFromFirestore(productId);
+      showToast(`Produto "${prodName}" excluído do cardápio! 🗑️`);
+    } catch (err) {
+      console.error('Erro ao excluir produto no Firestore:', err);
+      showToast(`Produto removido localmente.`);
+    }
+
+    setIsProductModalOpen(false);
+    setEditingProduct(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-[#e5e2e1] font-['Be_Vietnam_Pro'] antialiased selection:bg-[#ff5722] selection:text-white">
       {/* Quick Screen Switcher Banner for review */}
@@ -703,6 +782,17 @@ export default function App() {
           onOpenKitchen={handleOpenKitchen}
           onOpenChat={() => setIsDriverChatOpen(true)}
           cartCount={cartItems.length}
+          isManager={isManagerAuthenticated}
+          onOpenManageMenu={handleOpenManageMenu}
+          onOpenEditProduct={prod => {
+            setEditingProduct(prod);
+            setIsProductModalOpen(true);
+          }}
+          onOpenAddProduct={() => {
+            setEditingProduct(null);
+            setIsProductModalOpen(true);
+          }}
+          onDeleteProduct={handleDeleteProduct}
         />
       )}
 
@@ -712,6 +802,12 @@ export default function App() {
           onBack={() => setCurrentScreen('menu')}
           onAddToCart={handleAddToCart}
           onOpenCart={() => setCurrentScreen('cart')}
+          isManager={isManagerAuthenticated}
+          onOpenEditProduct={prod => {
+            setEditingProduct(prod);
+            setIsProductModalOpen(true);
+          }}
+          onDeleteProduct={handleDeleteProduct}
         />
       )}
 
@@ -746,6 +842,7 @@ export default function App() {
           orders={orders}
           products={products}
           storeSettings={storeSettings}
+          initialTab={kitchenTab}
           onUpdateStoreSettings={handleUpdateStoreSettings}
           onToggleProductAvailability={handleToggleProductAvailability}
           onOpenEditProduct={prod => {
@@ -768,6 +865,7 @@ export default function App() {
           onNavigateToMenu={() => setCurrentScreen('menu')}
           onLockManager={handleLockManager}
           onUpdateOrderStatus={handleKitchenUpdateStatus}
+          onDeleteProduct={handleDeleteProduct}
         />
       )}
 
@@ -858,6 +956,7 @@ export default function App() {
         <ProductFormModal
           initialProduct={editingProduct}
           onSave={handleSaveProduct}
+          onDelete={handleDeleteProduct}
           onClose={() => {
             setIsProductModalOpen(false);
             setEditingProduct(null);

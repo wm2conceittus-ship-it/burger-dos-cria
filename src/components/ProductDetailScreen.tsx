@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, CartItem, PizzaSize, JuiceSize } from '../types';
-import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users, Citrus } from 'lucide-react';
+import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users, Citrus, Edit2, Trash2 } from 'lucide-react';
 import { PIZZA_SIZES, JUICE_SIZES } from '../data/mockData';
 
 interface ProductDetailScreenProps {
@@ -8,6 +8,9 @@ interface ProductDetailScreenProps {
   onBack: () => void;
   onAddToCart: (item: CartItem) => void;
   onOpenCart: () => void;
+  isManager?: boolean;
+  onOpenEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (productId: string) => void;
 }
 
 export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
@@ -15,6 +18,9 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   onBack,
   onAddToCart,
   onOpenCart,
+  isManager,
+  onOpenEditProduct,
+  onDeleteProduct,
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [meatDoneness, setMeatDoneness] = useState<'Mal passado' | 'Ao ponto' | 'Bem passado'>('Ao ponto');
@@ -23,6 +29,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const [selectedAdditionals, setSelectedAdditionals] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isPizza = product.category === 'pizzas';
   const isJuice = product.category === 'sucos';
@@ -105,6 +112,29 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-white" />
             </button>
+
+            {isManager && (
+              <div className="pointer-events-auto flex items-center gap-1.5 bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#ff5722]/50 shadow-2xl">
+                <span className="text-[10px] text-[#ff8a65] font-extrabold uppercase font-mono mr-1 hidden sm:inline">Gestor:</span>
+                {onOpenEditProduct && (
+                  <button
+                    onClick={() => onOpenEditProduct(product)}
+                    className="px-2.5 py-1 rounded-md bg-[#252525] hover:bg-[#ff5722] text-white text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <Edit2 className="w-3 h-3 text-[#ff8a65]" /> Editar
+                  </button>
+                )}
+                {onDeleteProduct && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-2.5 py-1 rounded-md bg-red-950/70 hover:bg-red-600 text-red-300 hover:text-white text-[11px] font-semibold flex items-center gap-1 transition-colors border border-red-500/40"
+                  >
+                    <Trash2 className="w-3 h-3 text-red-400" /> Excluir
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => setIsFavorite(!isFavorite)}
               className={`pointer-events-auto bg-black/70 backdrop-blur-md p-3 rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group ${
@@ -457,6 +487,64 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Exclusão do Produto */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                  Excluir este item do cardápio?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Esta ação removerá "{product.name}" permanentemente do sistema e do banco de dados Firebase.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#141414] border border-[#353535] rounded-xl p-3 flex items-center gap-3 mb-5">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-12 h-12 rounded-lg object-cover bg-[#20201f] shrink-0 border border-[#353535]"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-sm text-white truncate">{product.name}</h4>
+                <span className="text-xs font-bold text-[#ff5722] block mt-0.5">
+                  R$ {product.price.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-['Montserrat'] font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  if (onDeleteProduct) {
+                    onDeleteProduct(product.id);
+                  }
+                  onBack();
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Sim, Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

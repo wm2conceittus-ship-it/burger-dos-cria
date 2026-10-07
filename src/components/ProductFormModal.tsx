@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
-import { X, Image as ImageIcon, Check } from 'lucide-react';
+import { X, Image as ImageIcon, Check, Trash2 } from 'lucide-react';
 
 interface ProductFormModalProps {
   initialProduct?: Product | null;
   onSave: (product: Product) => void;
+  onDelete?: (productId: string) => void;
   onClose: () => void;
 }
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   initialProduct,
   onSave,
+  onDelete,
   onClose,
 }) => {
   const [name, setName] = useState(initialProduct?.name || '');
@@ -62,6 +64,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAYiCpXDFzLo2i6AtAat0pi5aY8cpQUYfRuf2lbZeJUENy1TTAC_Bp1C6uBfpTVpZo5EBVV-P4x_1BjUgFtYgHZL-qddmIobcNc7lXG8HraY8OO7zkpnTr9cPo8CXh4B_xkAUO1J2kEZ5F6bESJfzGCr5GCSfpvW7aFvJsjpZVH-y5_FDuAVwAZta5HmIc8WjdmPiru6h5LhILUqoQtXc6eN7wGbyqDCpwfNowYZEEKdEzN9rFso8No-Yz7_ictkmFt8jLOplvkWlWY'
   );
   const [tag, setTag] = useState(initialProduct?.tag || '');
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   // Synchronize when initialProduct prop changes
   useEffect(() => {
@@ -484,21 +487,69 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </div>
         </form>
 
-        <div className="px-5 py-3 border-t border-[#353535] bg-[#1c1b1b] flex gap-2.5 flex-shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-white py-2.5 rounded-xl font-['Montserrat'] font-semibold transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            form="product-form"
-            className="flex-1 btn-flame text-white py-2.5 rounded-xl font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-[#ff5722]/25"
-          >
-            <Check className="w-4 h-4" /> Salvar Produto
-          </button>
+        <div className="px-5 py-3 border-t border-[#353535] bg-[#1c1b1b] flex flex-col gap-2 flex-shrink-0">
+          {showConfirmDelete ? (
+            <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/50 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-150">
+              <div className="flex items-center gap-2.5 text-left w-full sm:w-auto">
+                <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Excluir permanentemente do cardápio?</p>
+                  <p className="text-[11px] text-red-300">O produto "{initialProduct?.name}" será removido do sistema.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmDelete(false)}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (initialProduct && onDelete) {
+                      onDelete(initialProduct.id);
+                      onClose();
+                    }
+                  }}
+                  className="flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Sim, Excluir
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 w-full">
+              {initialProduct && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmDelete(true)}
+                  className="px-3.5 py-2.5 rounded-xl border border-red-500/40 bg-red-950/30 hover:bg-red-900/40 text-red-400 font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 transition-all"
+                  title="Excluir este produto do cardápio"
+                >
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <span>Excluir</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-white py-2.5 rounded-xl font-['Montserrat'] font-semibold transition-colors text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="product-form"
+                className="flex-1 btn-flame text-white py-2.5 rounded-xl font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-[#ff5722]/25 text-xs"
+              >
+                <Check className="w-4 h-4" /> Salvar Produto
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

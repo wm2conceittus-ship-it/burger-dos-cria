@@ -33,6 +33,8 @@ import {
   Lock,
   ChefHat,
   ArrowUp,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -48,6 +50,11 @@ interface MenuScreenProps {
   onOpenKitchen: () => void;
   onOpenChat: () => void;
   cartCount: number;
+  isManager?: boolean;
+  onOpenManageMenu?: () => void;
+  onOpenEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (productId: string) => void;
+  onOpenAddProduct?: () => void;
 }
 
 export type CategoryFilter =
@@ -74,6 +81,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   onOpenKitchen,
   onOpenChat,
   cartCount,
+  isManager,
+  onOpenManageMenu,
+  onOpenEditProduct,
+  onDeleteProduct,
+  onOpenAddProduct,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('burgers');
@@ -82,6 +94,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -534,6 +547,48 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         </section>
 
+        {/* Manager Mode Bar & Quick Actions */}
+        {isManager && (
+          <section className="bg-gradient-to-r from-[#1c1512] to-[#181818] border border-[#ff5722]/50 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-[#ff5722]/20 border border-[#ff5722]/40 flex items-center justify-center text-[#ff8a65] shrink-0">
+                <ChefHat className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-['Montserrat'] font-bold text-xs text-white">Modo Gestor Ativo</span>
+                  <span className="text-[9.5px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded-full font-bold">
+                    Painel Aberto
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#b4b5b5] mt-0.5">
+                  Para apagar ou editar itens, use os botões <strong>Editar</strong> e <strong>Excluir</strong> diretamente em cada prato ou acesse a Gestão Completa.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              {onOpenManageMenu && (
+                <button
+                  type="button"
+                  onClick={onOpenManageMenu}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-[#252525] hover:bg-[#353535] text-white text-xs font-['Montserrat'] font-semibold flex items-center justify-center gap-1.5 border border-[#353535] transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5 text-[#ff8a65]" /> Gestão do Cardápio
+                </button>
+              )}
+              {onOpenAddProduct && (
+                <button
+                  type="button"
+                  onClick={onOpenAddProduct}
+                  className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/25"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Novo Prato
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Category Buttons Carousel Navigation Bar */}
         <section className="sticky top-16 z-30 bg-[#0F0F0F]/95 backdrop-blur-md py-3 -mx-4 md:-mx-6 px-4 md:px-6 border-b border-[#353535]/40 shadow-md">
           <div className="relative flex items-center max-w-5xl mx-auto">
@@ -626,6 +681,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                     onToggleFavorite={e => toggleFavorite(prod.id, e)}
                     onSelect={() => onSelectProduct(prod)}
                     onQuickAdd={() => onQuickAdd(prod)}
+                    isManager={isManager}
+                    onEdit={() => onOpenEditProduct?.(prod)}
+                    onDelete={() => setProductToDelete(prod)}
                   />
                 ))}
               </div>
@@ -695,6 +753,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                     onToggleFavorite={e => toggleFavorite(burger.id, e)}
                     onSelect={() => onSelectProduct(burger)}
                     onQuickAdd={() => onQuickAdd(burger)}
+                    isManager={isManager}
+                    onEdit={() => onOpenEditProduct?.(burger)}
+                    onDelete={() => setProductToDelete(burger)}
                   />
                 ))}
               </div>
@@ -796,6 +857,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   onToggleFavorite={e => toggleFavorite(pizza.id, e)}
                   onSelect={() => onSelectProduct(pizza)}
                   onQuickAdd={() => onQuickAdd(pizza)}
+                  isManager={isManager}
+                  onEdit={() => onOpenEditProduct?.(pizza)}
+                  onDelete={() => setProductToDelete(pizza)}
                 />
               ))}
             </div>
@@ -823,6 +887,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   onToggleFavorite={e => toggleFavorite(salgado.id, e)}
                   onSelect={() => onSelectProduct(salgado)}
                   onQuickAdd={() => onQuickAdd(salgado)}
+                  isManager={isManager}
+                  onEdit={() => onOpenEditProduct?.(salgado)}
+                  onDelete={() => setProductToDelete(salgado)}
                 />
               ))}
             </div>
@@ -848,6 +915,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   product={suco}
                   onSelect={() => onSelectProduct(suco)}
                   onQuickAdd={() => onSelectProduct(suco)}
+                  isManager={isManager}
+                  onEdit={() => onOpenEditProduct?.(suco)}
+                  onDelete={() => setProductToDelete(suco)}
                 />
               ))}
             </div>
@@ -882,6 +952,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                       key={cerveja.id}
                       product={cerveja}
                       onQuickAdd={() => onQuickAdd(cerveja)}
+                      isManager={isManager}
+                      onEdit={() => onOpenEditProduct?.(cerveja)}
+                      onDelete={() => setProductToDelete(cerveja)}
                     />
                   ))}
                 </div>
@@ -904,6 +977,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                       key={drink.id}
                       product={drink}
                       onQuickAdd={() => onQuickAdd(drink)}
+                      isManager={isManager}
+                      onEdit={() => onOpenEditProduct?.(drink)}
+                      onDelete={() => setProductToDelete(drink)}
                     />
                   ))}
                 </div>
@@ -923,7 +999,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
               {refrigerantes.map(refri => (
-                <DrinkCard key={refri.id} product={refri} onQuickAdd={() => onQuickAdd(refri)} />
+                <DrinkCard
+                  key={refri.id}
+                  product={refri}
+                  onQuickAdd={() => onQuickAdd(refri)}
+                  isManager={isManager}
+                  onEdit={() => onOpenEditProduct?.(refri)}
+                  onDelete={() => setProductToDelete(refri)}
+                />
               ))}
             </div>
           </div>
@@ -940,7 +1023,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
               {cervejas.map(cerveja => (
-                <DrinkCard key={cerveja.id} product={cerveja} onQuickAdd={() => onQuickAdd(cerveja)} />
+                <DrinkCard
+                  key={cerveja.id}
+                  product={cerveja}
+                  onQuickAdd={() => onQuickAdd(cerveja)}
+                  isManager={isManager}
+                  onEdit={() => onOpenEditProduct?.(cerveja)}
+                  onDelete={() => setProductToDelete(cerveja)}
+                />
               ))}
             </div>
           </div>
@@ -1081,6 +1171,67 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal de Exclusão de Produto do Cardápio */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                  Excluir item do cardápio?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Esta ação removerá o produto permanentemente do cardápio e do banco de dados Firebase.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#141414] border border-[#353535] rounded-xl p-3 flex items-center gap-3 mb-5">
+              <img
+                src={productToDelete.image}
+                alt={productToDelete.name}
+                className="w-14 h-14 rounded-lg object-cover bg-[#20201f] shrink-0 border border-[#353535]"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-sm text-white truncate">{productToDelete.name}</h4>
+                <span className="text-xs font-bold text-[#ff5722] block mt-0.5">
+                  R$ {productToDelete.price.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-[10px] text-[#8e8f8f] uppercase font-mono">
+                  Categoria: {productToDelete.category}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-['Montserrat'] font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = productToDelete.id;
+                  setProductToDelete(null);
+                  if (onDeleteProduct) {
+                    onDeleteProduct(id);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Sim, Excluir Produto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1092,7 +1243,19 @@ const ProductGridCard: React.FC<{
   onToggleFavorite: (e: React.MouseEvent) => void;
   onSelect: () => void;
   onQuickAdd: () => void;
-}> = ({ product, isFavorite, onToggleFavorite, onSelect, onQuickAdd }) => {
+  isManager?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}> = ({
+  product,
+  isFavorite,
+  onToggleFavorite,
+  onSelect,
+  onQuickAdd,
+  isManager,
+  onEdit,
+  onDelete,
+}) => {
   const isAvailable = product.isAvailable !== false;
 
   return (
@@ -1173,6 +1336,42 @@ const ProductGridCard: React.FC<{
           </p>
         </div>
 
+        {isManager && (
+          <div
+            className="flex items-center justify-between gap-1.5 pt-2 pb-1.5 border-t border-[#353535]/60 mb-2"
+            onClick={e => e.stopPropagation()}
+          >
+            <span className="text-[10px] text-[#ff8a65] font-extrabold uppercase font-mono">Gestor:</span>
+            <div className="flex items-center gap-1.5">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                  className="px-2.5 py-1 rounded-md bg-[#252525] hover:bg-[#353535] text-white text-[11px] font-semibold flex items-center gap-1 transition-colors border border-[#353535]"
+                >
+                  <Edit2 className="w-3 h-3 text-[#ff8a65]" /> Editar
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="px-2.5 py-1 rounded-md bg-red-950/70 hover:bg-red-600 text-red-300 hover:text-white text-[11px] font-semibold flex items-center gap-1 transition-colors border border-red-500/40"
+                  title="Excluir este prato do cardápio"
+                >
+                  <Trash2 className="w-3 h-3 text-red-400" /> Excluir
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <button
           disabled={!isAvailable}
           onClick={e => {
@@ -1213,7 +1412,10 @@ const DrinkCard: React.FC<{
   product: Product;
   onQuickAdd: () => void;
   onSelect?: () => void;
-}> = ({ product, onQuickAdd, onSelect }) => {
+  isManager?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}> = ({ product, onQuickAdd, onSelect, isManager, onEdit, onDelete }) => {
   const isAvailable = product.isAvailable !== false;
   const isJuice = product.category === 'sucos';
 
@@ -1271,25 +1473,57 @@ const DrinkCard: React.FC<{
             </span>
           </div>
 
-          <button
-            disabled={!isAvailable}
-            onClick={e => {
-              e.stopPropagation();
-              handleAction();
-            }}
-            className={`transition-all shadow-sm ${
-              isJuice
-                ? 'px-2.5 py-1 rounded-md text-[10px] font-bold font-[' + "'Montserrat'" + '] bg-[#ff9800] text-black hover:opacity-90 active:scale-95'
-                : 'w-7 h-7 rounded-md flex items-center justify-center ' + (isAvailable ? 'bg-[#ff5722] text-white hover:opacity-90 active:scale-90' : 'bg-[#353535] text-[#b4b5b5] cursor-not-allowed')
-            }`}
-            title={isJuice ? 'Escolher Tamanho (300ml, 500ml, 1lt)' : 'Adicionar Bebida'}
-          >
-            {isJuice ? (
-              <span>Escolher</span>
-            ) : (
-              <Plus className="w-4 h-4" />
+          <div className="flex items-center gap-1.5">
+            {isManager && (
+              <div className="flex items-center gap-1 mr-1" onClick={e => e.stopPropagation()}>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      onEdit();
+                    }}
+                    className="p-1.5 rounded-md bg-[#252525] hover:bg-[#353535] text-[#ff8a65] border border-[#353535] transition-colors"
+                    title="Editar produto"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                    className="p-1.5 rounded-md bg-red-950/70 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/40 transition-colors"
+                    title="Excluir produto do cardápio"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             )}
-          </button>
+            <button
+              disabled={!isAvailable}
+              onClick={e => {
+                e.stopPropagation();
+                handleAction();
+              }}
+              className={`transition-all shadow-sm ${
+                isJuice
+                  ? 'px-2.5 py-1 rounded-md text-[10px] font-bold font-[' + "'Montserrat'" + '] bg-[#ff9800] text-black hover:opacity-90 active:scale-95'
+                  : 'w-7 h-7 rounded-md flex items-center justify-center ' + (isAvailable ? 'bg-[#ff5722] text-white hover:opacity-90 active:scale-90' : 'bg-[#353535] text-[#b4b5b5] cursor-not-allowed')
+              }`}
+              title={isJuice ? 'Escolher Tamanho (300ml, 500ml, 1lt)' : 'Adicionar Bebida'}
+            >
+              {isJuice ? (
+                <span>Escolher</span>
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

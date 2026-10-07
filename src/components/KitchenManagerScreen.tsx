@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
@@ -93,6 +93,8 @@ interface KitchenManagerScreenProps {
   onNavigateToMenu: () => void;
   onLockManager?: () => void;
   onUpdateOrderStatus?: (orderId: string, newStatus: any) => void;
+  onDeleteProduct?: (productId: string) => void;
+  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes';
 }
 
 export interface ExpenseItem {
@@ -133,9 +135,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onNavigateToMenu,
   onLockManager,
   onUpdateOrderStatus,
+  onDeleteProduct,
+  initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'>('pedidos');
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'>(
+    initialTab || 'pedidos'
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Product, Courier, Coupon deletion modals
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [courierToDelete, setCourierToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [couponToDelete, setCouponToDelete] = useState<{ id: string; code: string } | null>(null);
+
   const [mainFilter, setMainFilter] = useState<'abertos' | 'agendados'>('abertos');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -418,16 +436,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   };
 
   const handleDeleteCourier = (courierId: string, name: string) => {
-    if (confirm(`Deseja remover o entregador ${name} do cadastro?`)) {
-      const currentCouriers = storeSettings.couriers || [];
-      const updatedCouriers = currentCouriers.filter(c => c.id !== courierId);
-      onUpdateStoreSettings({
-        ...storeSettings,
-        couriers: updatedCouriers,
-      });
-      setCourierToast(`Entregador ${name} removido.`);
-      setTimeout(() => setCourierToast(null), 3000);
-    }
+    setCourierToDelete({ id: courierId, name });
+  };
+
+  const confirmDeleteCourier = () => {
+    if (!courierToDelete) return;
+    const { id: courierId, name } = courierToDelete;
+    const currentCouriers = storeSettings.couriers || [];
+    const updatedCouriers = currentCouriers.filter(c => c.id !== courierId);
+    onUpdateStoreSettings({
+      ...storeSettings,
+      couriers: updatedCouriers,
+    });
+    setCourierToast(`Entregador ${name} removido.`);
+    setTimeout(() => setCourierToast(null), 3000);
+    setCourierToDelete(null);
   };
 
   const handleCopyWebhook = () => {
@@ -585,7 +608,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   };
 
   const handleDeleteCoupon = (couponId: string, code: string) => {
-    if (!confirm(`Deseja realmente excluir o cupom "${code}"?`)) return;
+    setCouponToDelete({ id: couponId, code });
+  };
+
+  const confirmDeleteCoupon = () => {
+    if (!couponToDelete) return;
+    const { id: couponId, code } = couponToDelete;
     const currentCoupons = storeSettings.coupons || [];
     onUpdateStoreSettings({
       ...storeSettings,
@@ -593,6 +621,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     });
     setCouponToast(`Cupom "${code}" excluído.`);
     setTimeout(() => setCouponToast(null), 3000);
+    setCouponToDelete(null);
   };
 
   // Stats calculation
@@ -2309,6 +2338,30 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               ))}
             </div>
 
+            {/* Guia & Dica Rápida de Gestão do Cardápio */}
+            <div className="bg-[#1c1b1b] border border-[#ff5722]/30 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#ff5722]/15 border border-[#ff5722]/30 flex items-center justify-center text-[#ff8a65] shrink-0">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-['Montserrat'] font-bold text-xs text-white block">
+                    Como gerenciar e apagar itens do cardápio:
+                  </span>
+                  <p className="text-[11px] text-[#b4b5b5] mt-0.5">
+                    Para pausar itens esgotados clique em <strong>Em Estoque / Pausado</strong>. Para alterar preço ou detalhes clique em <strong>Editar</strong>. Para remover definitivamente, clique em <strong>Excluir</strong>.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAddProduct}
+                className="px-3.5 py-2 rounded-xl btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/20 shrink-0 w-full sm:w-auto"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar Produto
+              </button>
+            </div>
+
             {/* Product Table / Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {filteredProducts.map(product => {
@@ -2373,12 +2426,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           <span>{isAvailable ? 'Em Estoque' : 'Pausado'}</span>
                         </button>
 
-                        <button
-                          onClick={() => onOpenEditProduct(product)}
-                          className="text-[#b4b5b5] hover:text-[#ff8a65] text-[11px] flex items-center gap-1 font-semibold transition-colors"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" /> Editar
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => onOpenEditProduct(product)}
+                            className="text-[#b4b5b5] hover:text-[#ff8a65] text-[11px] flex items-center gap-1 font-semibold transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" /> Editar
+                          </button>
+
+                          {onDeleteProduct && (
+                            <button
+                              onClick={() => setProductToDelete(product)}
+                              className="text-[#8e8f8f] hover:text-red-400 hover:bg-red-500/15 text-[11px] px-2 py-1 rounded flex items-center gap-1 font-semibold transition-colors border border-transparent hover:border-red-500/30"
+                              title="Excluir item permanentemente do cardápio"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-400/80" />
+                              <span className="hidden sm:inline">Excluir</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -5046,6 +5112,142 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           cashTotal={cashTotal}
           cmvPercentage={cmvPercentage}
         />
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Produto */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                  Excluir item do cardápio?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Esta ação removerá o produto permanentemente do cardápio e do banco de dados Firebase.
+                </p>
+              </div>
+            </div>
+
+            {/* Resumo do produto */}
+            <div className="bg-[#141414] border border-[#353535] rounded-xl p-3 flex items-center gap-3 mb-5">
+              <img
+                src={productToDelete.image}
+                alt={productToDelete.name}
+                className="w-14 h-14 rounded-lg object-cover bg-[#20201f] shrink-0 border border-[#353535]"
+              />
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-sm text-white truncate">{productToDelete.name}</h4>
+                <span className="text-xs font-bold text-[#ff5722] block mt-0.5">
+                  R$ {productToDelete.price.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-[10px] text-[#8e8f8f] uppercase font-mono">
+                  Categoria: {productToDelete.category}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-['Montserrat'] font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = productToDelete.id;
+                  setProductToDelete(null);
+                  if (onDeleteProduct) {
+                    onDeleteProduct(id);
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Sim, Excluir Produto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Entregador */}
+      {courierToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                  Remover entregador?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Deseja remover <strong>{courierToDelete.name}</strong> da equipe de entregas?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setCourierToDelete(null)}
+                className="flex-1 px-3 py-2 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCourier}
+                className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão de Cupom */}
+      {couponToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                  Excluir cupom?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Deseja realmente apagar o cupom <strong>"{couponToDelete.code}"</strong>?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setCouponToDelete(null)}
+                className="flex-1 px-3 py-2 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCoupon}
+                className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Compartilhamento do Link Público do Cardápio */}
