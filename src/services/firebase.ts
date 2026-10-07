@@ -241,7 +241,7 @@ export async function saveProductToFirestore(product: Product): Promise<void> {
       ...product,
       updatedAt: new Date().toISOString(),
     });
-    await setDoc(doc(db, 'products', product.id), cleanProduct);
+    await setDoc(doc(db, 'products', product.id), cleanProduct, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

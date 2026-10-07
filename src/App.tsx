@@ -642,19 +642,24 @@ export default function App() {
   };
 
   const handleSaveProduct = async (savedProduct: Product) => {
-    // 1. Update React state immediately
-    const updatedProducts = products.some(p => p.id === savedProduct.id)
-      ? products.map(p => (p.id === savedProduct.id ? savedProduct : p))
-      : [savedProduct, ...products];
+    // 1. Update React state immediately using functional updater
+    setProducts(prev => {
+      const exists = prev.some(p => p.id === savedProduct.id);
+      const next = exists
+        ? prev.map(p => (p.id === savedProduct.id ? savedProduct : p))
+        : [savedProduct, ...prev];
 
-    setProducts(updatedProducts);
+      // 2. Persist to localStorage immediately
+      try {
+        localStorage.setItem('burger_products', JSON.stringify(next));
+      } catch (err) {
+        console.warn('Erro ao salvar produto no localStorage:', err);
+      }
+      return next;
+    });
 
-    // 2. Persist to localStorage immediately
-    try {
-      localStorage.setItem('burger_products', JSON.stringify(updatedProducts));
-    } catch (err) {
-      console.warn('Erro ao salvar produto no localStorage:', err);
-    }
+    // Also update selectedProduct if it is the one being viewed
+    setSelectedProduct(prev => (prev.id === savedProduct.id ? savedProduct : prev));
 
     // 3. Persist to Firestore
     try {
