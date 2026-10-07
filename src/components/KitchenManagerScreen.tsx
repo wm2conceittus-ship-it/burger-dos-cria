@@ -62,6 +62,8 @@ import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
+import { ShareMenuModal } from './ShareMenuModal';
+import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -132,6 +134,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '1234');
   const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
 
   // Financial Management State
@@ -657,16 +660,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
           <div className="flex items-center gap-2 md:gap-3">
             <button
-              onClick={() => {
-                const url = typeof window !== 'undefined' ? window.location.origin : '';
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(url);
-                }
+              onClick={async () => {
+                const url = getPublicMenuUrl();
+                await copyToClipboard(url);
                 setLinkCopiedToast(true);
+                setShowShareModal(true);
                 setTimeout(() => setLinkCopiedToast(false), 2500);
               }}
               className="text-[#b4b5b5] hover:text-[#ffb5a0] p-1.5 transition-colors relative"
-              title="Copiar Link do Cardápio"
+              title="Copiar Link Público do Cardápio para Clientes"
             >
               <Share2 className="w-5 h-5" />
             </button>
@@ -4414,6 +4416,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           cmvPercentage={cmvPercentage}
         />
       )}
+
+      {/* Modal de Compartilhamento do Link Público do Cardápio */}
+      <ShareMenuModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RestaurantTable, TableOrderItem, StoreSettings, Product, Order } from '../types';
+import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import {
   UtensilsCrossed,
   Users,
@@ -1545,7 +1546,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               <div className="relative w-48 h-48 flex items-center justify-center bg-white rounded-xl">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-                    `${window.location.origin}/?mesa=${selectedQrTable.number}`
+                    getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`)
                   )}`}
                   alt={`QR Code Mesa ${selectedQrTable.number}`}
                   className="w-48 h-48 object-contain rounded-lg"
@@ -1579,13 +1580,13 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
 
             <div className="p-2.5 bg-[#141414] rounded-lg border border-[#353535] flex items-center justify-between text-xs">
               <span className="font-mono text-[10px] text-[#ff8a65] truncate">
-                {window.location.origin}/?mesa={selectedQrTable.number}
+                {getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`)}
               </span>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/?mesa=${selectedQrTable.number}`);
-                  showToast(`Link da Mesa ${selectedQrTable.number} copiado!`);
+                onClick={async () => {
+                  await copyToClipboard(getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`));
+                  showToast(`Link público da Mesa ${selectedQrTable.number} copiado!`);
                 }}
                 className="text-xs text-white font-bold underline ml-2 whitespace-nowrap"
               >

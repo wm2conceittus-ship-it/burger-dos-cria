@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
+import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import {
   Search,
   Menu as MenuIcon,
@@ -99,17 +100,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   };
 
   const getShareUrl = () => {
-    if (typeof window !== 'undefined' && window.location.origin) {
-      return window.location.origin;
-    }
-    return 'https://ais-pre-qknixhdqt45vxqtx4kdi6f-358992445078.us-east5.run.app';
+    return getPublicMenuUrl();
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     const url = getShareUrl();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-    }
+    await copyToClipboard(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };

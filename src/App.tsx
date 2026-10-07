@@ -280,17 +280,12 @@ export default function App() {
     }
   };
 
-  // Se o cliente ainda não se cadastrou, exibe o cadastro ao abrir o cardápio
+  // Sincroniza endereço caso perfil já exista
   useEffect(() => {
-    if (!customerProfile) {
-      const timer = setTimeout(() => {
-        setIsCustomerRegisterOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    } else if (customerProfile.address) {
+    if (customerProfile?.address) {
       setDeliveryAddress(customerProfile.address);
     }
-  }, []);
+  }, [customerProfile]);
 
   const handleSaveCustomerProfile = (profile: CustomerProfile) => {
     setCustomerProfile(profile);
