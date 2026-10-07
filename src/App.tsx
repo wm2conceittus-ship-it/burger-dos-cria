@@ -15,6 +15,9 @@ import {
   subscribeToStoreSettings,
   saveStoreSettingsToFirestore,
   saveCustomerProfileToFirestore,
+  subscribeToProducts,
+  saveProductToFirestore,
+  saveAllProductsToFirestore,
 } from './services/firebase';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
@@ -35,7 +38,20 @@ import { Toast } from './components/Toast';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('burger_products');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return PRODUCTS;
+  });
   const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]); // Gourmet Truffle Burger
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>({
@@ -314,9 +330,28 @@ export default function App() {
       }
     });
 
+    // Subscribe to products in Firestore
+    const unsubscribeProducts = subscribeToProducts(firestoreProducts => {
+      if (firestoreProducts && firestoreProducts.length > 0) {
+        setProducts(prev => {
+          const map = new Map<string, Product>();
+          prev.forEach(p => map.set(p.id, p));
+          firestoreProducts.forEach(p => map.set(p.id, p));
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem('burger_products', JSON.stringify(merged));
+          } catch {
+            // ignore
+          }
+          return merged;
+        });
+      }
+    });
+
     return () => {
       unsubscribeOrders();
       unsubscribeSettings();
+      unsubscribeProducts();
     };
   }, []);
 
@@ -578,31 +613,58 @@ export default function App() {
 
   // Product management
   const handleToggleProductAvailability = (productId: string) => {
-    setProducts(prev =>
-      prev.map(p => {
-        if (p.id === productId) {
-          const updated = { ...p, isAvailable: p.isAvailable === false ? true : false };
-          showToast(
-            updated.isAvailable
-              ? `${p.name} reativado no cardápio!`
-              : `${p.name} pausado (sem estoque)!`
-          );
-          return updated;
-        }
-        return p;
-      })
-    );
+    let targetProduct: Product | null = null;
+    const updatedProducts = products.map(p => {
+      if (p.id === productId) {
+        const updated = { ...p, isAvailable: p.isAvailable === false ? true : false };
+        targetProduct = updated;
+        return updated;
+      }
+      return p;
+    });
+
+    setProducts(updatedProducts);
+
+    try {
+      localStorage.setItem('burger_products', JSON.stringify(updatedProducts));
+    } catch {
+      // ignore
+    }
+
+    if (targetProduct) {
+      showToast(
+        (targetProduct as Product).isAvailable
+          ? `${(targetProduct as Product).name} reativado no cardápio!`
+          : `${(targetProduct as Product).name} pausado (sem estoque)!`
+      );
+      saveProductToFirestore(targetProduct);
+    }
   };
 
-  const handleSaveProduct = (savedProduct: Product) => {
-    setProducts(prev => {
-      const exists = prev.some(p => p.id === savedProduct.id);
-      if (exists) {
-        return prev.map(p => (p.id === savedProduct.id ? savedProduct : p));
-      }
-      return [savedProduct, ...prev];
-    });
-    showToast(`Produto ${savedProduct.name} salvo com sucesso!`);
+  const handleSaveProduct = async (savedProduct: Product) => {
+    // 1. Update React state immediately
+    const updatedProducts = products.some(p => p.id === savedProduct.id)
+      ? products.map(p => (p.id === savedProduct.id ? savedProduct : p))
+      : [savedProduct, ...products];
+
+    setProducts(updatedProducts);
+
+    // 2. Persist to localStorage immediately
+    try {
+      localStorage.setItem('burger_products', JSON.stringify(updatedProducts));
+    } catch (err) {
+      console.warn('Erro ao salvar produto no localStorage:', err);
+    }
+
+    // 3. Persist to Firestore
+    try {
+      await saveProductToFirestore(savedProduct);
+      showToast(`Produto "${savedProduct.name}" salvo no cardápio e sincronizado no Firebase! 🔥`);
+    } catch (error) {
+      console.error('Erro ao sincronizar produto no Firebase:', error);
+      showToast(`Produto "${savedProduct.name}" salvo com sucesso!`);
+    }
+
     setIsProductModalOpen(false);
     setEditingProduct(null);
   };

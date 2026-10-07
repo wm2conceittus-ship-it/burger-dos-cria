@@ -45,6 +45,17 @@ service cloud.firestore {
       allow delete: if isValidId(expenseId);
     }
 
+    // Products collection: menu items, prices and availability managed by kitchen
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create, update: if isValidId(productId)
+        && incoming().name is string
+        && incoming().price is number
+        && incoming().price >= 0;
+      allow delete: if isValidId(productId);
+    }
+
     // Customers collection: customer registration & delivery profile
     match /customers/{customerId} {
       allow get: if isValidId(customerId);

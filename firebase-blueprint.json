@@ -53,6 +53,28 @@
         "registeredBy": { "type": "string" }
       },
       "required": ["id", "description", "amount", "date"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Item do cardápio com preços, categoria e disponibilidade sincronizados",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "tag": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "subCategory": { "type": "string" },
+        "pizzaPrices": { "type": "object" },
+        "juicePrices": { "type": "object" },
+        "options": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "price"]
     }
   },
   "firestore": {
@@ -67,6 +89,10 @@
     "/expenses/{expenseId}": {
       "schema": "Expense",
       "description": "Despesas operacionais cadastradas na cozinha"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Cardápio e preços dos produtos gerenciados pela cozinha"
     }
   }
 }

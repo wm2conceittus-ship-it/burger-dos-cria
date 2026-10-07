@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { X, Image as ImageIcon, Check } from 'lucide-react';
 
@@ -63,56 +63,90 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   );
   const [tag, setTag] = useState(initialProduct?.tag || '');
 
-  const numPrice = parseFloat(price) || 0;
-  const numCost = parseFloat(costPrice) || 0;
+  // Synchronize when initialProduct prop changes
+  useEffect(() => {
+    if (initialProduct) {
+      setName(initialProduct.name || '');
+      setCategory(initialProduct.category || 'burgers');
+      setPrice(initialProduct.price !== undefined ? initialProduct.price.toString() : '');
+      setCostPrice(initialProduct.costPrice !== undefined ? initialProduct.costPrice.toString() : '');
+      setDescription(initialProduct.description || '');
+      setImage(initialProduct.image || '');
+      setTag(initialProduct.tag || '');
+      if (initialProduct.juicePrices) {
+        setJuice300Price(initialProduct.juicePrices['300ml']?.toString() || '');
+        setJuice500Price(initialProduct.juicePrices['500ml']?.toString() || '');
+        setJuice1LPrice(initialProduct.juicePrices['1L']?.toString() || '');
+      }
+      if (initialProduct.pizzaPrices) {
+        setPizzaPPrice(initialProduct.pizzaPrices.P?.toString() || '');
+        setPizzaMPrice(initialProduct.pizzaPrices.M?.toString() || '');
+        setPizzaGPrice(initialProduct.pizzaPrices.G?.toString() || '');
+        setPizzaFamPrice(initialProduct.pizzaPrices.Família?.toString() || '');
+      }
+    }
+  }, [initialProduct]);
+
+  const parseNum = (val: string | number | undefined, fallback = 0): number => {
+    if (val === undefined || val === null || val === '') return fallback;
+    if (typeof val === 'number') return isNaN(val) ? fallback : val;
+    const clean = String(val).replace(',', '.').trim();
+    const num = parseFloat(clean);
+    return isNaN(num) ? fallback : num;
+  };
+
+  const numPrice = parseNum(price, 0);
+  const numCost = parseNum(costPrice, 0);
   const grossProfit = numPrice > 0 && numCost > 0 ? numPrice - numCost : 0;
   const profitMargin = numPrice > 0 && numCost > 0 ? (grossProfit / numPrice) * 100 : 0;
   const markup = numCost > 0 ? numPrice / numCost : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || (!price && category !== 'sucos' && category !== 'pizzas')) return;
+    if (!name.trim()) return;
 
+    const parsedPrice = parseNum(price, 0);
     const basePrice = category === 'sucos'
-      ? (parseFloat(juice500Price) || parseFloat(price) || 11.90)
+      ? (parseNum(juice500Price, 0) || parsedPrice || 11.90)
       : category === 'pizzas'
-      ? (parseFloat(pizzaGPrice) || parseFloat(price) || 49.90)
-      : (parseFloat(price) || 0);
+      ? (parseNum(pizzaGPrice, 0) || parsedPrice || 49.90)
+      : parsedPrice;
 
     const savedProduct: Product = {
       id: initialProduct?.id || `prod-${Date.now()}`,
       name: name.trim(),
       category,
       price: basePrice,
-      costPrice: costPrice.trim() ? parseFloat(costPrice) : undefined,
+      costPrice: costPrice.trim() ? parseNum(costPrice) : undefined,
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
       isAvailable: initialProduct?.isAvailable ?? true,
+      subCategory: initialProduct?.subCategory,
       juicePrices: category === 'sucos' ? {
-        '300ml': parseFloat(juice300Price) || Math.max(0, basePrice - 3),
-        '500ml': parseFloat(juice500Price) || basePrice,
-        '1L': parseFloat(juice1LPrice) || (basePrice + 8),
+        '300ml': parseNum(juice300Price, Math.max(0, basePrice - 3)),
+        '500ml': parseNum(juice500Price, basePrice),
+        '1L': parseNum(juice1LPrice, basePrice + 8),
       } : undefined,
       pizzaPrices: category === 'pizzas' ? {
-        P: parseFloat(pizzaPPrice) || Math.max(15, basePrice - 12),
-        M: parseFloat(pizzaMPrice) || Math.max(15, basePrice - 6),
-        G: parseFloat(pizzaGPrice) || basePrice,
-        Família: parseFloat(pizzaFamPrice) || (basePrice + 16),
+        P: parseNum(pizzaPPrice, Math.max(15, basePrice - 12)),
+        M: parseNum(pizzaMPrice, Math.max(15, basePrice - 6)),
+        G: parseNum(pizzaGPrice, basePrice),
+        Família: parseNum(pizzaFamPrice, basePrice + 16),
       } : undefined,
-      options: category === 'burgers' ? {
+      options: initialProduct?.options || (category === 'burgers' ? {
         meatDoneness: true,
-        additionals: initialProduct?.options?.additionals || [
+        additionals: [
           { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 6.00 },
           { id: 'cheddar', name: 'Queijo cheddar', subtitle: '+ Dose extra cremosa', price: 4.50 },
         ]
       } : category === 'pizzas' ? {
-        additionals: initialProduct?.options?.additionals || [
+        additionals: [
           { id: 'borda-catupiry', name: 'Borda Recheada de Catupiry', subtitle: '+ Borda vulcão cremosa', price: 9.90 },
           { id: 'borda-cheddar', name: 'Borda Recheada de Cheddar', subtitle: '+ Cheddar cremoso', price: 9.90 },
           { id: 'queijo-extra', name: 'Mussarela Extra', subtitle: '+ Camada dupla de queijo', price: 7.50 },
         ]
-      } : undefined
+      } : undefined)
     };
 
     onSave(savedProduct);

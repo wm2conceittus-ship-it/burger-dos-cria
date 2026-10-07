@@ -8,9 +8,10 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Order, OrderStatus, StoreSettings, CustomerProfile } from '../types';
+import { Order, OrderStatus, StoreSettings, CustomerProfile, Product } from '../types';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -207,5 +208,60 @@ export async function saveCustomerProfileToFirestore(profile: CustomerProfile): 
     await setDoc(doc(db, 'customers', phoneClean), cleanProfile);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+// 5. Products / Menu Real-time Sync
+export function subscribeToProducts(
+  onProductsUpdate: (products: Product[]) => void,
+  onError?: (err: any) => void
+) {
+  const path = 'products';
+  return onSnapshot(
+    collection(db, path),
+    snapshot => {
+      const list: Product[] = [];
+      snapshot.forEach(docSnap => {
+        list.push(docSnap.data() as Product);
+      });
+      onProductsUpdate(list);
+    },
+    error => {
+      console.warn('Erro ao escutar produtos no Firestore:', error);
+      if (onError) onError(error);
+      handleFirestoreError(error, OperationType.LIST, path);
+    }
+  );
+}
+
+export async function saveProductToFirestore(product: Product): Promise<void> {
+  const path = `products/${product.id}`;
+  try {
+    const cleanProduct = sanitizeForFirestore({
+      ...product,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, 'products', product.id), cleanProduct);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteProductFromFirestore(productId: string): Promise<void> {
+  const path = `products/${productId}`;
+  try {
+    await deleteDoc(doc(db, 'products', productId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export async function saveAllProductsToFirestore(products: Product[]): Promise<void> {
+  try {
+    for (const prod of products) {
+      await saveProductToFirestore(prod);
+    }
+  } catch (err) {
+    console.warn('Erro ao sincronizar lote de produtos no Firestore:', err);
   }
 }
