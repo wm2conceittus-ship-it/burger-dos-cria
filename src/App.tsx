@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
 import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES } from './data/mockData';
 import {
@@ -21,6 +21,7 @@ import {
   deleteProductFromFirestore,
   saveAllProductsToFirestore,
 } from './services/firebase';
+import { playNewOrderSound, startTabNotificationBlink, unlockAudioContext } from './utils/audioAlert';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
 import { CartScreen } from './components/CartScreen';
@@ -206,15 +207,18 @@ export default function App() {
   });
   
   // Initial cart: starts 100% empty so customers always receive a clean menu with 0 items selected
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Garantir 100% que nenhum item residual de sessões ou caches antigos persista ao abrir o app
+  useEffect(() => {
     try {
       localStorage.removeItem('burger_cart_items');
       sessionStorage.removeItem('burger_cart_items');
     } catch {
       // ignore
     }
-    return [];
-  });
+    setCartItems([]);
+  }, []);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
@@ -300,10 +304,14 @@ export default function App() {
     }
   }, [customerProfile]);
 
-  // Persiste itens do carrinho na sessão do cliente
+  // Persiste itens do carrinho na sessão do cliente apenas se houver itens
   useEffect(() => {
     try {
-      sessionStorage.setItem('burger_cart_items', JSON.stringify(cartItems));
+      if (cartItems.length > 0) {
+        sessionStorage.setItem('burger_cart_items', JSON.stringify(cartItems));
+      } else {
+        sessionStorage.removeItem('burger_cart_items');
+      }
     } catch {
       // ignore
     }
@@ -322,6 +330,10 @@ export default function App() {
     showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${profile.name.split(' ')[0]}! 🔥`);
   };
 
+  // Rastreamento para disparo de alerta sonoro em novos pedidos
+  const isInitialOrdersLoad = useRef(true);
+  const knownOrderIds = useRef<Set<string>>(new Set());
+
   // Firebase Real-time Synchronization on Mount
   useEffect(() => {
     testFirestoreConnection();
@@ -333,6 +345,27 @@ export default function App() {
       const realOrders = (firestoreOrders || []).filter(
         o => !legacyMockIds.includes(o.id) && !o.id.startsWith('ord-24') && o.id !== 'ord-1234'
       );
+
+      if (isInitialOrdersLoad.current) {
+        isInitialOrdersLoad.current = false;
+        knownOrderIds.current = new Set(realOrders.map(o => o.id));
+      } else {
+        // Detecta novos pedidos que entraram no Firebase em tempo real
+        const incomingOrders = realOrders.filter(
+          o => !knownOrderIds.current.has(o.id) && (o.status === 'novo' || o.status === 'recebido')
+        );
+
+        if (incomingOrders.length > 0) {
+          if (storeSettings.soundAlerts !== false) {
+            playNewOrderSound();
+            startTabNotificationBlink(incomingOrders[0].orderNumber);
+          }
+          showToast(`🔔 Novo pedido #${incomingOrders[0].orderNumber} recebido na cozinha!`);
+        }
+
+        knownOrderIds.current = new Set(realOrders.map(o => o.id));
+      }
+
       setOrders(realOrders);
     });
 
@@ -609,6 +642,11 @@ export default function App() {
       handleUpdateStoreSettings({ ...storeSettings, tables: updatedTables });
     }
 
+    knownOrderIds.current.add(newOrder.id);
+    if (storeSettings.soundAlerts !== false) {
+      playNewOrderSound();
+    }
+
     setActiveTrackingOrder(newOrder);
     setCartItems([]);
     showToast(
@@ -698,8 +736,12 @@ export default function App() {
   };
 
   const handleManualOrderAdd = (newOrder: Order) => {
+    knownOrderIds.current.add(newOrder.id);
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder);
+    if (storeSettings.soundAlerts !== false) {
+      playNewOrderSound();
+    }
     showToast(`Pedido ${newOrder.orderNumber} adicionado e sincronizado no Firebase!`);
   };
 

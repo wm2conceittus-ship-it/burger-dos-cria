@@ -12,6 +12,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      try {
+        // Remove legacy mock cart items from previous app versions
+        if (!sessionStorage.getItem('cart_session_initialized_v2')) {
+          sessionStorage.removeItem('burger_cart_items');
+          localStorage.removeItem('burger_cart_items');
+          sessionStorage.setItem('cart_session_initialized_v2', 'true');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-[#0F0F0F] text-[#e5e2e1] antialiased selection:bg-[#ff5722] selection:text-white min-h-screen">
     <div id="root"></div>

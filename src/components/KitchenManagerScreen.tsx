@@ -61,7 +61,10 @@ import {
   ArrowLeft,
   ChevronRight,
   CheckCircle2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
@@ -866,6 +869,48 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Botão Rápido de Alerta Sonoro / Beep de Novo Pedido */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextState = !storeSettings.soundAlerts;
+                onUpdateStoreSettings({
+                  ...storeSettings,
+                  soundAlerts: nextState,
+                });
+                if (nextState) {
+                  unlockAudioContext();
+                  playNewOrderSound();
+                  setFinancialToast('🔔 Alerta sonoro ativado! (Beep de teste reproduzido)');
+                } else {
+                  setFinancialToast('🔕 Alerta sonoro desativado (silencioso).');
+                }
+                setTimeout(() => setFinancialToast(null), 3000);
+              }}
+              className={`px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold active:scale-95 shadow-sm ${
+                storeSettings.soundAlerts
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
+                  : 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
+              }`}
+              title={
+                storeSettings.soundAlerts
+                  ? 'Alerta sonoro ativo para novos pedidos (Clique para silenciar ou testar)'
+                  : 'Alerta sonoro desativado (Clique para ativar o beep)'
+              }
+            >
+              {storeSettings.soundAlerts ? (
+                <>
+                  <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
+                  <span className="hidden sm:inline text-[11px]">Beep Ativo</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-4 h-4 text-red-400" />
+                  <span className="hidden sm:inline text-[11px]">Mudo</span>
+                </>
+              )}
+            </button>
+
             <button
               onClick={async () => {
                 const url = getPublicMenuUrl();
@@ -3372,26 +3417,43 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   />
                 </div>
 
-                <div className="flex justify-between items-center py-1">
+                <div className="flex justify-between items-center py-2 border-t border-[#353535]/40">
                   <div>
-                    <span className="font-semibold text-white block">
-                      Alerta Sonoro para Novos Pedidos
+                    <span className="font-semibold text-white block flex items-center gap-1.5">
+                      <Volume2 className="w-4 h-4 text-[#ff5722]" />
+                      Alerta Sonoro para Novos Pedidos (Beep Automático)
                     </span>
                     <span className="text-[11px] text-[#b4b5b5]">
-                      Toca sinal acústico na cozinha a cada pedido recebido.
+                      Toca sinal acústico contínuo na cozinha e pisca a aba a cada pedido recebido, mesmo em segundo plano.
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={storeSettings.soundAlerts}
-                    onChange={e =>
-                      onUpdateStoreSettings({
-                        ...storeSettings,
-                        soundAlerts: e.target.checked,
-                      })
-                    }
-                    className="h-5 w-5 accent-[#ff5722]"
-                  />
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        unlockAudioContext();
+                        playNewOrderSound();
+                        setFinancialToast('🔔 Beep de teste reproduzido com sucesso!');
+                        setTimeout(() => setFinancialToast(null), 3000);
+                      }}
+                      className="px-2.5 py-1 rounded-md bg-[#252525] hover:bg-[#353535] text-white text-xs font-bold border border-[#353535] flex items-center gap-1 active:scale-95 transition-all"
+                      title="Testar o som do beep agora"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Testar Som</span>
+                    </button>
+                    <input
+                      type="checkbox"
+                      checked={storeSettings.soundAlerts}
+                      onChange={e =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          soundAlerts: e.target.checked,
+                        })
+                      }
+                      className="h-5 w-5 accent-[#ff5722] cursor-pointer"
+                    />
+                  </div>
                 </div>
               </div>
 

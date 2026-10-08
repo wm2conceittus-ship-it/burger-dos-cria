@@ -21,9 +21,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const [pizzaSize, setPizzaSize] = useState<PizzaSize>('G');
   const [juiceSize, setJuiceSize] = useState<JuiceSize>('500ml');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<{ name: string; quantity: number; price: number; pizzaSize?: PizzaSize; juiceSize?: JuiceSize; notes?: string }[]>([
-    { name: 'Gourmet Truffle Burger', quantity: 1, price: 54.00, notes: 'Bem passado' },
-  ]);
+  const [items, setItems] = useState<{ name: string; quantity: number; price: number; pizzaSize?: PizzaSize; juiceSize?: JuiceSize; notes?: string }[]>([]);
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const isPizza = selectedProduct?.category === 'pizzas';
