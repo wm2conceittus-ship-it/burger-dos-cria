@@ -204,24 +204,19 @@ export default function App() {
     ],
   });
   
-  // Initial cart populated with the exact 2 items from the reference cart screen
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 'cart-init-1',
-      product: PRODUCTS[0], // Gourmet Truffle Burger
-      quantity: 1,
-      meatDoneness: 'Ao ponto',
-      additionals: [{ id: 'bacon', name: 'Bacon extra', price: 6.00 }],
-      totalPrice: 54.90,
-    },
-    {
-      id: 'cart-init-2',
-      product: PRODUCTS.find(p => p.id === 'batata-rustica') || PRODUCTS[4],
-      quantity: 1,
-      additionals: [],
-      totalPrice: 18.90,
+  // Initial cart: starts empty so customers have a clean cart when opening the menu
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('burger_cart_items');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
     }
-  ]);
+    return [];
+  });
 
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order>(INITIAL_ORDERS[4]); // #1234
@@ -306,6 +301,15 @@ export default function App() {
       setDeliveryAddress(customerProfile.address);
     }
   }, [customerProfile]);
+
+  // Persiste itens do carrinho na sessão do cliente
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('burger_cart_items', JSON.stringify(cartItems));
+    } catch {
+      // ignore
+    }
+  }, [cartItems]);
 
   const handleSaveCustomerProfile = (profile: CustomerProfile) => {
     setCustomerProfile(profile);
