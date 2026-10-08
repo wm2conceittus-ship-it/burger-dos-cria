@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
@@ -94,6 +94,7 @@ interface KitchenManagerScreenProps {
   onLockManager?: () => void;
   onUpdateOrderStatus?: (orderId: string, newStatus: any) => void;
   onDeleteProduct?: (productId: string) => void;
+  onClearOrders?: () => void;
   initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes';
 }
 
@@ -128,6 +129,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onLockManager,
   onUpdateOrderStatus,
   onDeleteProduct,
+  onClearOrders,
   initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
@@ -251,14 +253,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     executeMoveOrder(order, targetCol);
   };
 
-  // Financial Management State
+  // Financial Management State - starts 100% clean / zeroed out
   const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
     try {
       // Clear legacy mock expenses so the user starts with 100% clean finances
-      const legacyCleaned = localStorage.getItem('burger_cleaned_legacy_expenses_v2');
+      const legacyCleaned = localStorage.getItem('burger_cleaned_legacy_expenses_v5');
       if (!legacyCleaned) {
         localStorage.removeItem('burger_manager_expenses');
-        localStorage.setItem('burger_cleaned_legacy_expenses_v2', 'true');
+        localStorage.setItem('burger_cleaned_legacy_expenses_v5', 'true');
         return [];
       }
       const saved = localStorage.getItem('burger_manager_expenses');
@@ -281,6 +283,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   }, [expenses]);
 
   const [showClearExpensesConfirm, setShowClearExpensesConfirm] = useState(false);
+  const [showClearOrdersConfirm, setShowClearOrdersConfirm] = useState(false);
 
   const handleClearAllExpenses = () => {
     setExpenses([]);
@@ -291,6 +294,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     }
     setShowClearExpensesConfirm(false);
     setFinancialToast('Todas as despesas foram zeradas com sucesso! Caixa limpo 🟢');
+    setTimeout(() => setFinancialToast(null), 3000);
+  };
+
+  const handleConfirmClearOrders = () => {
+    if (onClearOrders) {
+      onClearOrders();
+    }
+    setShowClearOrdersConfirm(false);
+    setFinancialToast('Histórico de pedidos e faturamento zerados com sucesso! 🟢');
     setTimeout(() => setFinancialToast(null), 3000);
   };
 
@@ -695,10 +707,39 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
   const cmvPercentage = totalRevenue > 0 ? ((insumosExpenses + bebidasExpenses) / totalRevenue) * 100 : 0;
 
-  // Breakdown by payment methods
-  const pixTotal = totalRevenue * 0.65;
-  const cardTotal = totalRevenue * 0.25;
-  const cashTotal = totalRevenue * 0.10;
+  // Breakdown by payment methods calculated from REAL orders
+  const pixTotal = validOrders
+    .filter(o => o.paymentMethod?.toLowerCase().includes('pix'))
+    .reduce((acc, o) => acc + (o.total || 0), 0);
+  const cardTotal = validOrders
+    .filter(o => {
+      const pm = (o.paymentMethod || '').toLowerCase();
+      return pm.includes('cart') || pm.includes('créd') || pm.includes('cred') || pm.includes('déb') || pm.includes('deb');
+    })
+    .reduce((acc, o) => acc + (o.total || 0), 0);
+  const cashTotal = validOrders
+    .filter(o => (o.paymentMethod || '').toLowerCase().includes('dinheiro'))
+    .reduce((acc, o) => acc + (o.total || 0), 0);
+  const pixPercent = totalRevenue > 0 ? Math.round((pixTotal / totalRevenue) * 100) : 0;
+  const cardPercent = totalRevenue > 0 ? Math.round((cardTotal / totalRevenue) * 100) : 0;
+  const cashPercent = totalRevenue > 0 ? Math.round((cashTotal / totalRevenue) * 100) : 0;
+
+  const deliveryFeeRevenue = validOrders.reduce((acc, o) => acc + (o.deliveryFee || 0), 0);
+  const productSalesRevenue = Math.max(0, totalRevenue - deliveryFeeRevenue);
+
+  // Real items breakdown (Curva ABC de produtos) from valid orders
+  const topSellingItems = useMemo(() => {
+    const itemMap = new Map<string, { name: string; count: number; total: number }>();
+    validOrders.forEach(o => {
+      (o.items || []).forEach(it => {
+        const existing = itemMap.get(it.name) || { name: it.name, count: 0, total: 0 };
+        existing.count += it.quantity || 1;
+        existing.total += (it.price || 0) * (it.quantity || 1);
+        itemMap.set(it.name, existing);
+      });
+    });
+    return Array.from(itemMap.values()).sort((a, b) => b.total - a.total);
+  }, [validOrders]);
 
   // Handler for adding expense
   const handleAddExpense = (e: React.FormEvent) => {
@@ -2650,20 +2691,32 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-[#ff5722]" /> DRE Operacional do Turno
                   </h3>
-                  <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
-                    Ao Vivo
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {orders.length > 0 && onClearOrders && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClearOrdersConfirm(true)}
+                        className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
+                        title="Zerar e apagar pedidos de teste para começar faturamento do zero"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Zerar Faturamento
+                      </button>
+                    )}
+                    <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                      Ao Vivo
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2.5 text-xs font-mono">
                   <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#e5e2e1]">
-                    <span className="font-sans font-medium text-emerald-400">(+) Receita de Vendas de Burgers & Pizzas</span>
-                    <span className="font-bold">R$ {(totalRevenue * 0.88).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-sans font-medium text-emerald-400">(+) Receita de Vendas de Burgers & Cardápio</span>
+                    <span className="font-bold">R$ {productSalesRevenue.toFixed(2).replace('.', ',')}</span>
                   </div>
 
                   <div className="flex justify-between py-1 border-b border-[#353535]/40 text-[#e5e2e1]">
                     <span className="font-sans font-medium text-emerald-400">(+) Receita com Taxas de Entrega</span>
-                    <span className="font-bold">R$ {(totalRevenue * 0.12).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-bold">R$ {deliveryFeeRevenue.toFixed(2).replace('.', ',')}</span>
                   </div>
 
                   <div className="flex justify-between py-1.5 font-bold text-white bg-[#1c1b1b] px-2.5 rounded-lg border border-[#353535]/50 font-sans">
@@ -2855,7 +2908,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <div className="p-3 bg-[#1c1b1b] rounded-md border border-[#353535]/50">
                     <div className="flex justify-between mb-1">
                       <span className="font-semibold text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#ff5722]" /> Pix (65% das vendas)
+                        <span className="w-2 h-2 rounded-full bg-[#ff5722]" /> Pix ({pixPercent}% das vendas)
                       </span>
                       <span className="font-bold text-[#ff5722] font-mono">
                         R$ {pixTotal.toFixed(2).replace('.', ',')}
@@ -2863,14 +2916,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                     <p className="text-[10px] text-[#8e8f8f]">Cai direto na conta corrente da hamburgueria (0% de taxa).</p>
                     <div className="h-2 w-full bg-[#353535] rounded-full overflow-hidden mt-1.5">
-                      <div className="h-full bg-[#ff5722] rounded-full" style={{ width: '65%' }} />
+                      <div className="h-full bg-[#ff5722] rounded-full" style={{ width: `${pixPercent}%` }} />
                     </div>
                   </div>
 
                   <div className="p-3 bg-[#1c1b1b] rounded-md border border-[#353535]/50">
                     <div className="flex justify-between mb-1">
                       <span className="font-semibold text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-[#019ad8]" /> Cartão Crédito/Débito (25%)
+                        <span className="w-2 h-2 rounded-full bg-[#019ad8]" /> Cartão Crédito/Débito ({cardPercent}%)
                       </span>
                       <span className="font-bold text-white font-mono">
                         R$ {cardTotal.toFixed(2).replace('.', ',')}
@@ -2878,14 +2931,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                     <p className="text-[10px] text-[#8e8f8f]">Conferir fechamento das maquininhas no fim da noite.</p>
                     <div className="h-2 w-full bg-[#353535] rounded-full overflow-hidden mt-1.5">
-                      <div className="h-full bg-[#019ad8] rounded-full" style={{ width: '25%' }} />
+                      <div className="h-full bg-[#019ad8] rounded-full" style={{ width: `${cardPercent}%` }} />
                     </div>
                   </div>
 
                   <div className="p-3 bg-[#1c1b1b] rounded-md border border-[#353535]/50">
                     <div className="flex justify-between mb-1">
                       <span className="font-semibold text-white flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Dinheiro em Espécie (10%)
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Dinheiro em Espécie ({cashPercent}%)
                       </span>
                       <span className="font-bold text-emerald-400 font-mono">
                         R$ {cashTotal.toFixed(2).replace('.', ',')}
@@ -2893,49 +2946,55 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                     <p className="text-[10px] text-[#8e8f8f]">Contar notas na gaveta de caixa e realizar sangria.</p>
                     <div className="h-2 w-full bg-[#353535] rounded-full overflow-hidden mt-1.5">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '10%' }} />
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${cashPercent}%` }} />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Top Itens Mais Vendidos */}
+              {/* Top Itens Mais Vendidos - 100% Real */}
               <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 space-y-3 shadow-md">
                 <div className="flex justify-between items-center">
                   <h3 className="font-['Montserrat'] font-bold text-sm text-white">
                     Mais Vendidos & Rentabilidade
                   </h3>
-                  <span className="text-[10px] text-[#b4b5b5]">Curva ABC de produtos</span>
+                  <span className="text-[10px] text-[#b4b5b5]">Curva ABC real de vendas</span>
                 </div>
 
-                <div className="space-y-2.5 text-xs">
-                  {[
-                    { name: 'Gourmet Truffle Burger', count: 18, total: 'R$ 972,00', margin: '68% margem' },
-                    { name: 'Pizza Calabresa dos Crias', count: 12, total: 'R$ 598,80', margin: '72% margem' },
-                    { name: 'Classic Bacon Burger', count: 14, total: 'R$ 546,00', margin: '65% margem' },
-                    { name: 'Batata Rústica Grande', count: 12, total: 'R$ 226,80', margin: '80% margem' },
-                    { name: 'Coca-Cola 350ml', count: 22, total: 'R$ 173,80', margin: '55% margem' },
-                  ].map((top, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center p-2.5 rounded-md bg-[#1c1b1b] border border-[#353535]/40"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] font-bold text-[10px] flex items-center justify-center font-['Montserrat']">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <span className="font-medium text-white block">{top.name}</span>
-                          <span className="text-[10px] text-emerald-400">{top.margin}</span>
+                {topSellingItems.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-[#8e8f8f] bg-[#1c1b1b] rounded-lg border border-[#353535]/40">
+                    <ShoppingBag className="w-6 h-6 mx-auto mb-2 text-[#666]" />
+                    <p className="font-medium text-white mb-0.5">Nenhuma venda registrada ainda</p>
+                    <p className="text-[10px] text-[#8e8f8f]">O ranking dos produtos mais vendidos e faturamento aparecerá aqui em tempo real assim que os pedidos forem recebidos.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 text-xs">
+                    {topSellingItems.slice(0, 5).map((top: { name: string; count: number; total: number }, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center p-2.5 rounded-md bg-[#1c1b1b] border border-[#353535]/40"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] font-bold text-[10px] flex items-center justify-center font-['Montserrat']">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <span className="font-medium text-white block">{top.name}</span>
+                            <span className="text-[10px] text-emerald-400">
+                              {totalRevenue > 0 ? Math.round((top.total / totalRevenue) * 100) : 0}% do faturamento
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] text-[#b4b5b5] mr-2">{top.count} un</span>
+                          <span className="font-bold text-[#ff5722] font-mono">
+                            R$ {top.total.toFixed(2).replace('.', ',')}
+                          </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[11px] text-[#b4b5b5] mr-2">{top.count} un</span>
-                        <span className="font-bold text-[#ff5722] font-mono">{top.total}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             </>
@@ -4582,6 +4641,44 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Sim, Zerar Tudo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmar Zerar Pedidos / Faturamento */}
+      {showClearOrdersConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                  Zerar Pedidos & Faturamento?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] leading-relaxed">
+                  Tem certeza que deseja apagar todos os {orders.length} pedidos de teste do banco de dados? O faturamento e o histórico voltarão a ficar 100% zerados para você começar do zero na vida real.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#353535]">
+              <button
+                type="button"
+                onClick={() => setShowClearOrdersConfirm(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white hover:bg-[#2a2a2a] transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClearOrders}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Sim, Zerar Pedidos</span>
               </button>
             </div>
           </div>

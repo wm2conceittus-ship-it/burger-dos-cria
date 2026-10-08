@@ -215,10 +215,10 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   }, [activeSeries]);
 
   const periodGrowth = useMemo(() => {
-    if (activeSeries.length < 2) return 15.4;
+    if (activeSeries.length < 2) return 0;
     const last = activeSeries[activeSeries.length - 1].displayRevenue;
     const prev = activeSeries[activeSeries.length - 2].displayRevenue;
-    if (prev === 0) return 0;
+    if (prev === 0) return last > 0 ? 100 : 0;
     return ((last - prev) / prev) * 100;
   }, [activeSeries]);
 
@@ -901,41 +901,51 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
 
           <div className="space-y-3">
-            {topSellers.map((item, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-md bg-[#252525] text-white flex items-center justify-center font-bold text-[10px]">
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <strong className="text-white block font-['Montserrat'] truncate max-w-[200px] sm:max-w-xs">
-                        {item.name}
-                      </strong>
-                      <span className="text-[10px] text-[#8e8f8f] block">{item.category}</span>
+            {topSellers.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#8e8f8f]">
+                Nenhum produto vendido ainda. Quando houver pedidos faturados, o ranking dos campeões de venda aparecerá aqui.
+              </div>
+            ) : (
+              topSellers.map((item, idx) => (
+                <div key={idx} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-md bg-[#252525] text-white flex items-center justify-center font-bold text-[10px]">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <strong className="text-white block font-['Montserrat'] truncate max-w-[200px] sm:max-w-xs">
+                          {item.name}
+                        </strong>
+                        <span className="text-[10px] text-[#8e8f8f] block">{item.category}</span>
+                      </div>
+                    </div>
+                    <div className="text-right font-mono">
+                      <span className="text-white font-bold block">
+                        R$ {item.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[10px] text-[#8e8f8f] block">{item.sales} un vendidas</span>
                     </div>
                   </div>
-                  <div className="text-right font-mono">
-                    <span className="text-white font-bold block">
-                      R$ {item.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-[10px] text-[#8e8f8f] block">{item.sales} un vendidas</span>
+
+                  <div className="w-full h-1.5 bg-[#252525] rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${item.percent}%` }}
+                      className="h-full bg-gradient-to-r from-[#ff5722] to-amber-400 rounded-full"
+                    />
                   </div>
                 </div>
-
-                <div className="w-full h-1.5 bg-[#252525] rounded-full overflow-hidden">
-                  <div
-                    style={{ width: `${item.percent}%` }}
-                    className="h-full bg-gradient-to-r from-[#ff5722] to-amber-400 rounded-full"
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="pt-2 text-center">
             <span className="text-[11px] text-[#8e8f8f]">
-              O <strong>Gourmet Truffle Burger</strong> lidera o faturamento acumulado do restaurante.
+              {topSellers.length > 0 ? (
+                <>O <strong>{topSellers[0].name}</strong> lidera o faturamento acumulado do restaurante.</>
+              ) : (
+                <>Nenhuma venda registrada ainda. Faturamento começa a ser computado nos primeiros pedidos.</>
+              )}
             </span>
           </div>
         </div>

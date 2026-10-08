@@ -703,6 +703,18 @@ export default function App() {
     showToast(`Pedido ${newOrder.orderNumber} adicionado e sincronizado no Firebase!`);
   };
 
+  const handleClearOrders = async () => {
+    try {
+      for (const order of orders) {
+        await deleteOrderFromFirestore(order.id);
+      }
+      setOrders([]);
+      showToast('Histórico de pedidos e faturamento zerados com sucesso! 🟢');
+    } catch (err) {
+      console.warn('Erro ao zerar pedidos:', err);
+    }
+  };
+
   // Product management
   const handleToggleProductAvailability = (productId: string) => {
     let targetProduct: Product | null = null;
@@ -929,6 +941,7 @@ export default function App() {
           onLockManager={handleLockManager}
           onUpdateOrderStatus={handleKitchenUpdateStatus}
           onDeleteProduct={handleDeleteProduct}
+          onClearOrders={handleClearOrders}
         />
       )}
 
