@@ -67,118 +67,114 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
   // Daily Data: Last 7 Days (Seg a Dom)
   const dailyData: DataPoint[] = useMemo(() => {
-    // Incorporate current turnover into today (Domingo/Hoje)
-    const baseOrdersTotal = currentTurnover > 0 ? currentTurnover : 2480.00;
-    const baseOrderCount = currentOrderCount > 0 ? currentOrderCount : 42;
+    const validOrders = orders.filter(o => o.status !== 'recusado');
+    const deliveryOrders = validOrders.filter(o => o.type === 'Delivery');
+    const dineInOrders = validOrders.filter(o => o.type === 'Mesa');
+    const takeawayOrders = validOrders.filter(o => o.type === 'Retirada');
+
+    const deliveryTotal = deliveryOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const dineInTotal = dineInOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const takeawayTotal = takeawayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
     const days = [
-      { label: 'Segunda-feira (25/Set)', shortLabel: 'Seg', delivery: 1420.00, dineIn: 680.00, takeaway: 180.00, orders: 28 },
-      { label: 'Terça-feira (26/Set)', shortLabel: 'Ter', delivery: 1680.00, dineIn: 840.00, takeaway: 220.00, orders: 34 },
-      { label: 'Quarta-feira (27/Set)', shortLabel: 'Qua', delivery: 2150.00, dineIn: 980.00, takeaway: 310.00, orders: 46 },
-      { label: 'Quinta-feira (28/Set)', shortLabel: 'Qui', delivery: 2890.00, dineIn: 1350.00, takeaway: 420.00, orders: 58 },
-      { label: 'Sexta-feira (29/Set)', shortLabel: 'Sex', delivery: 4620.00, dineIn: 2480.00, takeaway: 760.00, orders: 94 },
-      { label: 'Sábado (30/Set)', shortLabel: 'Sáb', delivery: 5840.00, dineIn: 3190.00, takeaway: 950.00, orders: 122 },
-      {
-        label: 'Domingo (01/Out - Hoje)',
-        shortLabel: 'Dom',
-        delivery: Number((baseOrdersTotal * 0.65).toFixed(2)),
-        dineIn: Number((baseOrdersTotal * 0.28).toFixed(2)),
-        takeaway: Number((baseOrdersTotal * 0.07).toFixed(2)),
-        orders: baseOrderCount,
-      },
+      { label: 'Segunda-feira', shortLabel: 'Seg' },
+      { label: 'Terça-feira', shortLabel: 'Ter' },
+      { label: 'Quarta-feira', shortLabel: 'Qua' },
+      { label: 'Quinta-feira', shortLabel: 'Qui' },
+      { label: 'Sexta-feira', shortLabel: 'Sex' },
+      { label: 'Sábado', shortLabel: 'Sáb' },
+      { label: 'Hoje', shortLabel: 'Hoje' },
     ];
 
-    return days.map(d => {
-      const total = d.delivery + d.dineIn + d.takeaway;
+    return days.map((d, idx) => {
+      const isToday = idx === days.length - 1;
+      const delivery = isToday ? deliveryTotal : 0;
+      const dineIn = isToday ? dineInTotal : 0;
+      const takeaway = isToday ? takeawayTotal : 0;
+      const total = delivery + dineIn + takeaway;
+      const count = isToday ? validOrders.length : 0;
+
       return {
         label: d.label,
         shortLabel: d.shortLabel,
-        deliveryRevenue: d.delivery,
-        dineInRevenue: d.dineIn,
-        takeawayRevenue: d.takeaway,
+        deliveryRevenue: delivery,
+        dineInRevenue: dineIn,
+        takeawayRevenue: takeaway,
         totalRevenue: total,
-        orderCount: d.orders,
-        averageTicket: d.orders > 0 ? total / d.orders : 0,
-        profitEstimate: total * 0.38, // 38% estimated net operational margin
+        orderCount: count,
+        averageTicket: count > 0 ? total / count : 0,
+        profitEstimate: total * 0.38,
       };
     });
-  }, [currentTurnover, currentOrderCount]);
+  }, [orders]);
 
-  // Weekly Data: Last 8 Weeks
+  // Weekly Data: Last 4 Weeks
   const weeklyData: DataPoint[] = useMemo(() => {
+    const validOrders = orders.filter(o => o.status !== 'recusado');
+    const deliveryTotal = validOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+    const dineInTotal = validOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+    const takeawayTotal = validOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+
     const weeks = [
-      { label: 'Semana 34 (Agosto)', shortLabel: 'Sem 34', delivery: 11200.00, dineIn: 5400.00, takeaway: 1600.00, orders: 245 },
-      { label: 'Semana 35 (Agosto)', shortLabel: 'Sem 35', delivery: 12450.00, dineIn: 6100.00, takeaway: 1850.00, orders: 268 },
-      { label: 'Semana 36 (Setembro)', shortLabel: 'Sem 36', delivery: 13800.00, dineIn: 6900.00, takeaway: 2100.00, orders: 295 },
-      { label: 'Semana 37 (Setembro)', shortLabel: 'Sem 37', delivery: 14200.00, dineIn: 7300.00, takeaway: 2250.00, orders: 310 },
-      { label: 'Semana 38 (Setembro)', shortLabel: 'Sem 38', delivery: 15600.00, dineIn: 8100.00, takeaway: 2400.00, orders: 340 },
-      { label: 'Semana 39 (Setembro)', shortLabel: 'Sem 39', delivery: 16900.00, dineIn: 8650.00, takeaway: 2750.00, orders: 375 },
-      { label: 'Semana 40 (Setembro)', shortLabel: 'Sem 40', delivery: 18400.00, dineIn: 9400.00, takeaway: 2900.00, orders: 410 },
-      {
-        label: 'Semana 41 (Semana Atual)',
-        shortLabel: 'Sem 41',
-        delivery: 19800.00 + (currentTurnover * 0.65),
-        dineIn: 10200.00 + (currentTurnover * 0.28),
-        takeaway: 3100.00 + (currentTurnover * 0.07),
-        orders: 435 + currentOrderCount,
-      },
+      { label: 'Semana 1', shortLabel: 'Sem 1', isCurrent: false },
+      { label: 'Semana 2', shortLabel: 'Sem 2', isCurrent: false },
+      { label: 'Semana 3', shortLabel: 'Sem 3', isCurrent: false },
+      { label: 'Semana Atual', shortLabel: 'Sem Atual', isCurrent: true },
     ];
 
     return weeks.map(w => {
-      const total = w.delivery + w.dineIn + w.takeaway;
+      const delivery = w.isCurrent ? deliveryTotal : 0;
+      const dineIn = w.isCurrent ? dineInTotal : 0;
+      const takeaway = w.isCurrent ? takeawayTotal : 0;
+      const total = delivery + dineIn + takeaway;
+      const count = w.isCurrent ? validOrders.length : 0;
+
       return {
         label: w.label,
         shortLabel: w.shortLabel,
-        deliveryRevenue: w.delivery,
-        dineInRevenue: w.dineIn,
-        takeawayRevenue: w.takeaway,
+        deliveryRevenue: delivery,
+        dineInRevenue: dineIn,
+        takeawayRevenue: takeaway,
         totalRevenue: total,
-        orderCount: w.orders,
-        averageTicket: total / w.orders,
-        profitEstimate: total * 0.39,
+        orderCount: count,
+        averageTicket: count > 0 ? total / count : 0,
+        profitEstimate: total * 0.38,
       };
     });
-  }, [currentTurnover, currentOrderCount]);
+  }, [orders]);
 
-  // Monthly Data: Last 12 Months
+  // Monthly Data: Recent Months
   const monthlyData: DataPoint[] = useMemo(() => {
+    const validOrders = orders.filter(o => o.status !== 'recusado');
+    const deliveryTotal = validOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+    const dineInTotal = validOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+    const takeawayTotal = validOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+
     const months = [
-      { label: 'Outubro 2025', shortLabel: 'Out/25', delivery: 38500.00, dineIn: 18200.00, takeaway: 5400.00, orders: 980 },
-      { label: 'Novembro 2025', shortLabel: 'Nov/25', delivery: 42100.00, dineIn: 20400.00, takeaway: 6100.00, orders: 1080 },
-      { label: 'Dezembro 2025', shortLabel: 'Dez/25', delivery: 54200.00, dineIn: 28900.00, takeaway: 8300.00, orders: 1390 },
-      { label: 'Janeiro 2026', shortLabel: 'Jan/26', delivery: 41800.00, dineIn: 19800.00, takeaway: 5900.00, orders: 1040 },
-      { label: 'Fevereiro 2026', shortLabel: 'Fev/26', delivery: 44600.00, dineIn: 21500.00, takeaway: 6400.00, orders: 1120 },
-      { label: 'Março 2026', shortLabel: 'Mar/26', delivery: 48900.00, dineIn: 23800.00, takeaway: 7100.00, orders: 1210 },
-      { label: 'Abril 2026', shortLabel: 'Abr/26', delivery: 51200.00, dineIn: 25100.00, takeaway: 7500.00, orders: 1280 },
-      { label: 'Maio 2026', shortLabel: 'Mai/26', delivery: 55400.00, dineIn: 27200.00, takeaway: 8100.00, orders: 1360 },
-      { label: 'Junho 2026', shortLabel: 'Jun/26', delivery: 58900.00, dineIn: 29100.00, takeaway: 8600.00, orders: 1440 },
-      { label: 'Julho 2026', shortLabel: 'Jul/26', delivery: 62400.00, dineIn: 30800.00, takeaway: 9200.00, orders: 1530 },
-      { label: 'Agosto 2026', shortLabel: 'Ago/26', delivery: 66800.00, dineIn: 32900.00, takeaway: 9800.00, orders: 1620 },
-      {
-        label: 'Setembro 2026 (Consolidado)',
-        shortLabel: 'Set/26',
-        delivery: 71500.00 + (currentTurnover * 0.65),
-        dineIn: 35200.00 + (currentTurnover * 0.28),
-        takeaway: 10400.00 + (currentTurnover * 0.07),
-        orders: 1720 + currentOrderCount,
-      },
+      { label: 'Mês Anterior', shortLabel: 'Mês Ant', isCurrent: false },
+      { label: 'Mês Atual', shortLabel: 'Atual', isCurrent: true },
     ];
 
     return months.map(m => {
-      const total = m.delivery + m.dineIn + m.takeaway;
+      const delivery = m.isCurrent ? deliveryTotal : 0;
+      const dineIn = m.isCurrent ? dineInTotal : 0;
+      const takeaway = m.isCurrent ? takeawayTotal : 0;
+      const total = delivery + dineIn + takeaway;
+      const count = m.isCurrent ? validOrders.length : 0;
+
       return {
         label: m.label,
         shortLabel: m.shortLabel,
-        deliveryRevenue: m.delivery,
-        dineInRevenue: m.dineIn,
-        takeawayRevenue: m.takeaway,
+        deliveryRevenue: delivery,
+        dineInRevenue: dineIn,
+        takeawayRevenue: takeaway,
         totalRevenue: total,
-        orderCount: m.orders,
-        averageTicket: total / m.orders,
-        profitEstimate: total * 0.40,
+        orderCount: count,
+        averageTicket: count > 0 ? total / count : 0,
+        profitEstimate: total * 0.38,
       };
     });
-  }, [currentTurnover, currentOrderCount]);
+  }, [orders]);
 
   // Current active series based on period and channel
   const activeSeries = useMemo(() => {
@@ -281,13 +277,31 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return `${linePathD} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
   }, [linePathD, points, innerHeight]);
 
-  // Payment Breakdown Statistics
-  const paymentBreakdown = [
-    { method: 'Pix (Imediato)', percentage: 48, amount: totalPeriodRevenue * 0.48, color: 'text-emerald-400', bg: 'bg-emerald-500' },
-    { method: 'Cartão de Crédito', percentage: 32, amount: totalPeriodRevenue * 0.32, color: 'text-blue-400', bg: 'bg-blue-500' },
-    { method: 'Cartão de Débito', percentage: 14, amount: totalPeriodRevenue * 0.14, color: 'text-amber-400', bg: 'bg-amber-500' },
-    { method: 'Dinheiro na Entrega', percentage: 6, amount: totalPeriodRevenue * 0.06, color: 'text-zinc-400', bg: 'bg-zinc-500' },
-  ];
+  // Payment Breakdown Statistics (real calculations from orders)
+  const paymentBreakdown = useMemo(() => {
+    const validOrders = orders.filter(o => o.status !== 'recusado');
+    const pixOrders = validOrders.filter(o => o.paymentMethod?.toLowerCase().includes('pix'));
+    const creditOrders = validOrders.filter(
+      o => o.paymentMethod?.toLowerCase().includes('crédito') || o.paymentMethod?.toLowerCase().includes('credito')
+    );
+    const debitOrders = validOrders.filter(
+      o => o.paymentMethod?.toLowerCase().includes('débito') || o.paymentMethod?.toLowerCase().includes('debito')
+    );
+    const cashOrders = validOrders.filter(o => o.paymentMethod?.toLowerCase().includes('dinheiro'));
+
+    const pixSum = pixOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const creditSum = creditOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const debitSum = debitOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const cashSum = cashOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const total = totalPeriodRevenue > 0 ? totalPeriodRevenue : 1;
+
+    return [
+      { method: 'Pix (Imediato)', percentage: totalPeriodRevenue > 0 ? Math.round((pixSum / total) * 100) : 0, amount: pixSum, color: 'text-emerald-400', bg: 'bg-emerald-500' },
+      { method: 'Cartão de Crédito', percentage: totalPeriodRevenue > 0 ? Math.round((creditSum / total) * 100) : 0, amount: creditSum, color: 'text-blue-400', bg: 'bg-blue-500' },
+      { method: 'Cartão de Débito', percentage: totalPeriodRevenue > 0 ? Math.round((debitSum / total) * 100) : 0, amount: debitSum, color: 'text-amber-400', bg: 'bg-amber-500' },
+      { method: 'Dinheiro na Entrega', percentage: totalPeriodRevenue > 0 ? Math.round((cashSum / total) * 100) : 0, amount: cashSum, color: 'text-zinc-400', bg: 'bg-zinc-500' },
+    ];
+  }, [orders, totalPeriodRevenue]);
 
   // Channel Share
   const totalDeliverySum = activeSeries.reduce((s, p) => s + p.deliveryRevenue, 0);
@@ -295,18 +309,38 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   const totalTakeawaySum = activeSeries.reduce((s, p) => s + p.takeawayRevenue, 0);
   const grandTotalChannels = totalDeliverySum + totalDineInSum + totalTakeawaySum || 1;
 
-  const deliveryPercent = Math.round((totalDeliverySum / grandTotalChannels) * 100);
-  const dineInPercent = Math.round((totalDineInSum / grandTotalChannels) * 100);
-  const takeawayPercent = Math.round((totalTakeawaySum / grandTotalChannels) * 100);
+  const deliveryPercent = totalPeriodRevenue > 0 ? Math.round((totalDeliverySum / grandTotalChannels) * 100) : 0;
+  const dineInPercent = totalPeriodRevenue > 0 ? Math.round((totalDineInSum / grandTotalChannels) * 100) : 0;
+  const takeawayPercent = totalPeriodRevenue > 0 ? Math.round((totalTakeawaySum / grandTotalChannels) * 100) : 0;
 
-  // Top Selling Items in revenue
-  const topSellers = [
-    { name: 'Gourmet Truffle Burger', category: 'Burger Artesanal', sales: 184, revenue: 10101.60, percent: 85 },
-    { name: 'Smash Duplo Cheddar', category: 'Smash Burgers', sales: 242, revenue: 8445.80, percent: 72 },
-    { name: 'Classic Bacon Parrillero', category: 'Burger Defumado', sales: 165, revenue: 6435.00, percent: 58 },
-    { name: 'Batata Rústica com Alecrim & Bacon', category: 'Acompanhamentos', sales: 310, revenue: 5859.00, percent: 52 },
-    { name: 'Chopp Artesanal IPA 500ml', category: 'Bebidas & Bar', sales: 395, revenue: 5530.00, percent: 48 },
-  ];
+  // Top Selling Items in revenue (real calculations from orders)
+  const topSellers = useMemo(() => {
+    const validOrders = orders.filter(o => o.status !== 'recusado');
+    const itemsMap = new Map<string, { name: string; category: string; sales: number; revenue: number }>();
+
+    validOrders.forEach(o => {
+      (o.items || []).forEach(it => {
+        const key = it.name;
+        const existing = itemsMap.get(key) || {
+          name: it.name,
+          category: 'Cardápio',
+          sales: 0,
+          revenue: 0,
+        };
+        existing.sales += it.quantity || 1;
+        existing.revenue += (it.price || 0) * (it.quantity || 1);
+        itemsMap.set(key, existing);
+      });
+    });
+
+    const list = Array.from(itemsMap.values()).sort((a, b) => b.revenue - a.revenue);
+    const maxRev = list.length > 0 ? list[0].revenue : 1;
+
+    return list.slice(0, 5).map(item => ({
+      ...item,
+      percent: maxRev > 0 ? Math.round((item.revenue / maxRev) * 100) : 0,
+    }));
+  }, [orders]);
 
   // Hovered data point detail
   const currentHoveredPoint = hoveredPointIndex !== null ? points[hoveredPointIndex] : null;

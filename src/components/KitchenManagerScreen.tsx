@@ -105,15 +105,7 @@ export interface ExpenseItem {
   time: string;
 }
 
-const INITIAL_EXPENSES: ExpenseItem[] = [
-  { id: 'exp-1', description: 'Blend Angus e Pães Brioche (Açougue & Padaria)', category: 'insumos', amount: 380.00, time: '17:30' },
-  { id: 'exp-2', description: 'Fardos de Cerveja Heineken, Corona & Ambev (Distribuidora)', category: 'bebidas', amount: 140.00, time: '17:45' },
-  { id: 'exp-3', description: 'Diária 2x Entregadores / Motoboys', category: 'motoboy', amount: 160.00, time: '18:00' },
-  { id: 'exp-4', description: 'Embalagens Térmicas & Papel Acoplado', category: 'embalagens', amount: 75.00, time: '18:15' },
-  { id: 'exp-5', description: 'Recarga Botijão P45 / Gás de Cozinha GLP', category: 'gas', amount: 145.00, time: '18:25' },
-  { id: 'exp-6', description: 'Hortifruti (Tomate, Rúcula, Cebola, Queijo)', category: 'insumos', amount: 94.00, time: '18:40' },
-  { id: 'exp-7', description: 'Bobinas Térmicas & Material de Limpeza', category: 'operacional', amount: 55.00, time: '19:10' },
-];
+const INITIAL_EXPENSES: ExpenseItem[] = [];
 
 export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   orders,
@@ -260,7 +252,48 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   };
 
   // Financial Management State
-  const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
+  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
+    try {
+      // Clear legacy mock expenses so the user starts with 100% clean finances
+      const legacyCleaned = localStorage.getItem('burger_cleaned_legacy_expenses_v2');
+      if (!legacyCleaned) {
+        localStorage.removeItem('burger_manager_expenses');
+        localStorage.setItem('burger_cleaned_legacy_expenses_v2', 'true');
+        return [];
+      }
+      const saved = localStorage.getItem('burger_manager_expenses');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('burger_manager_expenses', JSON.stringify(expenses));
+    } catch {
+      // ignore
+    }
+  }, [expenses]);
+
+  const [showClearExpensesConfirm, setShowClearExpensesConfirm] = useState(false);
+
+  const handleClearAllExpenses = () => {
+    setExpenses([]);
+    try {
+      localStorage.removeItem('burger_manager_expenses');
+    } catch {
+      // ignore
+    }
+    setShowClearExpensesConfirm(false);
+    setFinancialToast('Todas as despesas foram zeradas com sucesso! Caixa limpo 🟢');
+    setTimeout(() => setFinancialToast(null), 3000);
+  };
+
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
   const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
@@ -2484,6 +2517,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <Plus className="w-4 h-4" /> Lançar Despesa / Saída
                 </button>
 
+                {expenses.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowClearExpensesConfirm(true)}
+                    className="bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-500/40 px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                    title="Zerar e apagar todas as despesas lançadas"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                    <span>Zerar Despesas ({expenses.length})</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => setShowFinancialPdfModal(true)}
                   className="bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
@@ -2691,12 +2736,24 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </h3>
                       <p className="text-[10px] text-[#b4b5b5]">Controle de compras do dia e pagamentos imediatos</p>
                     </div>
-                    <button
-                      onClick={() => setShowAddExpenseModal(true)}
-                      className="text-xs text-[#ff8a65] hover:text-white font-bold flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Adicionar
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {expenses.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowClearExpensesConfirm(true)}
+                          className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
+                          title="Zerar e limpar todas as despesas"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Zerar Tudo
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowAddExpenseModal(true)}
+                        className="text-xs text-[#ff8a65] hover:text-white font-bold flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Adicionar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2 max-h-[260px] overflow-y-auto hide-scrollbar">
@@ -4491,6 +4548,44 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             setShowGuideModal(false);
           }}
         />
+      )}
+
+      {/* Modal: Confirmar Zerar Todas as Despesas */}
+      {showClearExpensesConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                  Zerar Todas as Despesas?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] leading-relaxed">
+                  Tem certeza que deseja apagar todos os {expenses.length} lançamentos de saídas/despesas do caixa? O DRE voltará a ficar 100% zerado para você começar do zero.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#353535]">
+              <button
+                type="button"
+                onClick={() => setShowClearExpensesConfirm(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white hover:bg-[#2a2a2a] transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAllExpenses}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Sim, Zerar Tudo</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal: Lançar Nova Despesa / Saída */}

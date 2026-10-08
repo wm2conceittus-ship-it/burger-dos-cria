@@ -4,7 +4,7 @@ import { APP_IMAGES } from '../data/mockData';
 import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation, ExternalLink, UtensilsCrossed } from 'lucide-react';
 
 interface OrderTrackingScreenProps {
-  order: Order;
+  order?: Order | null;
   onBack: () => void;
   onOpenChatWithDriver: () => void;
   onOpenHelp: () => void;
@@ -16,6 +16,40 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   onOpenChatWithDriver,
   onOpenHelp,
 }) => {
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-[#121212] pb-24 text-[#e5e2e1]">
+        <header className="fixed top-0 left-0 w-full z-30 bg-[#20201f]/95 backdrop-blur-md border-b border-[#353535]/50 h-16 flex items-center px-4">
+          <button
+            onClick={onBack}
+            className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center text-white mr-3 hover:bg-[#333] transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="font-['Montserrat'] font-bold text-lg text-white">Acompanhar Pedido</h1>
+        </header>
+
+        <div className="pt-28 px-5 max-w-md mx-auto text-center space-y-5 animate-in fade-in">
+          <div className="w-20 h-20 rounded-3xl bg-[#ff5722]/15 border border-[#ff5722]/30 flex items-center justify-center text-[#ff5722] mx-auto shadow-xl shadow-[#ff5722]/10">
+            <Bike className="w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold font-['Montserrat'] text-white">Nenhum pedido em andamento</h2>
+            <p className="text-xs text-[#b4b5b5] leading-relaxed">
+              Você ainda não enviou nenhum pedido ativo nesta sessão. Explore o cardápio, monte seu pedido e envie direto para a cozinha!
+            </p>
+          </div>
+          <button
+            onClick={onBack}
+            className="btn-flame px-6 py-3 rounded-xl font-bold font-['Montserrat'] text-xs text-white shadow-lg shadow-[#ff5722]/20 active:scale-95 transition-all"
+          >
+            Ver Cardápio & Fazer Pedido
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const isTable = order.type === 'Mesa';
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(1); // 0: Recebido, 1: Preparo, 2: Entrega, 3: Entregue
   const [showItemsList, setShowItemsList] = useState(false);

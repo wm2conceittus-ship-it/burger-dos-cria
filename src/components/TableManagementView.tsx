@@ -26,6 +26,7 @@ import {
   MessageCircle,
   XCircle,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
 
@@ -61,6 +62,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [tableToReset, setTableToReset] = useState<RestaurantTable | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetAllModalOpen, setIsResetAllModalOpen] = useState(false);
 
   // New Table Form
   const [newTableNumber, setNewTableNumber] = useState(tables.length + 1);
@@ -493,6 +495,28 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
     showToast('Comanda cancelada e mesa liberada! 🟢');
   };
 
+  // Reset ALL tables to Free in one click
+  const handleResetAllTables = () => {
+    const updated = tables.map(t => ({
+      ...t,
+      status: 'livre' as const,
+      customerName: undefined,
+      customerPhone: undefined,
+      peopleCount: undefined,
+      openedAt: undefined,
+      waiterName: undefined,
+      notes: undefined,
+      reservationTime: undefined,
+      serviceFeeEnabled: true,
+      items: [],
+    }));
+
+    onUpdateStoreSettings({ ...storeSettings, tables: updated });
+    setIsResetAllModalOpen(false);
+    setSelectedTable(null);
+    showToast('Todas as mesas foram liberadas com sucesso! Salão 100% Livre 🟢');
+  };
+
   // Products filtered for modal
   const filteredProductsForAdd = products.filter(p => {
     const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
@@ -560,6 +584,18 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
             <Plus className="w-3.5 h-3.5 text-[#ff5722]" />
             <span>+ Adicionar Mesa ({tables.length + 1})</span>
           </button>
+
+          {(occupiedTables > 0 || billRequestedTables > 0 || reservedTables > 0) && (
+            <button
+              type="button"
+              onClick={() => setIsResetAllModalOpen(true)}
+              className="bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-500/40 px-3.5 py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+              title="Zerar e liberar todas as mesas ocupadas com um clique"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-red-400" />
+              <span>Liberar Todas as Mesas ({occupiedTables + billRequestedTables + reservedTables})</span>
+            </button>
+          )}
         </div>
       </div>
 

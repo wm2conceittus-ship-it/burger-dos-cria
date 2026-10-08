@@ -12,6 +12,7 @@ import {
   saveOrderToFirestore,
   updateOrderStatusInFirestore,
   updateOrderInFirestore,
+  deleteOrderFromFirestore,
   subscribeToStoreSettings,
   saveStoreSettingsToFirestore,
   saveCustomerProfileToFirestore,
@@ -204,22 +205,19 @@ export default function App() {
     ],
   });
   
-  // Initial cart: starts empty so customers have a clean cart when opening the menu
+  // Initial cart: starts 100% empty so customers always receive a clean menu with 0 items selected
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
-      const saved = sessionStorage.getItem('burger_cart_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
+      localStorage.removeItem('burger_cart_items');
+      sessionStorage.removeItem('burger_cart_items');
     } catch {
       // ignore
     }
     return [];
   });
 
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order>(INITIAL_ORDERS[4]); // #1234
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState('Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP');
 
   // Customer Profile State (Persisted in localStorage and synced to Firestore)
@@ -330,9 +328,12 @@ export default function App() {
 
     // Subscribe to orders in Firestore
     const unsubscribeOrders = subscribeToOrders(firestoreOrders => {
-      if (firestoreOrders && firestoreOrders.length > 0) {
-        setOrders(firestoreOrders);
-      }
+      // Filter out any legacy mock test orders from Firestore
+      const legacyMockIds = ['ord-2489', 'ord-2487', 'ord-2486', 'ord-2490', 'ord-1234', 'ord-mesa-01', 'ord-mesa-03'];
+      const realOrders = (firestoreOrders || []).filter(
+        o => !legacyMockIds.includes(o.id) && !o.id.startsWith('ord-24') && o.id !== 'ord-1234'
+      );
+      setOrders(realOrders);
     });
 
     // Subscribe to store settings in Firestore
@@ -341,9 +342,55 @@ export default function App() {
         const cleanedEmployees = remoteSettings.employees
           ? remoteSettings.employees.filter((e: any) => e.role !== 'motoboy')
           : undefined;
+
+        // Clean any legacy mock occupied tables from Firestore test seeds (e.g. Mariana Costa, Lucas Rocha, conta_pedida, etc.)
+        const hasCleanedLegacyTables = sessionStorage.getItem('burger_cleaned_legacy_tables_v3');
+        let hadLegacyMockTables = false;
+        const cleanedTables = remoteSettings.tables?.map((table: any) => {
+          const rawName = (table.customerName || '').toLowerCase();
+          const isMockCustomer =
+            rawName.includes('lucas') ||
+            rawName.includes('mariana') ||
+            rawName.includes('gustavo') ||
+            rawName.includes('silveira') ||
+            rawName.includes('albuquerque') ||
+            rawName.includes('cliente') ||
+            rawName.includes('teste');
+
+          const isStaleContaPedida = table.status === 'conta_pedida';
+          const isStaleOccupied = table.status === 'ocupada' && (isMockCustomer || !hasCleanedLegacyTables);
+
+          if (isMockCustomer || isStaleContaPedida || isStaleOccupied) {
+            hadLegacyMockTables = true;
+            return {
+              ...table,
+              status: 'livre',
+              customerName: undefined,
+              customerPhone: undefined,
+              peopleCount: undefined,
+              openedAt: undefined,
+              waiterName: undefined,
+              notes: undefined,
+              reservationTime: undefined,
+              serviceFeeEnabled: true,
+              items: [],
+            };
+          }
+          return table;
+        });
+
+        if (hadLegacyMockTables && cleanedTables) {
+          sessionStorage.setItem('burger_cleaned_legacy_tables_v3', 'true');
+          saveStoreSettingsToFirestore({
+            ...remoteSettings,
+            tables: cleanedTables,
+          });
+        }
+
         setStoreSettings(prev => ({
           ...prev,
           ...remoteSettings,
+          tables: cleanedTables || prev.tables,
           employees: cleanedEmployees || prev.employees,
         }));
       }
@@ -446,6 +493,17 @@ export default function App() {
   const handleRemoveCartItem = (id: string) => {
     setCartItems(prev => prev.filter(i => i.id !== id));
     showToast('Item removido do carrinho');
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+    try {
+      sessionStorage.removeItem('burger_cart_items');
+      localStorage.removeItem('burger_cart_items');
+    } catch {
+      // ignore
+    }
+    showToast('Carrinho esvaziado com sucesso!');
   };
 
   // Checkout -> Create new order and go to tracking
@@ -825,6 +883,7 @@ export default function App() {
           onUpdateStoreSettings={handleUpdateStoreSettings}
           onUpdateQuantity={handleUpdateCartQuantity}
           onRemoveItem={handleRemoveCartItem}
+          onClearCart={handleClearCart}
           onBack={() => setCurrentScreen('menu')}
           onOpenAddressModal={() => setIsCustomerRegisterOpen(true)}
           onOpenChat={() => setIsDriverChatOpen(true)}
@@ -920,7 +979,7 @@ export default function App() {
           onClose={() => setIsPinModalOpen(false)}
         />
       )}
-      {isDriverChatOpen && (
+      {isDriverChatOpen && activeTrackingOrder && (
         <ContactDriverModal
           onClose={() => setIsDriverChatOpen(false)}
           courierName={activeTrackingOrder.courierName || 'Ricardo'}

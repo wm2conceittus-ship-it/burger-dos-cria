@@ -46,6 +46,7 @@ interface CartScreenProps {
   onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
+  onClearCart?: () => void;
   onBack: () => void;
   onOpenAddressModal: () => void;
   onOpenChat: () => void;
@@ -68,6 +69,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   onUpdateStoreSettings,
   onUpdateQuantity,
   onRemoveItem,
+  onClearCart,
   onBack,
   onOpenAddressModal,
   onOpenChat,
@@ -409,15 +411,28 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
       <main className="pt-20 px-5 max-w-2xl mx-auto space-y-6">
         {/* Title */}
-        <div>
-          <h1 className="font-['Montserrat'] text-2xl font-bold text-[#e5e2e1]">
-            Seu Carrinho
-          </h1>
-          <p className="text-xs text-[#b4b5b5] mt-0.5">
-            {items.length === 0
-              ? 'Seu carrinho está vazio'
-              : `${items.length} ${items.length === 1 ? 'item selecionado' : 'itens selecionados'}`}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-['Montserrat'] text-2xl font-bold text-[#e5e2e1]">
+              Seu Carrinho
+            </h1>
+            <p className="text-xs text-[#b4b5b5] mt-0.5">
+              {items.length === 0
+                ? 'Seu carrinho está vazio'
+                : `${items.length} ${items.length === 1 ? 'item selecionado' : 'itens selecionados'}`}
+            </p>
+          </div>
+          {items.length > 0 && onClearCart && (
+            <button
+              type="button"
+              onClick={onClearCart}
+              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 hover:border-red-500/60 bg-red-950/20 active:scale-95 transition-all font-semibold"
+              title="Remover todos os itens do carrinho"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Limpar Carrinho</span>
+            </button>
+          )}
         </div>
 
         {/* Empty state */}

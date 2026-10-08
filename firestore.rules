@@ -26,7 +26,7 @@ service cloud.firestore {
         && incoming().total >= 0;
       allow update: if isValidId(orderId)
         && incoming().status in ['recebido', 'novo', 'preparando', 'pronto', 'em_entrega', 'entregue', 'recusado'];
-      allow delete: if false;
+      allow delete: if isValidId(orderId);
     }
 
     // Settings collection: store configurations (open/closed, delivery fee, pix key)

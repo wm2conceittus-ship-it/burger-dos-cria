@@ -141,6 +141,15 @@ export async function updateOrderInFirestore(orderId: string, partial: Partial<O
   }
 }
 
+export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
+  const path = `orders/${orderId}`;
+  try {
+    await deleteDoc(doc(db, 'orders', orderId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
 // 2. Store Settings Sync
 export function subscribeToStoreSettings(
   onSettingsUpdate: (settings: StoreSettings) => void
