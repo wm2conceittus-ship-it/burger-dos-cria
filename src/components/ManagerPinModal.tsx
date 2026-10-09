@@ -8,7 +8,7 @@ interface ManagerPinModalProps {
 }
 
 export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
-  correctPin = '1234',
+  correctPin = '123456',
   onSuccess,
   onClose,
 }) => {
@@ -16,14 +16,16 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
   const [error, setError] = useState<string>('');
   const [isShaking, setIsShaking] = useState(false);
 
-  const effectivePin = correctPin?.trim() || '1234';
+  const rawPin = correctPin?.trim() || '123456';
+  // Se houver PIN antigo de 4 dígitos (ex: 1234), migra automaticamente para 123456 ou completa com 6 dígitos
+  const effectivePin = rawPin.length === 6 ? rawPin : rawPin === '1234' ? '123456' : rawPin.padEnd(6, '0');
 
   const handleKeyPress = (num: string) => {
-    if (pin.length < 4) {
+    if (pin.length < 6) {
       const nextPin = pin + num;
       setPin(nextPin);
       setError('');
-      if (nextPin.length === 4) {
+      if (nextPin.length === 6) {
         verifyPin(nextPin);
       }
     }
@@ -97,18 +99,18 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
             Gestor de Pedidos & Cozinha
           </h2>
           <p className="text-xs text-[#b4b5b5] mt-1.5 px-4 leading-relaxed">
-            Painel exclusivo para a equipe da hamburgueria. Digite o PIN de 4 dígitos para continuar.
+            Painel exclusivo para a equipe da hamburgueria. Digite o PIN de 6 dígitos para continuar.
           </p>
         </div>
 
-        {/* PIN Indicators */}
-        <div className="flex justify-center items-center gap-4 py-4">
-          {[0, 1, 2, 3].map(index => {
+        {/* PIN Indicators (6 dígitos) */}
+        <div className="flex justify-center items-center gap-2 sm:gap-2.5 py-4">
+          {[0, 1, 2, 3, 4, 5].map(index => {
             const hasDigit = pin.length > index;
             return (
               <div
                 key={index}
-                className={`w-12 h-14 rounded-xl border-2 flex items-center justify-center text-xl font-bold font-['Montserrat'] transition-all duration-200 ${
+                className={`w-9 h-12 sm:w-10 sm:h-13 rounded-xl border-2 flex items-center justify-center text-lg sm:text-xl font-bold font-['Montserrat'] transition-all duration-200 ${
                   hasDigit
                     ? 'border-[#ff5722] bg-[#ff5722]/20 text-[#ff5722] shadow-[0_0_15px_rgba(255,87,34,0.4)] scale-105'
                     : 'border-[#353535] bg-[#252525] text-transparent'
@@ -168,7 +170,7 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
         <div className="mt-5 pt-3 border-t border-[#353535]/60 text-center">
           <p className="text-[11px] text-[#8e8e8e] flex items-center justify-center gap-1">
             <KeyRound className="w-3.5 h-3.5 text-[#ff8a65]" />
-            <span>PIN padrão inicial: <strong className="text-white">1234</strong> (altere nas Configurações)</span>
+            <span>PIN padrão inicial: <strong className="text-white">123456</strong> (altere nas Configurações)</span>
           </p>
         </div>
       </div>

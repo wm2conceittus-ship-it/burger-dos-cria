@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CartItem, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
@@ -99,6 +99,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<string>('Pix');
   const [changeFor, setChangeFor] = useState<string>('');
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
+  const [hasCopiedDirectPixKey, setHasCopiedDirectPixKey] = useState(false);
   const [showQrCodeInline, setShowQrCodeInline] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -298,15 +299,19 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const pixPayload = generatePixPayload({
-    pixKey: storeSettings?.pixKey || '11987654321',
-    merchantName: storeSettings?.storeName || 'BURGER DOS CRIAS',
-    merchantCity: 'SAO PAULO',
-    amount: total,
-    txid: 'P' + Math.floor(100000 + Math.random() * 900000),
-  });
+  const [pixTxId] = useState(() => 'P' + Math.floor(100000 + Math.random() * 900000));
 
-  const pixQrCodeUrl = getPixQrCodeUrl(pixPayload, 260);
+  const pixPayload = useMemo(() => {
+    return generatePixPayload({
+      pixKey: storeSettings?.pixKey || '11987654321',
+      merchantName: storeSettings?.storeName || 'BURGER DOS CRIAS',
+      merchantCity: 'SAO PAULO',
+      amount: total,
+      txid: pixTxId,
+    });
+  }, [storeSettings?.pixKey, storeSettings?.storeName, total, pixTxId]);
+
+  const pixQrCodeUrl = useMemo(() => getPixQrCodeUrl(pixPayload, 260), [pixPayload]);
 
   const handleCopyPixCode = () => {
     navigator.clipboard.writeText(pixPayload);
@@ -1149,6 +1154,37 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                       </>
                     )}
                   </button>
+
+                  {/* Chave Pix Direta (Alternativa para digitação manual no banco) */}
+                  <div className="bg-[#1c1b1b] p-3 rounded-xl border border-[#353535] flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] uppercase font-bold text-[#8e8f8f] block">Chave Pix da Hamburgueria:</span>
+                      <span className="text-xs font-mono font-bold text-white truncate block">
+                        {storeSettings?.pixKey || '11987654321'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(storeSettings?.pixKey || '11987654321');
+                        setHasCopiedDirectPixKey(true);
+                        setTimeout(() => setHasCopiedDirectPixKey(false), 2500);
+                      }}
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-[#2a2a2a] hover:bg-[#353535] text-[#ff8a65] border border-[#ff5722]/30 flex items-center gap-1.5 transition-colors shrink-0 active:scale-95"
+                    >
+                      {hasCopiedDirectPixKey ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copiada!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar Chave</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
 
                   {/* Passo a Passo */}
                   <div className="bg-[#161616] p-3.5 rounded-xl border border-[#353535]/60 text-[#b4b5b5] space-y-1 text-[11px] leading-relaxed">

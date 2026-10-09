@@ -146,7 +146,7 @@ export default function App() {
         notes: 'Entregas locais até 3km',
       },
     ],
-    managerPin: '1234',
+    managerPin: '123456',
     deliveryArea: {
       baseAddress: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
       radiusKm: 7,
@@ -420,9 +420,18 @@ export default function App() {
           });
         }
 
+        const normalizedPin = remoteSettings.managerPin
+          ? remoteSettings.managerPin.length === 6
+            ? remoteSettings.managerPin
+            : remoteSettings.managerPin === '1234'
+            ? '123456'
+            : remoteSettings.managerPin.padEnd(6, '0')
+          : '123456';
+
         setStoreSettings(prev => ({
           ...prev,
           ...remoteSettings,
+          managerPin: normalizedPin,
           tables: cleanedTables || prev.tables,
           employees: cleanedEmployees || prev.employees,
         }));
@@ -1029,7 +1038,7 @@ export default function App() {
       {/* Modals */}
       {isPinModalOpen && (
         <ManagerPinModal
-          correctPin={storeSettings.managerPin || '1234'}
+          correctPin={storeSettings.managerPin || '123456'}
           onSuccess={handlePinSuccess}
           onClose={() => setIsPinModalOpen(false)}
         />
@@ -1065,6 +1074,7 @@ export default function App() {
       {isManualOrderOpen && (
         <ManualOrderModal
           products={products}
+          storeSettings={storeSettings}
           onAddOrder={handleManualOrderAdd}
           onClose={() => setIsManualOrderOpen(false)}
         />

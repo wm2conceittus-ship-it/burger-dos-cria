@@ -171,7 +171,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'pizzas' | 'salgados' | 'sucos' | 'bebidas'>('all');
-  const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '1234');
+  const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '123456');
   const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -5728,23 +5728,23 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#353535]/50">
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-[#b4b5b5]">
-                    Alterar PIN de Acesso (4 dígitos numéricos)
+                    Alterar PIN de Acesso (6 dígitos numéricos)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
-                      maxLength={4}
+                      maxLength={6}
                       inputMode="numeric"
                       value={managerPinInput}
-                      onChange={e => setManagerPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      placeholder="Ex: 1234"
-                      className="w-32 bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-center tracking-widest text-lg font-bold focus:border-[#ff5722] focus:outline-none"
+                      onChange={e => setManagerPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="Ex: 123456"
+                      className="w-36 bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-center tracking-widest text-lg font-bold focus:border-[#ff5722] focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        if (managerPinInput.length !== 4) {
-                          alert('O PIN deve conter exatamente 4 dígitos numéricos.');
+                        if (managerPinInput.length !== 6) {
+                          alert('O PIN deve conter exatamente 6 dígitos numéricos.');
                           return;
                         }
                         onUpdateStoreSettings({
@@ -5760,7 +5760,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </button>
                   </div>
                   <p className="text-[11px] text-[#8e8e8e]">
-                    PIN ativo no momento: <strong className="text-white font-mono">{storeSettings.managerPin || '1234'}</strong>
+                    PIN ativo no momento: <strong className="text-white font-mono">{storeSettings.managerPin || '123456'}</strong>
                   </p>
                 </div>
 
@@ -5770,7 +5770,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span>Proteção contra clientes e visitantes</span>
                   </div>
                   <p className="leading-relaxed">
-                    Nenhum cliente conseguirá ver os relatórios de faturamento, pedidos da cozinha ou custos sem digitar esse PIN de 4 dígitos.
+                    Nenhum cliente conseguirá ver os relatórios de faturamento, pedidos da cozinha ou custos sem digitar esse PIN de 6 dígitos.
                   </p>
                 </div>
               </div>
