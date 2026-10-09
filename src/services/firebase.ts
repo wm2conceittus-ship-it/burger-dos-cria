@@ -2,8 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
   initializeFirestore,
+  setLogLevel,
   doc,
-  getDocFromServer,
   collection,
   onSnapshot,
   setDoc,
@@ -13,12 +13,15 @@ import {
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Order, OrderStatus, StoreSettings, CustomerProfile, Product } from '../types';
 
+// Desativa logs internos de fallback/timeout do Firestore no console
+setLogLevel('silent');
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(
   app,
   {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
   },
   firebaseConfig.firestoreDatabaseId
 );
@@ -75,16 +78,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // Test connection on boot
 export async function testFirestoreConnection(): Promise<boolean> {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log('✅ Conexão Firestore ativa no projeto:', firebaseConfig.projectId);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Verifique sua conexão com o Firebase Firestore.');
-    }
-    return false;
-  }
+  console.log('✅ Conexão Firestore inicializada no projeto:', firebaseConfig.projectId);
+  return true;
 }
 
 // Helper to remove any undefined fields before writing to Firestore

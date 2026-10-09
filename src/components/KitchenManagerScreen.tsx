@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
@@ -56,16 +56,28 @@ import {
   Banknote,
   Kanban,
   LayoutGrid,
+  GalleryHorizontal,
   GripVertical,
   ArrowRight,
   ArrowLeft,
   ChevronRight,
+  ChevronLeft,
+  ChevronDown,
   CheckCircle2,
+  CheckCheck,
   Volume2,
   VolumeX,
   Globe,
   Upload,
   Camera,
+  Search,
+  RotateCcw,
+  Package,
+  Eye,
+  EyeOff,
+  Minimize2,
+  Maximize2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { compressImageFile } from '../utils/imageUpload';
 import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
@@ -165,21 +177,54 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
 
-  // Layout mode for orders: 'kanban' | 'grid'
-  const [ordersLayoutMode, setOrdersLayoutMode] = useState<'kanban' | 'grid'>(() => {
+  // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
+  const [ordersLayoutMode, setOrdersLayoutMode] = useState<'carousel' | 'kanban' | 'grid'>(() => {
     try {
-      return (localStorage.getItem('kitchen_kds_layout') as 'kanban' | 'grid') || 'kanban';
+      const saved = localStorage.getItem('kitchen_kds_layout');
+      if (saved === 'grid') return 'grid';
+      if (saved === 'kanban') return 'carousel'; // Migrated to carousel per user request
+      if (saved === 'carousel') return 'carousel';
+      return 'carousel';
     } catch {
-      return 'kanban';
+      return 'carousel';
     }
   });
 
-  // Drag and drop state for Kanban
+  // Carousel navigation state
+  const [carouselActiveIndex, setCarouselActiveIndex] = useState(0);
+  const carouselTrackRef = useRef<HTMLDivElement>(null);
+
+  // Drag and drop state for Kanban (Desktop Mouse & Mobile Touch)
+  interface TouchDragState {
+    order: Order;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    hoverColumn: 'novo' | 'preparando' | 'pronto' | 'em_entrega' | 'concluido' | null;
+  }
+  const [touchDrag, setTouchDrag] = useState<TouchDragState | null>(null);
+  const touchDragRef = useRef<TouchDragState | null>(null);
+  touchDragRef.current = touchDrag;
+
   const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<'novo' | 'preparando' | 'pronto' | 'em_entrega' | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<'novo' | 'preparando' | 'pronto' | 'em_entrega' | 'concluido' | null>(null);
   const [kdsToast, setKdsToast] = useState<string | null>(null);
 
-  const handleSelectOrdersLayoutMode = (mode: 'kanban' | 'grid') => {
+  // Kanban filters & options
+  const [kanbanSearch, setKanbanSearch] = useState('');
+  const [kanbanTypeFilter, setKanbanTypeFilter] = useState<'todos' | 'Delivery' | 'Retirada' | 'Mesa'>('todos');
+  const [showFinishedKanban, setShowFinishedKanban] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('kitchen_kanban_show_finished') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [quickMoveOrderId, setQuickMoveOrderId] = useState<string | null>(null);
+  const [rejectOrderTarget, setRejectOrderTarget] = useState<Order | null>(null);
+
+  const handleSelectOrdersLayoutMode = (mode: 'carousel' | 'kanban' | 'grid') => {
     setOrdersLayoutMode(mode);
     try {
       localStorage.setItem('kitchen_kds_layout', mode);
@@ -188,7 +233,45 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     }
   };
 
-  const executeMoveOrder = (order: Order, targetCol: 'novo' | 'preparando' | 'pronto' | 'em_entrega') => {
+  const handleToggleShowFinishedKanban = () => {
+    setShowFinishedKanban(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('kitchen_kanban_show_finished', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // Densidade/Tamanho dos cards (compacto vs padrão, padrão inicial compacto conforme solicitado)
+  const [cardDensity, setCardDensity] = useState<'compact' | 'normal'>(() => {
+    try {
+      const saved = localStorage.getItem('kitchen_kds_card_density');
+      if (saved === 'compact' || saved === 'normal') return saved;
+      return 'compact';
+    } catch {
+      return 'compact';
+    }
+  });
+
+  const handleToggleCardDensity = () => {
+    setCardDensity(prev => {
+      const next = prev === 'compact' ? 'normal' : 'compact';
+      try {
+        localStorage.setItem('kitchen_kds_card_density', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const executeMoveOrder = (
+    order: Order,
+    targetCol: 'novo' | 'preparando' | 'pronto' | 'em_entrega' | 'concluido'
+  ) => {
     const currentCol =
       order.status === 'novo' || order.status === 'recebido'
         ? 'novo'
@@ -198,7 +281,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         ? 'pronto'
         : order.status === 'em_entrega'
         ? 'em_entrega'
-        : 'novo';
+        : 'concluido';
 
     if (currentCol === targetCol) return;
 
@@ -215,7 +298,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       } else {
         onAcceptOrder(order.id);
       }
-      setKdsToast(`Pedido #${order.orderNumber} aceito e em preparo na chapa! 🍳`);
+      setKdsToast(`Pedido #${order.orderNumber} em preparo na chapa! 🍳`);
     } else if (targetCol === 'pronto') {
       if (order.status === 'preparando') {
         onAdvanceToReady(order.id);
@@ -243,12 +326,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         onAdvanceToDelivery(order.id);
         setKdsToast(`Pedido #${order.orderNumber} despachado para entrega! 🛵`);
       }
+    } else if (targetCol === 'concluido') {
+      onCompleteOrder(order.id);
+      setKdsToast(`Pedido #${order.orderNumber} finalizado com sucesso! ✅`);
     }
 
+    setQuickMoveOrderId(null);
     setTimeout(() => setKdsToast(null), 3500);
   };
 
-  const handleDropOnColumn = (targetCol: 'novo' | 'preparando' | 'pronto' | 'em_entrega') => {
+  const handleDropOnColumn = (targetCol: 'novo' | 'preparando' | 'pronto' | 'em_entrega' | 'concluido') => {
     const orderId = draggedOrderId;
     setDraggedOrderId(null);
     setDragOverColumn(null);
@@ -258,6 +345,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     if (!order) return;
 
     executeMoveOrder(order, targetCol);
+
+    if (ordersLayoutMode === 'carousel') {
+      const targetIdx = kanbanColumns.findIndex(c => c.key === targetCol);
+      if (targetIdx !== -1) {
+        scrollToCarouselIndex(targetIdx);
+      }
+    }
   };
 
   // Financial Management State - starts 100% clean / zeroed out
@@ -683,6 +777,294 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const emEntregaOrders = orders.filter(o => o.status === 'em_entrega');
   const historicoOrders = orders.filter(o => o.status === 'entregue' || o.status === 'recusado');
   const abertosOrders = orders.filter(o => o.status !== 'entregue' && o.status !== 'recusado');
+
+  // Filtered orders specifically for the Kanban board
+  const filteredKanbanOrders = useMemo(() => {
+    return orders.filter(order => {
+      // Channel type filter
+      if (kanbanTypeFilter !== 'todos') {
+        if (order.type !== kanbanTypeFilter) return false;
+      }
+      // Search query across multiple fields
+      if (kanbanSearch.trim()) {
+        const q = kanbanSearch.trim().toLowerCase();
+        const numMatch = (order.orderNumber || '').toLowerCase().includes(q);
+        const nameMatch = (order.customerName || '').toLowerCase().includes(q);
+        const phoneMatch = (order.customerPhone || '').toLowerCase().includes(q);
+        const addrMatch = (order.address || '').toLowerCase().includes(q);
+        const tableMatch = order.tableNumber ? String(order.tableNumber).includes(q) : false;
+        const itemMatch = (order.items || []).some(it => it.name.toLowerCase().includes(q));
+        if (!numMatch && !nameMatch && !phoneMatch && !addrMatch && !tableMatch && !itemMatch) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [orders, kanbanTypeFilter, kanbanSearch]);
+
+  const kanbanNovosOrders = useMemo(
+    () => filteredKanbanOrders.filter(o => o.status === 'novo' || o.status === 'recebido'),
+    [filteredKanbanOrders]
+  );
+  const kanbanPreparandoOrders = useMemo(
+    () => filteredKanbanOrders.filter(o => o.status === 'preparando'),
+    [filteredKanbanOrders]
+  );
+  const kanbanProntosOrders = useMemo(
+    () => filteredKanbanOrders.filter(o => o.status === 'pronto'),
+    [filteredKanbanOrders]
+  );
+  const kanbanEmEntregaOrders = useMemo(
+    () => filteredKanbanOrders.filter(o => o.status === 'em_entrega'),
+    [filteredKanbanOrders]
+  );
+  const kanbanConcluidosOrders = useMemo(
+    () => filteredKanbanOrders.filter(o => o.status === 'entregue' || o.status === 'recusado'),
+    [filteredKanbanOrders]
+  );
+
+  const handleAcceptAllNewOrders = () => {
+    if (kanbanNovosOrders.length === 0) return;
+    kanbanNovosOrders.forEach(o => onAcceptOrder(o.id));
+    setKdsToast(`🔥 ${kanbanNovosOrders.length} pedido(s) aceitos e enviados para preparo!`);
+    setTimeout(() => setKdsToast(null), 3500);
+  };
+
+  const kanbanColumns = useMemo(
+    () => [
+      {
+        key: 'novo' as const,
+        title: 'Novos',
+        subtitle: 'Aguardando aceite',
+        icon: Flame,
+        colorText: 'text-[#ff8a65]',
+        topBar: 'bg-[#ff5722]',
+        headerBg: 'bg-gradient-to-r from-[#ff5722]/20 to-[#ff5722]/5',
+        borderColor: 'border-[#ff5722]/40',
+        activeRing: 'ring-2 ring-[#ff5722] bg-[#ff5722]/10 border-[#ff5722]',
+        badgeBg: 'bg-[#ff5722]/20 text-[#ff8a65] border-[#ff5722]/40',
+        orders: kanbanNovosOrders,
+      },
+      {
+        key: 'preparando' as const,
+        title: 'Em Preparo',
+        subtitle: 'Na chapa e cozinha',
+        icon: Soup,
+        colorText: 'text-amber-400',
+        topBar: 'bg-amber-500',
+        headerBg: 'bg-gradient-to-r from-amber-500/20 to-amber-500/5',
+        borderColor: 'border-amber-500/40',
+        activeRing: 'ring-2 ring-amber-500 bg-amber-500/10 border-amber-500',
+        badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+        orders: kanbanPreparandoOrders,
+      },
+      {
+        key: 'pronto' as const,
+        title: 'Pronto',
+        subtitle: 'Embalado / Balcão',
+        icon: Package,
+        colorText: 'text-emerald-400',
+        topBar: 'bg-emerald-500',
+        headerBg: 'bg-gradient-to-r from-emerald-500/20 to-emerald-500/5',
+        borderColor: 'border-emerald-500/40',
+        activeRing: 'ring-2 ring-emerald-500 bg-emerald-500/10 border-emerald-500',
+        badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+        orders: kanbanProntosOrders,
+      },
+      {
+        key: 'em_entrega' as const,
+        title: 'Em Rota',
+        subtitle: 'Despachado / Entrega',
+        icon: Bike,
+        colorText: 'text-sky-400',
+        topBar: 'bg-sky-500',
+        headerBg: 'bg-gradient-to-r from-sky-500/20 to-sky-500/5',
+        borderColor: 'border-sky-500/40',
+        activeRing: 'ring-2 ring-sky-500 bg-sky-500/10 border-sky-500',
+        badgeBg: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+        orders: kanbanEmEntregaOrders,
+      },
+      ...(showFinishedKanban
+        ? [
+            {
+              key: 'concluido' as const,
+              title: 'Finalizados',
+              subtitle: 'Entregues hoje',
+              icon: CheckCircle2,
+              colorText: 'text-slate-300',
+              topBar: 'bg-slate-500',
+              headerBg: 'bg-gradient-to-r from-slate-600/20 to-slate-600/5',
+              borderColor: 'border-slate-500/40',
+              activeRing: 'ring-2 ring-slate-400 bg-slate-500/10 border-slate-400',
+              badgeBg: 'bg-slate-500/20 text-slate-300 border-slate-500/40',
+              orders: kanbanConcluidosOrders,
+            },
+          ]
+        : []),
+    ],
+    [
+      kanbanNovosOrders,
+      kanbanPreparandoOrders,
+      kanbanProntosOrders,
+      kanbanEmEntregaOrders,
+      kanbanConcluidosOrders,
+      showFinishedKanban,
+    ]
+  );
+
+  const safeCarouselIndex = Math.min(carouselActiveIndex, Math.max(0, kanbanColumns.length - 1));
+
+  const scrollToCarouselIndex = (index: number) => {
+    if (!carouselTrackRef.current) return;
+    const container = carouselTrackRef.current;
+    const clamped = Math.max(0, Math.min(index, kanbanColumns.length - 1));
+    const child = container.children[clamped] as HTMLElement | undefined;
+    if (child) {
+      child.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      setCarouselActiveIndex(clamped);
+    }
+  };
+
+  const handleCarouselScroll = () => {
+    if (!carouselTrackRef.current) return;
+    const container = carouselTrackRef.current;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.clientWidth;
+    const columns = Array.from(container.children) as HTMLElement[];
+    if (columns.length === 0) return;
+
+    const centerPoint = scrollLeft + containerWidth / 2;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    columns.forEach((col, idx) => {
+      const colCenter = col.offsetLeft + col.offsetWidth / 2;
+      const dist = Math.abs(colCenter - centerPoint);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = idx;
+      }
+    });
+
+    if (closestIndex !== carouselActiveIndex) {
+      setCarouselActiveIndex(closestIndex);
+    }
+  };
+
+  // Início do arrasto por toque com o dedo (Mobile Touch Drag para celulares)
+  const handleTouchDragStart = (e: React.TouchEvent, order: Order) => {
+    e.stopPropagation();
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const initialDrag: TouchDragState = {
+      order,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      currentY: touch.clientY,
+      hoverColumn: null,
+    };
+    setTouchDrag(initialDrag);
+    setDraggedOrderId(order.id);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(35);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  // Efeito global de touchmove e touchend durante o arrasto com o dedo no celular
+  useEffect(() => {
+    if (!touchDrag) return;
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (!touchDragRef.current || e.touches.length === 0) return;
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+
+      const touch = e.touches[0];
+      const targetElem = document.elementFromPoint(touch.clientX, touch.clientY);
+      const dropTarget = targetElem?.closest('[data-drop-column]')?.getAttribute('data-drop-column') as
+        | 'novo'
+        | 'preparando'
+        | 'pronto'
+        | 'em_entrega'
+        | 'concluido'
+        | null;
+
+      // Auto-rolagem horizontal do carrossel ao arrastar próximo às bordas da tela
+      if (carouselTrackRef.current) {
+        const edgeThreshold = 65;
+        if (touch.clientX > window.innerWidth - edgeThreshold) {
+          carouselTrackRef.current.scrollBy({ left: 14, behavior: 'auto' });
+        } else if (touch.clientX < edgeThreshold) {
+          carouselTrackRef.current.scrollBy({ left: -14, behavior: 'auto' });
+        }
+      }
+
+      const prevHover = touchDragRef.current.hoverColumn;
+      if (dropTarget !== prevHover && dropTarget && typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(20);
+        } catch {
+          // ignore
+        }
+      }
+
+      setTouchDrag(prev =>
+        prev
+          ? {
+              ...prev,
+              currentX: touch.clientX,
+              currentY: touch.clientY,
+              hoverColumn: dropTarget || null,
+            }
+          : null
+      );
+
+      setDragOverColumn(dropTarget || null);
+    };
+
+    const handleGlobalTouchEnd = () => {
+      const current = touchDragRef.current;
+      if (current) {
+        const finalCol = current.hoverColumn;
+        if (finalCol) {
+          executeMoveOrder(current.order, finalCol);
+          if (ordersLayoutMode === 'carousel') {
+            const targetIdx = kanbanColumns.findIndex(c => c.key === finalCol);
+            if (targetIdx !== -1) {
+              scrollToCarouselIndex(targetIdx);
+            }
+          }
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try {
+              navigator.vibrate([40, 30, 60]);
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+
+      setTouchDrag(null);
+      setDraggedOrderId(null);
+      setDragOverColumn(null);
+    };
+
+    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    window.addEventListener('touchend', handleGlobalTouchEnd);
+    window.addEventListener('touchcancel', handleGlobalTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchmove', handleGlobalTouchMove);
+      window.removeEventListener('touchend', handleGlobalTouchEnd);
+      window.removeEventListener('touchcancel', handleGlobalTouchEnd);
+    };
+  }, [touchDrag !== null, ordersLayoutMode, kanbanColumns]);
 
   const filteredOrders = orders.filter(order => {
     if (statusFilter === 'novos') return order.status === 'novo' || order.status === 'recebido';
@@ -1137,188 +1519,640 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </section>
 
-            {/* Status Toggles Horizontal Filter Bar & Layout Switcher */}
-            <section className="bg-[#1b1a19] border border-[#353535] rounded-xl p-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shadow-inner">
-              <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
-                <span className="text-[10px] font-bold uppercase text-[#8e8f8f] pl-1 font-['Montserrat'] whitespace-nowrap hidden sm:inline">
-                  Filtrar:
-                </span>
-
-                <button
-                  onClick={() => setStatusFilter('todos')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    statusFilter === 'todos'
-                      ? 'bg-[#ff5722] text-white shadow-sm font-bold'
-                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <span>Todos</span>
-                  <span className="text-[10px] opacity-80 font-mono">({orders.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setStatusFilter('novos')}
-                  className={`flex-shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                    statusFilter === 'novos'
-                      ? 'border-[#ff5722] bg-[#ff5722]/20 text-[#ff8a65] shadow-sm ring-1 ring-[#ff5722]/40'
-                      : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <span className="w-2 h-2 bg-[#ff5722] rounded-full animate-ping" />
-                  <span>Novos</span>
-                  <span className="text-[10px] font-mono text-[#ff8a65] font-black">({novosOrders.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setStatusFilter('preparando')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                    statusFilter === 'preparando'
-                      ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold'
-                      : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                  <span>Preparando</span>
-                  <span className="text-[10px] font-mono opacity-80">({preparandoOrders.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setStatusFilter('prontos')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                    statusFilter === 'prontos'
-                      ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 font-bold'
-                      : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                  <span>Prontos</span>
-                  <span className="text-[10px] font-mono opacity-80">({prontosOrders.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setStatusFilter('em_entrega')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                    statusFilter === 'em_entrega'
-                      ? 'border-blue-500/60 bg-blue-500/20 text-blue-300 font-bold'
-                      : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <Bike className="w-3.5 h-3.5" />
-                  <span>Em Entrega</span>
-                  <span className="text-[10px] font-mono opacity-80">({emEntregaOrders.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setStatusFilter('historico')}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                    statusFilter === 'historico'
-                      ? 'border-[#ff5722]/50 bg-[#ff5722]/15 text-[#ff8a65] font-bold'
-                      : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
-                  }`}
-                >
-                  <span>Histórico</span>
-                  <span className="text-[10px] font-mono opacity-80">({historicoOrders.length})</span>
-                </button>
-              </div>
-
-              {/* Seletor de Modo de Exibição (Kanban vs Grade) */}
-              <div className="inline-flex items-center p-1 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-end sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => handleSelectOrdersLayoutMode('kanban')}
-                  className={`h-7 px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
-                    ordersLayoutMode === 'kanban'
-                      ? 'bg-[#ff5722] text-white shadow-md'
-                      : 'text-[#b4b5b5] hover:text-white'
-                  }`}
-                  title="Modo Kanban (arraste os cards entre colunas)"
-                >
-                  <Kanban className="w-3.5 h-3.5" />
-                  <span>Kanban</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectOrdersLayoutMode('grid')}
-                  className={`h-7 px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
-                    ordersLayoutMode === 'grid'
-                      ? 'bg-[#ff5722] text-white shadow-md'
-                      : 'text-[#b4b5b5] hover:text-white'
-                  }`}
-                  title="Modo Grade tradicional"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Grade</span>
-                </button>
-              </div>
-            </section>
-
-            {/* Visualização dos Pedidos: Kanban ou Bento Grid */}
-            {ordersLayoutMode === 'kanban' ? (
-              /* ================= MODO KANBAN (COLUNAS COM ARRASTAR E SOLTAR) ================= */
-              <div className="space-y-4">
-                {/* Banner Informativo do Kanban */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#b4b5b5] bg-[#1b1a19] border border-[#353535] px-4 py-2.5 rounded-xl shadow-inner">
-                  <div className="flex items-center gap-2">
-                    <Kanban className="w-4 h-4 text-[#ff5722] shrink-0" />
-                    <span>
-                      <strong className="text-white">Quadro Kanban:</strong> Arraste e solte os pedidos entre as colunas <span className="text-[#ff8a65] font-bold">Novo</span>, <span className="text-amber-300 font-bold">Preparando</span>, <span className="text-emerald-300 font-bold">Pronto</span> e <span className="text-blue-300 font-bold">Entrega</span> ou clique nos botões de avançar.
-                    </span>
+            {/* Barra de Filtros e Seletor de Modo (Carrossel vs Kanban vs Grade) */}
+            {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
+              /* Toolbar Dedicada do Modo Carrossel & Kanban */
+              <section className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-3 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-md">
+                {/* Esquerda: Busca rápida e Filtro por Canal de Atendimento */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
+                  {/* Campo de Busca Rápida */}
+                  <div className="relative flex-1 min-w-[200px] max-w-md">
+                    <Search className="w-4 h-4 text-[#8e8f8f] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={kanbanSearch}
+                      onChange={e => setKanbanSearch(e.target.value)}
+                      placeholder="Buscar pedido #, cliente, item, mesa..."
+                      className="w-full bg-[#141414] border border-[#353535] focus:border-[#ff5722] text-white text-xs pl-9 pr-8 py-2 rounded-xl focus:outline-none transition-colors placeholder:text-[#6e6e6e]"
+                    />
+                    {kanbanSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setKanbanSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8e8f8f] hover:text-white p-0.5"
+                        title="Limpar busca"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono text-[#8e8f8f]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>{abertosOrders.length} pedido(s) em aberto</span>
+
+                  {/* Filtros por Canal (Todos, Delivery, Balcão, Mesas) */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar shrink-0">
+                    {(
+                      [
+                        { id: 'todos', label: 'Todos os Canais' },
+                        { id: 'Delivery', label: 'Delivery', icon: Bike },
+                        { id: 'Retirada', label: 'Balcão', icon: ShoppingBag },
+                        { id: 'Mesa', label: 'Mesas', icon: UtensilsCrossed },
+                      ] as const
+                    ).map(f => {
+                      const Icon = 'icon' in f ? f.icon : null;
+                      const isSel = kanbanTypeFilter === f.id;
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setKanbanTypeFilter(f.id as any)}
+                          className={`h-8 px-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border whitespace-nowrap active:scale-95 ${
+                            isSel
+                              ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm'
+                              : 'bg-[#141414] text-[#b4b5b5] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
+                          }`}
+                        >
+                          {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                          <span>{f.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* As 4 Colunas Kanban */}
-                <div className="flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
-                  {[
-                    {
-                      key: 'novo' as const,
-                      title: 'Novo',
-                      subtitle: 'Aguardando aceite',
-                      icon: Flame,
-                      colorText: 'text-[#ff8a65]',
-                      headerBg: 'bg-[#ff5722]/15',
-                      activeRing: 'ring-2 ring-[#ff5722] bg-[#ff5722]/10 border-[#ff5722]',
-                      orders: novosOrders,
-                    },
-                    {
-                      key: 'preparando' as const,
-                      title: 'Preparando',
-                      subtitle: 'Na chapa e produção',
-                      icon: Soup,
-                      colorText: 'text-amber-300',
-                      headerBg: 'bg-amber-500/15',
-                      activeRing: 'ring-2 ring-amber-500 bg-amber-500/10 border-amber-500',
-                      orders: preparandoOrders,
-                    },
-                    {
-                      key: 'pronto' as const,
-                      title: 'Pronto',
-                      subtitle: 'Embalado / Retirada',
-                      icon: CheckCircle2,
-                      colorText: 'text-emerald-300',
-                      headerBg: 'bg-emerald-500/15',
-                      activeRing: 'ring-2 ring-emerald-500 bg-emerald-500/10 border-emerald-500',
-                      orders: prontosOrders,
-                    },
-                    {
-                      key: 'em_entrega' as const,
-                      title: 'Entrega',
-                      subtitle: 'Em rota / Despachado',
-                      icon: Bike,
-                      colorText: 'text-blue-300',
-                      headerBg: 'bg-blue-500/15',
-                      activeRing: 'ring-2 ring-blue-500 bg-blue-500/10 border-blue-500',
-                      orders: emEntregaOrders,
-                    },
-                  ].map(col => {
+                {/* Direita: Toggle Finalizados + Seletor de Modo (Carrossel / Kanban / Grade) */}
+                <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 flex-wrap sm:flex-nowrap border-t lg:border-t-0 pt-2 lg:pt-0 border-[#353535]/50">
+                  {/* Toggle Coluna Finalizados */}
+                  <button
+                    type="button"
+                    onClick={handleToggleShowFinishedKanban}
+                    className={`h-8 px-3 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
+                      showFinishedKanban
+                        ? 'bg-slate-700/50 text-slate-200 border-slate-500 shadow-sm'
+                        : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
+                    }`}
+                    title={showFinishedKanban ? 'Ocultar coluna de finalizados' : 'Exibir coluna de pedidos finalizados'}
+                  >
+                    {showFinishedKanban ? <Eye className="w-3.5 h-3.5 text-slate-300" /> : <EyeOff className="w-3.5 h-3.5 text-[#8e8f8f]" />}
+                    <span>Finalizados</span>
+                    <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-black/40 text-slate-300 border border-white/10">
+                      {kanbanConcluidosOrders.length}
+                    </span>
+                  </button>
+
+                  {/* Toggle Tamanho do Card (Pequenos / Médios) */}
+                  <button
+                    type="button"
+                    onClick={handleToggleCardDensity}
+                    className={`h-8 px-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
+                      cardDensity === 'compact'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-sm'
+                        : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
+                    }`}
+                    title={cardDensity === 'compact' ? 'Cards em tamanho reduzido (clique para tamanho padrão)' : 'Cards em tamanho padrão (clique para diminuir tamanho)'}
+                  >
+                    {cardDensity === 'compact' ? (
+                      <Minimize2 className="w-3.5 h-3.5 text-amber-300" />
+                    ) : (
+                      <Maximize2 className="w-3.5 h-3.5 text-[#8e8f8f]" />
+                    )}
+                    <span className="hidden sm:inline">Cards:</span>
+                    <span>{cardDensity === 'compact' ? 'Pequenos' : 'Médios'}</span>
+                  </button>
+
+                  {/* Seletor de Modo (Carrossel vs Kanban vs Grade) */}
+                  <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectOrdersLayoutMode('carousel')}
+                      className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                        ordersLayoutMode === 'carousel'
+                          ? 'bg-[#ff5722] text-white shadow-md'
+                          : 'text-[#b4b5b5] hover:text-white'
+                      }`}
+                      title="Modo Carrossel focado com navegação por etapas"
+                    >
+                      <GalleryHorizontal className="w-3.5 h-3.5" />
+                      <span>Carrossel</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectOrdersLayoutMode('kanban')}
+                      className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                        ordersLayoutMode === 'kanban'
+                          ? 'bg-[#ff5722] text-white shadow-md'
+                          : 'text-[#b4b5b5] hover:text-white'
+                      }`}
+                      title="Quadro Kanban com todas as colunas lado a lado"
+                    >
+                      <Kanban className="w-3.5 h-3.5" />
+                      <span>Kanban</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectOrdersLayoutMode('grid')}
+                      className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
+                      title="Modo Grade tradicional"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span>Grade</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              /* Toolbar Tradicional do Modo Grade */
+              <section className="bg-[#1b1a19] border border-[#353535] rounded-xl p-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shadow-inner">
+                <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                  <span className="text-[10px] font-bold uppercase text-[#8e8f8f] pl-1 font-['Montserrat'] whitespace-nowrap hidden sm:inline">
+                    Filtrar:
+                  </span>
+
+                  <button
+                    onClick={() => setStatusFilter('todos')}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      statusFilter === 'todos'
+                        ? 'bg-[#ff5722] text-white shadow-sm font-bold'
+                        : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <span>Todos</span>
+                    <span className="text-[10px] opacity-80 font-mono">({orders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('novos')}
+                    className={`flex-shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                      statusFilter === 'novos'
+                        ? 'border-[#ff5722] bg-[#ff5722]/20 text-[#ff8a65] shadow-sm ring-1 ring-[#ff5722]/40'
+                        : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <span className="w-2 h-2 bg-[#ff5722] rounded-full animate-ping" />
+                    <span>Novos</span>
+                    <span className="text-[10px] font-mono text-[#ff8a65] font-black">({novosOrders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('preparando')}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      statusFilter === 'preparando'
+                        ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold'
+                        : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                    <span>Preparando</span>
+                    <span className="text-[10px] font-mono opacity-80">({preparandoOrders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('prontos')}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      statusFilter === 'prontos'
+                        ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 font-bold'
+                        : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                    <span>Prontos</span>
+                    <span className="text-[10px] font-mono opacity-80">({prontosOrders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('em_entrega')}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      statusFilter === 'em_entrega'
+                        ? 'border-blue-500/60 bg-blue-500/20 text-blue-300 font-bold'
+                        : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <Bike className="w-3.5 h-3.5" />
+                    <span>Em Entrega</span>
+                    <span className="text-[10px] font-mono opacity-80">({emEntregaOrders.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setStatusFilter('historico')}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      statusFilter === 'historico'
+                        ? 'border-[#ff5722]/50 bg-[#ff5722]/15 text-[#ff8a65] font-bold'
+                        : 'border-transparent text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    }`}
+                  >
+                    <span>Histórico</span>
+                    <span className="text-[10px] font-mono opacity-80">({historicoOrders.length})</span>
+                  </button>
+                </div>
+
+                <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectOrdersLayoutMode('carousel')}
+                    className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
+                    title="Modo Carrossel"
+                  >
+                    <GalleryHorizontal className="w-3.5 h-3.5" />
+                    <span>Carrossel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectOrdersLayoutMode('kanban')}
+                    className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
+                    title="Quadro Kanban"
+                  >
+                    <Kanban className="w-3.5 h-3.5" />
+                    <span>Kanban</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectOrdersLayoutMode('grid')}
+                    className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 bg-[#ff5722] text-white shadow-md"
+                    title="Modo Grade"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Grade</span>
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Visualização dos Pedidos: Carrossel / Kanban Organizado vs Bento Grid */}
+            {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
+              /* ================= MODO CARROSSEL & KANBAN COMPLETO ================= */
+              <div className="space-y-3.5">
+                {/* Banner Informativo & Resumo Operacional */}
+                <div className="bg-[#1b1a19] border border-[#353535] px-4 py-3 rounded-2xl shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center shrink-0">
+                      {ordersLayoutMode === 'carousel' ? (
+                        <GalleryHorizontal className="w-4 h-4 text-[#ff5722]" />
+                      ) : (
+                        <Kanban className="w-4 h-4 text-[#ff5722]" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong className="text-white text-xs font-['Montserrat'] font-black">
+                          {ordersLayoutMode === 'carousel' ? 'Gestor KDS • Modo Carrossel' : 'Gestor KDS • Quadro Kanban'}
+                        </strong>
+                        <span className="text-[11px] text-[#b4b5b5] font-light">
+                          {ordersLayoutMode === 'carousel'
+                            ? 'Navegue pelas etapas ou deslize as colunas para focar na produção de cada fase.'
+                            : 'Arraste os cards entre colunas ou use os botões rápidos de avanço.'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-[#8e8f8f] font-mono mt-0.5">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          {abertosOrders.length} em aberto (R$ {abertosOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2).replace('.', ',')})
+                        </span>
+                        {kanbanNovosOrders.length > 0 && (
+                          <span className="flex items-center gap-1 text-[#ff8a65] font-bold">
+                            <Flame className="w-3 h-3 text-[#ff5722]" />
+                            {kanbanNovosOrders.length} aguardando aceite
+                          </span>
+                        )}
+                        {ordersLayoutMode === 'carousel' && kanbanColumns[safeCarouselIndex] && (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-sky-400 font-bold">
+                            Etapa {safeCarouselIndex + 1} de {kanbanColumns.length}: {kanbanColumns[safeCarouselIndex]?.title}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ação Rápida: Aceitar todos os novos em lote se houver múltiplos */}
+                  {kanbanNovosOrders.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={handleAcceptAllNewOrders}
+                      className="btn-flame text-white text-xs font-['Montserrat'] font-bold px-3 py-1.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 shrink-0 self-start md:self-auto"
+                      title="Aceitar todos os pedidos novos pendentes de uma vez"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                      <span>Aceitar Todos ({kanbanNovosOrders.length})</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Barra de Navegação Dedicada do Carrossel (Abas & Setas) */}
+                {ordersLayoutMode === 'carousel' && (
+                  <div className="bg-[#181716] border border-[#353535] rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-inner">
+                    {/* Botão Anterior */}
+                    <button
+                      type="button"
+                      data-drop-column={safeCarouselIndex > 0 ? kanbanColumns[safeCarouselIndex - 1].key : undefined}
+                      disabled={safeCarouselIndex === 0}
+                      onClick={() => scrollToCarouselIndex(safeCarouselIndex - 1)}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        if (safeCarouselIndex > 0) {
+                          const prevKey = kanbanColumns[safeCarouselIndex - 1].key;
+                          if (dragOverColumn !== prevKey) setDragOverColumn(prevKey);
+                        }
+                      }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        if (safeCarouselIndex > 0) {
+                          handleDropOnColumn(kanbanColumns[safeCarouselIndex - 1].key);
+                        }
+                      }}
+                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-xl text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
+                        safeCarouselIndex === 0
+                          ? 'opacity-30 cursor-not-allowed bg-[#141414] text-[#666] border-[#2c2b2a]'
+                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#ff5722] hover:border-[#ff5722] shadow-sm'
+                      }`}
+                      title="Etapa anterior no carrossel (ou solte o card aqui)"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Anterior</span>
+                    </button>
+
+                    {/* Abas das Etapas com contadores e Drop direto */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar flex-1 justify-start sm:justify-center py-0.5 px-1">
+                      {kanbanColumns.map((col, idx) => {
+                        const isActive = safeCarouselIndex === idx;
+                        const isColDragOver = dragOverColumn === col.key;
+                        const Icon = col.icon;
+                        return (
+                          <button
+                            key={col.key}
+                            type="button"
+                            data-drop-column={col.key}
+                            onClick={() => scrollToCarouselIndex(idx)}
+                            onDragOver={e => {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                              if (dragOverColumn !== col.key) {
+                                setDragOverColumn(col.key);
+                              }
+                            }}
+                            onDragLeave={e => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                setDragOverColumn(null);
+                              }
+                            }}
+                            onDrop={e => {
+                              e.preventDefault();
+                              handleDropOnColumn(col.key);
+                            }}
+                            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all border shrink-0 active:scale-95 ${
+                              isColDragOver
+                                ? 'bg-[#ff5722] text-white ring-2 ring-white border-white scale-110 shadow-lg animate-pulse'
+                                : isActive
+                                ? `${col.topBar} text-white shadow-md ring-2 ring-white/20 border-white/30 scale-105`
+                                : draggedOrderId
+                                ? 'bg-[#222] text-white border-dashed border-[#ff5722]/60 hover:bg-[#ff5722]/30'
+                                : 'bg-[#141414] text-[#b4b5b5] border-[#323232] hover:text-white hover:border-[#4d4d4d]'
+                            }`}
+                            title={`Mudar para etapa ${col.title} (ou solte o card aqui)`}
+                          >
+                            <Icon className="w-3.5 h-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">{idx + 1}. {col.title}</span>
+                            <span className={`px-1.5 py-0.2 rounded-full font-mono text-[10px] ${
+                              isActive ? 'bg-black/40 text-white font-black' : 'bg-black/30 text-[#888]'
+                            }`}>
+                              {col.orders.length}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Botão Próximo */}
+                    <button
+                      type="button"
+                      data-drop-column={safeCarouselIndex < kanbanColumns.length - 1 ? kanbanColumns[safeCarouselIndex + 1].key : undefined}
+                      disabled={safeCarouselIndex === kanbanColumns.length - 1}
+                      onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        if (safeCarouselIndex < kanbanColumns.length - 1) {
+                          const nextKey = kanbanColumns[safeCarouselIndex + 1].key;
+                          if (dragOverColumn !== nextKey) setDragOverColumn(nextKey);
+                        }
+                      }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        if (safeCarouselIndex < kanbanColumns.length - 1) {
+                          handleDropOnColumn(kanbanColumns[safeCarouselIndex + 1].key);
+                        }
+                      }}
+                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-xl text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
+                        safeCarouselIndex === kanbanColumns.length - 1
+                          ? 'opacity-30 cursor-not-allowed bg-[#141414] text-[#666] border-[#2c2b2a]'
+                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#ff5722] hover:border-[#ff5722] shadow-sm'
+                      }`}
+                      title="Próxima etapa no carrossel (ou solte o card aqui)"
+                    >
+                      <span className="hidden sm:inline">Próxima</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Colunas do Carrossel / Kanban com Scroll Suave & Botões Flutuantes */}
+                <div className="relative">
+                  {/* Botão Flutuante Esquerdo (Desktop Carrossel) */}
+                  {ordersLayoutMode === 'carousel' && safeCarouselIndex > 0 && (
+                    <button
+                      type="button"
+                      data-drop-column={kanbanColumns[safeCarouselIndex - 1].key}
+                      onClick={() => scrollToCarouselIndex(safeCarouselIndex - 1)}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        const prevKey = kanbanColumns[safeCarouselIndex - 1].key;
+                        if (dragOverColumn !== prevKey) setDragOverColumn(prevKey);
+                      }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        handleDropOnColumn(kanbanColumns[safeCarouselIndex - 1].key);
+                      }}
+                      className="hidden xl:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-[#1e1d1c]/95 hover:bg-[#ff5722] text-white border border-[#444] hover:border-[#ff5722] shadow-2xl items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      title="Etapa anterior (ou solte o card aqui)"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {/* Botão Flutuante Direito (Desktop Carrossel) */}
+                  {ordersLayoutMode === 'carousel' && safeCarouselIndex < kanbanColumns.length - 1 && (
+                    <button
+                      type="button"
+                      data-drop-column={kanbanColumns[safeCarouselIndex + 1].key}
+                      onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        const nextKey = kanbanColumns[safeCarouselIndex + 1].key;
+                        if (dragOverColumn !== nextKey) setDragOverColumn(nextKey);
+                      }}
+                      onDrop={e => {
+                        e.preventDefault();
+                        handleDropOnColumn(kanbanColumns[safeCarouselIndex + 1].key);
+                      }}
+                      className="hidden xl:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-[#1e1d1c]/95 hover:bg-[#ff5722] text-white border border-[#444] hover:border-[#ff5722] shadow-2xl items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      title="Próxima etapa (ou solte o card aqui)"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {/* Banner Informativo enquanto arrasta um card (Dedo no Celular ou Mouse no PC) */}
+                  {draggedOrderId && (
+                    <div className="mb-2 p-2 sm:p-2.5 rounded-xl bg-[#ff5722]/15 border border-[#ff5722]/60 text-white flex items-center justify-between gap-2 text-xs shadow-lg animate-pulse">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base shrink-0">👆</span>
+                        <span className="font-semibold text-white text-[11px] sm:text-xs truncate">
+                          Arrastando com o dedo/mouse: Solte em qualquer aba do topo, coluna ou na barra de etapas abaixo!
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraggedOrderId(null);
+                          setTouchDrag(null);
+                          setDragOverColumn(null);
+                        }}
+                        className="text-[10px] bg-black/50 hover:bg-black/80 px-2.5 py-1 rounded text-[#ffdad6] hover:text-white shrink-0 font-bold border border-white/10"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Ghost Flutuante que acompanha o dedo na tela do celular */}
+                  {touchDrag && (
+                    <div
+                      style={{
+                        left: `${touchDrag.currentX}px`,
+                        top: `${touchDrag.currentY}px`,
+                      }}
+                      className="fixed pointer-events-none z-[99999] -translate-x-1/2 -translate-y-full -mt-6 w-[260px] sm:w-[280px] bg-[#1e1d1c]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-2xl p-3 shadow-2xl shadow-black/90 text-white select-none transition-transform rotate-2 scale-105 ring-4 ring-[#ff5722]/30"
+                    >
+                      <div className="flex items-center justify-between gap-1.5 mb-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-['Montserrat'] font-black text-xs bg-black/60 px-2 py-0.5 rounded border border-[#ff5722]/40 font-mono text-[#ff8a65]">
+                            #{touchDrag.order.orderNumber}
+                          </span>
+                          <span className="font-bold text-xs truncate max-w-[120px]">
+                            {touchDrag.order.customerName}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-mono font-bold text-emerald-400">
+                          R$ {Number(touchDrag.order.total || 0).toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+
+                      {/* Indicador de destino do toque */}
+                      <div
+                        className={`p-2 rounded-xl text-center text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          touchDrag.hoverColumn
+                            ? 'bg-[#ff5722] text-white shadow-lg animate-pulse ring-2 ring-white/60'
+                            : 'bg-black/60 text-[#b4b5b5] border border-white/10'
+                        }`}
+                      >
+                        {touchDrag.hoverColumn ? (
+                          <>
+                            <span className="text-sm">⬇</span>
+                            <span>Soltar em:</span>
+                            <span className="uppercase tracking-wider underline">
+                              {kanbanColumns.find(c => c.key === touchDrag.hoverColumn)?.title || touchDrag.hoverColumn}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <span>👆</span>
+                            <span>Arraste até uma coluna, aba ou barra</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dock Flutuante de Destino Rápido (Perfeito para celular e toque com os dedos) */}
+                  {draggedOrderId && (
+                    <div className="fixed bottom-3 left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:w-[620px] z-50 bg-[#161615]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-2xl p-2 sm:p-2.5 shadow-2xl shadow-black/90 flex flex-col gap-1.5 animate-in slide-in-from-bottom duration-200">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-white px-1">
+                        <span className="flex items-center gap-1.5 text-[#ff8a65]">
+                          <span className="w-2 h-2 rounded-full bg-[#ff5722] animate-ping" />
+                          Solte o dedo na etapa desejada:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDraggedOrderId(null);
+                            setTouchDrag(null);
+                            setDragOverColumn(null);
+                          }}
+                          className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded text-white font-medium"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
+                        {kanbanColumns.map((col, idx) => {
+                          const isTarget = dragOverColumn === col.key;
+                          const Icon = col.icon;
+                          return (
+                            <div
+                              key={col.key}
+                              data-drop-column={col.key}
+                              onDragOver={e => {
+                                e.preventDefault();
+                                if (dragOverColumn !== col.key) setDragOverColumn(col.key);
+                              }}
+                              onDrop={e => {
+                                e.preventDefault();
+                                handleDropOnColumn(col.key);
+                              }}
+                              onClick={() => {
+                                const orderId = draggedOrderId || touchDrag?.order.id;
+                                if (orderId) {
+                                  const order = orders.find(o => o.id === orderId);
+                                  if (order) {
+                                    executeMoveOrder(order, col.key);
+                                    if (ordersLayoutMode === 'carousel') {
+                                      scrollToCarouselIndex(idx);
+                                    }
+                                  }
+                                  setDraggedOrderId(null);
+                                  setTouchDrag(null);
+                                  setDragOverColumn(null);
+                                }
+                              }}
+                              className={`cursor-pointer rounded-xl p-1.5 sm:p-2 text-center transition-all flex flex-col items-center justify-center gap-1 border select-none ${
+                                isTarget
+                                  ? 'bg-[#ff5722] text-white border-white scale-105 shadow-xl ring-2 ring-white animate-pulse'
+                                  : 'bg-[#222120] text-[#b4b5b5] border-[#383736] hover:bg-white/10 hover:text-white'
+                              }`}
+                            >
+                              <Icon className={`w-3.5 h-3.5 ${isTarget ? 'text-white' : col.colorText}`} />
+                              <span className="text-[10px] sm:text-xs font-bold font-['Montserrat'] truncate w-full leading-tight">
+                                {col.title}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    ref={carouselTrackRef}
+                    onScroll={handleCarouselScroll}
+                    className={`flex items-start overflow-x-auto pb-4 pt-1 hide-scrollbar snap-x snap-mandatory select-none scroll-smooth ${
+                      ordersLayoutMode === 'carousel'
+                        ? 'gap-5 sm:gap-6 px-1 sm:px-2'
+                        : 'gap-4'
+                    }`}
+                  >
+                  {kanbanColumns.map((col, idx) => {
                     const isDragOver = dragOverColumn === col.key;
+                    const colTotal = col.orders.reduce((sum, o) => sum + (o.total || 0), 0);
+
                     return (
                       <div
                         key={col.key}
+                        data-drop-column={col.key}
                         onDragOver={e => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
@@ -1335,52 +2169,103 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           e.preventDefault();
                           handleDropOnColumn(col.key);
                         }}
-                        className={`flex-1 min-w-[290px] sm:min-w-[320px] max-w-full bg-[#1b1a19] rounded-2xl border transition-all flex flex-col shadow-lg overflow-hidden snap-start ${
-                          isDragOver
-                            ? col.activeRing
-                            : 'border-[#353535]'
+                        className={`rounded-2xl border transition-all flex flex-col shadow-xl overflow-hidden ${
+                          ordersLayoutMode === 'carousel'
+                            ? cardDensity === 'compact'
+                              ? 'w-[86vw] sm:w-[320px] md:w-[340px] lg:w-[350px] shrink-0 snap-center shadow-xl'
+                              : 'w-[90vw] sm:w-[380px] md:w-[410px] lg:w-[430px] shrink-0 snap-center shadow-2xl'
+                            : cardDensity === 'compact'
+                              ? 'w-[260px] sm:w-[275px] xl:w-[285px] shrink-0 snap-start'
+                              : 'w-[295px] sm:w-[310px] xl:w-[320px] shrink-0 snap-start'
+                        } ${
+                          isDragOver ? col.activeRing : `${col.borderColor} bg-[#181716]`
                         }`}
                       >
+                        {/* Top Line Accent */}
+                        <div className={`h-1.5 w-full ${col.topBar}`} />
+
                         {/* Cabeçalho da Coluna */}
-                        <div className={`p-3.5 border-b border-[#353535] ${col.headerBg} flex items-center justify-between`}>
-                          <div className="flex items-center gap-2.5">
-                            <col.icon className={`w-4 h-4 ${col.colorText}`} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-['Montserrat'] font-black text-white text-sm tracking-tight">
+                        <div className={`p-2.5 sm:p-3 border-b border-[#353535] ${col.headerBg} flex items-center justify-between`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
+                              <col.icon className={`w-3.5 h-3.5 ${col.colorText}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h3 className="font-['Montserrat'] font-black text-white text-xs sm:text-sm tracking-tight truncate">
                                   {col.title}
                                 </h3>
-                                <span className={`text-[10px] px-2 py-0.2 rounded-full font-mono font-black bg-black/40 ${col.colorText} border border-white/10`}>
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-black border ${col.badgeBg}`}>
                                   {col.orders.length}
                                 </span>
+                                {ordersLayoutMode === 'carousel' && (
+                                  <span className="text-[9.5px] text-[#8e8f8f] font-mono hidden sm:inline">
+                                    ({idx + 1}/{kanbanColumns.length})
+                                  </span>
+                                )}
                               </div>
-                              <p className="text-[10px] text-[#b4b5b5] font-light">
+                              <p className="text-[9.5px] text-[#b4b5b5] font-light truncate">
                                 {col.subtitle}
                               </p>
                             </div>
                           </div>
-                          {draggedOrderId && (
-                            <span className="text-[9px] uppercase font-bold text-white/80 bg-black/50 px-2 py-0.5 rounded border border-white/10 animate-pulse">
-                              Solte aqui
-                            </span>
-                          )}
+
+                          {/* Subtotal da Coluna em R$ + Controles rápidos de navegação no Carrossel */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="text-right">
+                              <span className="text-[8.5px] uppercase tracking-wider text-[#8e8f8f] block font-bold leading-tight">
+                                Subtotal
+                              </span>
+                              <span className="text-xs font-mono font-bold text-white">
+                                R$ {colTotal.toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+
+                            {/* No modo carrossel, pequenas setas para mudar de etapa rapidamente */}
+                            {ordersLayoutMode === 'carousel' && (
+                              <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => scrollToCarouselIndex(idx - 1)}
+                                  className="w-5 h-5 rounded-md bg-black/30 hover:bg-black/60 text-[#b4b5b5] hover:text-white flex items-center justify-center disabled:opacity-20 disabled:hover:bg-black/30 transition-colors"
+                                  title="Etapa anterior"
+                                >
+                                  <ChevronLeft className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === kanbanColumns.length - 1}
+                                  onClick={() => scrollToCarouselIndex(idx + 1)}
+                                  className="w-5 h-5 rounded-md bg-black/30 hover:bg-black/60 text-[#b4b5b5] hover:text-white flex items-center justify-center disabled:opacity-20 disabled:hover:bg-black/30 transition-colors"
+                                  title="Próxima etapa"
+                                >
+                                  <ChevronRight className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Cards na Coluna */}
-                        <div className="p-3 space-y-3 min-h-[380px] max-h-[calc(100vh-250px)] overflow-y-auto hide-scrollbar flex flex-col">
+                        {/* Cards na Coluna com Scroll Independente */}
+                        <div className="p-2 sm:p-2.5 space-y-2 min-h-[380px] max-h-[calc(100vh-270px)] overflow-y-auto hide-scrollbar flex flex-col">
                           {/* Placeholder quando arrastando por cima */}
                           {draggedOrderId && isDragOver && (
-                            <div className="border-2 border-dashed border-white/60 bg-white/5 rounded-xl p-3 text-center text-xs font-bold text-white animate-pulse">
-                              ⬇ Solte o pedido para mover para {col.title}
+                            <div className="border-2 border-dashed border-white/60 bg-white/5 rounded-xl p-2.5 text-center text-xs font-bold text-white animate-pulse">
+                              ⬇ Solte para mover para {col.title}
                             </div>
                           )}
 
                           {col.orders.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-[#2f2e2d] rounded-xl text-[#7a7a7a] text-xs m-1">
-                              <col.icon className="w-8 h-8 mb-2 opacity-30" />
-                              <span className="font-medium text-white/60">Nenhum pedido em {col.title}</span>
-                              <span className="text-[11px] text-[#8e8f8f] mt-1">
-                                {draggedOrderId ? 'Solte aqui para mover' : 'Pedidos entrarão nesta coluna automaticamente'}
+                            <div className="flex-1 flex flex-col items-center justify-center p-5 text-center border-2 border-dashed border-[#2f2e2d] rounded-xl text-[#7a7a7a] text-xs m-1">
+                              <col.icon className="w-7 h-7 mb-1.5 opacity-30" />
+                              <span className="font-medium text-white/60 text-[11px]">
+                                {kanbanSearch || kanbanTypeFilter !== 'todos'
+                                  ? 'Nenhum pedido filtrado'
+                                  : `Nenhum pedido em ${col.title}`}
+                              </span>
+                              <span className="text-[10px] text-[#8e8f8f] mt-0.5">
+                                {draggedOrderId ? 'Solte o card aqui para mover' : 'Entrará aqui automaticamente'}
                               </span>
                             </div>
                           ) : (
@@ -1408,6 +2293,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 order.paymentMethod && order.paymentMethod.toLowerCase().includes('dinheiro')
                               );
 
+                              // Elapsed urgency check
+                              const tStr = (order.timeAgo || '').toLowerCase();
+                              const isOverdue =
+                                order.isUrgent ||
+                                tStr.includes('h') ||
+                                tStr.includes('dia') ||
+                                (parseInt(tStr.replace(/\D/g, ''), 10) >= 25);
+
+                              const isQuickMoveOpen = quickMoveOrderId === order.id;
+
                               return (
                                 <div
                                   key={order.id}
@@ -1420,109 +2315,176 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     setDraggedOrderId(null);
                                     setDragOverColumn(null);
                                   }}
-                                  className={`bg-[#20201f] border rounded-xl p-3.5 shadow-md flex flex-col gap-2.5 transition-all select-none group/card cursor-grab active:cursor-grabbing ${
-                                    draggedOrderId === order.id
+                                  className={`bg-[#20201f] border rounded-xl shadow-md flex flex-col transition-all select-none group/card cursor-grab active:cursor-grabbing relative ${
+                                    cardDensity === 'compact'
+                                      ? 'p-2.5 gap-1.5'
+                                      : 'p-3 gap-2'
+                                  } ${
+                                    draggedOrderId === order.id || touchDrag?.order.id === order.id
                                       ? 'opacity-40 scale-95 border-dashed border-[#ff5722]'
-                                      : order.isUrgent
-                                      ? 'border-[#ff5722]/60 hover:border-[#ff5722] ring-1 ring-[#ff5722]/30 shadow-[#ff5722]/10'
+                                      : order.isUrgent || (isOverdue && col.key !== 'concluido')
+                                      ? 'border-[#ff5722]/70 bg-[#241c19] ring-1 ring-[#ff5722]/30 shadow-[#ff5722]/10'
                                       : 'border-[#353535] hover:border-[#4d4d4d]'
                                   }`}
                                 >
-                                  {/* Topo do Card: Grip, Número, Cliente, Tempo e Impressão */}
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-center gap-1.5 min-w-0">
+                                  {/* Linha 1: Grip para arrastar (dedo ou mouse), Número, Nome do Cliente e Impressão */}
+                                  <div className="flex items-start justify-between gap-1.5">
+                                    <div
+                                      onTouchStart={e => handleTouchDragStart(e, order)}
+                                      className="flex items-center gap-1 min-w-0 touch-none select-none cursor-grab active:cursor-grabbing group/handle"
+                                      title="Arraste com o dedo no celular ou mouse no PC"
+                                    >
                                       <div
-                                        className="text-[#8e8f8f] group-hover/card:text-white transition-colors cursor-grab active:cursor-grabbing p-0.5 -ml-1"
-                                        title="Arraste para mover entre colunas"
+                                        className="text-[#ff5722] sm:text-[#8e8f8f] group-hover/handle:text-white transition-colors p-1 -ml-1 rounded hover:bg-white/10 active:bg-[#ff5722]/30 shrink-0"
                                       >
                                         <GripVertical className="w-4 h-4 shrink-0" />
                                       </div>
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-['Montserrat'] font-black text-white text-sm tracking-tight">
+                                          <span className="font-['Montserrat'] font-black text-white text-xs sm:text-[13px] tracking-tight bg-black/40 px-1.5 py-0.5 rounded border border-white/10 font-mono">
                                             #{order.orderNumber}
                                           </span>
-                                          <span className="font-bold text-xs text-[#f5f5f5] truncate max-w-[130px]">
+                                          <span className="font-bold text-xs text-[#f5f5f5] truncate max-w-[110px] sm:max-w-[130px]">
                                             {order.customerName}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-[#b4b5b5] mt-0.5">
-                                          <span className="flex items-center gap-1 text-[#ff8a65] font-mono">
-                                            <Clock className="w-3 h-3 text-[#ff8a65]" />
-                                            {order.timeAgo}
-                                          </span>
-                                          <span>•</span>
-                                          <span className="px-1.5 py-0.2 rounded bg-[#2a2a2a] text-white font-medium text-[9px]">
-                                            {order.type}
                                           </span>
                                         </div>
                                       </div>
                                     </div>
 
+                                    {/* Botões do Topo: WhatsApp e Imprimir */}
                                     <div className="flex items-center gap-1 shrink-0">
-                                      {order.isUrgent && (
-                                        <span className="bg-[#93000a] text-[#ffdad6] text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse">
-                                          Urgente
-                                        </span>
+                                      {order.customerPhone && (
+                                        <a
+                                          href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da Burguer dos Crias sobre seu pedido #${order.orderNumber}:`)}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="p-1 rounded bg-[#282828] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040] transition-colors"
+                                          title={`Conversar com cliente no WhatsApp (${order.customerPhone})`}
+                                          onClick={e => e.stopPropagation()}
+                                        >
+                                          <MessageSquare className="w-3 h-3" />
+                                        </a>
                                       )}
                                       <button
                                         type="button"
-                                        onClick={() => onPrintOrder(order)}
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          onPrintOrder(order);
+                                        }}
                                         className="p-1 rounded bg-[#282828] hover:bg-[#ff5722] text-[#ffdad6] hover:text-white border border-[#404040] transition-colors"
                                         title="Imprimir comanda térmica"
                                       >
-                                        <Printer className="w-3.5 h-3.5" />
+                                        <Printer className="w-3 h-3" />
                                       </button>
                                     </div>
                                   </div>
 
-                                  {/* Lista de Itens */}
-                                  <div className="space-y-1 text-xs py-1 border-y border-[#353535]/50 max-h-32 overflow-y-auto hide-scrollbar">
-                                    {order.items.map((item, idx) => (
+                                  {/* Linha 2: Badges de Canal (Delivery/Mesa/Balcão), Tempo e Urgência */}
+                                  <div className="flex items-center justify-between gap-1 text-[9.5px]">
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {/* Canal */}
+                                      <span className={`px-1.5 py-0.5 rounded font-['Montserrat'] font-bold flex items-center gap-1 border ${
+                                        order.type === 'Delivery'
+                                          ? 'bg-sky-950/60 text-sky-300 border-sky-500/30'
+                                          : order.type === 'Mesa'
+                                          ? 'bg-purple-950/60 text-purple-300 border-purple-500/30'
+                                          : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
+                                      }`}>
+                                        {order.type === 'Delivery' && <Bike className="w-2.5 h-2.5" />}
+                                        {order.type === 'Retirada' && <ShoppingBag className="w-2.5 h-2.5" />}
+                                        {order.type === 'Mesa' && <UtensilsCrossed className="w-2.5 h-2.5" />}
+                                        <span>
+                                          {order.type === 'Mesa' && order.tableNumber
+                                            ? `Mesa #${order.tableNumber}`
+                                            : order.type}
+                                        </span>
+                                      </span>
+
+                                      {/* Tempo Decorrido */}
+                                      <span
+                                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded font-mono font-medium ${
+                                          isOverdue && col.key !== 'concluido'
+                                            ? 'bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse'
+                                            : 'bg-[#282828] text-[#b4b5b5]'
+                                        }`}
+                                        title="Tempo decorrido desde a abertura"
+                                      >
+                                        <Clock className="w-2.5 h-2.5" />
+                                        {order.timeAgo || 'Agora'}
+                                      </span>
+                                    </div>
+
+                                    {order.isUrgent && (
+                                      <span className="bg-[#93000a] text-[#ffdad6] text-[8.5px] px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse border border-red-500/40">
+                                        Urgente
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Lista de Itens do Pedido */}
+                                  <div className="space-y-0.5 text-xs py-1 border-y border-[#353535]/60 max-h-24 sm:max-h-28 overflow-y-auto hide-scrollbar">
+                                    {(order.items || []).map((item, idx) => (
                                       <div key={idx} className="space-y-0.5">
-                                        <div className="flex justify-between items-start text-white/95">
-                                          <span className="font-medium text-[11px] leading-tight">
-                                            <strong className="text-[#ff5722]">{item.quantity}x</strong> {item.name}
+                                        <div className="flex justify-between items-start text-white/95 leading-tight">
+                                          <span className="font-medium text-[10.5px] truncate">
+                                            <strong className="text-[#ff5722] font-mono mr-1">{item.quantity}x</strong>
+                                            {item.name}
+                                            {item.pizzaSize && (
+                                              <span className="text-[9px] text-[#ff8a65] ml-1 font-bold">({item.pizzaSize})</span>
+                                            )}
+                                            {item.juiceSize && (
+                                              <span className="text-[9px] text-[#ff8a65] ml-1 font-bold">({item.juiceSize})</span>
+                                            )}
                                           </span>
-                                          <span className="text-[11px] text-[#ff8a65] font-mono shrink-0 ml-1.5">
-                                            R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
+                                          <span className="text-[10px] text-[#ff8a65] font-mono shrink-0 ml-1 font-bold">
+                                            R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',')}
                                           </span>
                                         </div>
+                                        {/* Observação Específica do Item */}
                                         {item.notes && (
-                                          <div className="text-[10px] italic text-[#ffb5a0] pl-1.5 border-l border-[#ff5722]/50">
-                                            "{item.notes}"
+                                          <div className="text-[9px] font-medium text-amber-300 bg-amber-500/10 border-l-2 border-amber-400 px-1.5 py-0.5 rounded-r">
+                                            ⚠️ Obs: "{item.notes}"
                                           </div>
                                         )}
                                       </div>
                                     ))}
+
+                                    {/* Observação Geral do Pedido */}
+                                    {order.notes && (
+                                      <div className="text-[9px] font-medium text-amber-200 bg-amber-950/40 border border-amber-500/30 px-1.5 py-1 rounded mt-0.5">
+                                        💬 Obs: "{order.notes}"
+                                      </div>
+                                    )}
                                   </div>
 
-                                  {/* Endereço Delivery e Rota */}
+                                  {/* Endereço Delivery e Rota no Google Maps */}
                                   {order.type === 'Delivery' && order.address && (
-                                    <div className="flex items-center justify-between gap-1.5 text-[10px] text-[#b4b5b5] bg-[#161616] p-1.5 rounded-lg border border-[#303030]">
+                                    <div className="flex items-center justify-between gap-1 text-[9px] text-[#b4b5b5] bg-[#161616] p-1.5 rounded-lg border border-[#303030]">
                                       <div className="flex items-center gap-1 min-w-0">
-                                        <MapPin className="w-3 h-3 text-[#ff5722] shrink-0" />
-                                        <span className="truncate text-white">{order.address}</span>
+                                        <MapPin className="w-2.5 h-2.5 text-[#ff5722] shrink-0" />
+                                        <span className="truncate text-white font-medium">{order.address}</span>
                                       </div>
                                       <a
                                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 font-bold"
-                                        title="Abrir rota no Google Maps"
+                                        className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 font-bold bg-[#019ad8]/15 hover:bg-[#019ad8]/30 px-1.5 py-0.5 rounded border border-[#019ad8]/30 transition-colors"
+                                        title="Abrir rota no Google Maps GPS"
+                                        onClick={e => e.stopPropagation()}
                                       >
-                                        <Navigation className="w-2.5 h-2.5 text-[#019ad8]" />
-                                        <span>Rota</span>
+                                        <Navigation className="w-2 h-2 text-[#019ad8]" />
+                                        <span>GPS</span>
                                       </a>
                                     </div>
                                   )}
 
-                                  {/* Informações do Motoboy (na coluna de Entrega) */}
-                                  {col.key === 'em_entrega' && (
-                                    <div className="p-2 bg-[#181818] rounded-lg border border-[#353535] text-[10px] space-y-1">
+                                  {/* Motoboy Atribuído (Nas colunas de Entrega ou Pronto) */}
+                                  {order.courierName && (
+                                    <div className="p-1.5 bg-[#181818] rounded-lg border border-[#353535] text-[9px] space-y-0.5">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-white font-bold truncate">
-                                          🛵 {order.courierName || 'Motoboy Despachado'}
+                                        <span className="text-white font-bold truncate flex items-center gap-1">
+                                          <Bike className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                                          {order.courierName}
                                         </span>
                                         {order.courierPhone && (
                                           <a
@@ -1530,13 +2492,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                             target="_blank"
                                             rel="noreferrer"
                                             className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
+                                            onClick={e => e.stopPropagation()}
                                           >
-                                            <Phone className="w-2.5 h-2.5" /> WhatsApp
+                                            <Phone className="w-2 h-2" /> WhatsApp
                                           </a>
                                         )}
                                       </div>
                                       {order.courierVehicle && (
-                                        <span className="text-[#8e8f8f] block truncate">
+                                        <span className="text-[#8e8f8f] block truncate text-[8.5px]">
                                           {order.courierVehicle} {order.courierPlate ? `• ${order.courierPlate}` : ''}
                                         </span>
                                       )}
@@ -1544,47 +2507,103 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   )}
 
                                   {/* Total & Forma de Pagamento */}
-                                  <div className="space-y-1 pt-0.5">
+                                  <div className="space-y-0.5 pt-0.5">
                                     <div className="flex items-center justify-between text-xs">
-                                      <span className="text-[#8e8f8f] text-[11px]">Total:</span>
-                                      <span className="font-['Montserrat'] font-black text-sm text-[#ff5722]">
-                                        R$ {order.total.toFixed(2).replace('.', ',')}
+                                      <span className="text-[#8e8f8f] text-[10px] font-bold uppercase tracking-wider">Total:</span>
+                                      <span className="font-['Montserrat'] font-black text-xs sm:text-[13px] text-[#ff5722]">
+                                        R$ {(order.total || 0).toFixed(2).replace('.', ',')}
                                       </span>
                                     </div>
 
                                     {isOnlinePaid ? (
-                                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg px-2 py-1 flex items-center justify-between text-[10px]">
+                                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px]">
                                         <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                          <CheckCircle className="w-3 h-3" /> PAGO ONLINE
+                                          <CheckCircle className="w-2.5 h-2.5" /> PAGO ONLINE
                                         </span>
-                                        <span className="text-[8px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-black uppercase">
+                                        <span className="text-[7.5px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-black uppercase">
                                           NÃO COBRAR
                                         </span>
                                       </div>
                                     ) : isNeedMachine ? (
-                                      <div className="bg-amber-950/40 border border-amber-500/30 rounded-lg px-2 py-1 flex items-center justify-between text-[10px] text-amber-300 font-bold">
+                                      <div className="bg-amber-950/40 border border-amber-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-amber-300 font-bold">
                                         <span className="flex items-center gap-1">
-                                          <CreditCard className="w-3 h-3 text-amber-400" /> LEVAR MAQUININHA
+                                          <CreditCard className="w-2.5 h-2.5 text-amber-400" /> MAQUININHA
                                         </span>
-                                        <span className="text-[8px] bg-amber-500/20 px-1 py-0.2 rounded uppercase">
+                                        <span className="text-[7.5px] bg-amber-500/20 px-1 py-0.2 rounded uppercase">
                                           COBRAR
                                         </span>
                                       </div>
                                     ) : isCash ? (
-                                      <div className="bg-blue-950/40 border border-blue-500/30 rounded-lg px-2 py-1 flex items-center justify-between text-[10px] text-blue-300 font-bold">
+                                      <div className="bg-blue-950/40 border border-blue-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-blue-300 font-bold">
                                         <span className="flex items-center gap-1">
-                                          <Banknote className="w-3 h-3 text-blue-400" /> DINHEIRO
+                                          <Banknote className="w-2.5 h-2.5 text-blue-400" /> DINHEIRO
                                         </span>
-                                        <span className="text-[9px] text-[#ffdad6]">
+                                        <span className="text-[8px] text-[#ffdad6]">
                                           {order.changeFor ? `Troco p/ ${order.changeFor}` : 'Sem troco'}
                                         </span>
                                       </div>
-                                    ) : null}
+                                    ) : (
+                                      <div className="bg-[#262626] border border-[#383838] rounded-md px-1.5 py-0.5 text-[8.5px] text-[#b4b5b5] flex justify-between">
+                                        <span>Pagamento:</span>
+                                        <span className="text-white font-medium">{order.paymentMethod || 'A combinar'}</span>
+                                      </div>
+                                    )}
                                   </div>
 
-                                  {/* Botões de Ação e Setas de Navegação */}
-                                  <div className="pt-2 border-t border-[#353535]/50 flex items-center gap-1.5">
-                                    {/* Seta Voltar (se não for Novo) */}
+                                  {/* Menu Rápido de Mudança de Etapa (Aparece se clicado em Mover) */}
+                                  {isQuickMoveOpen && (
+                                    <div className="bg-[#151515] border border-[#444] rounded-xl p-2 space-y-1 shadow-2xl animate-in fade-in duration-150 z-20">
+                                      <div className="text-[10px] uppercase font-bold text-[#8e8f8f] px-1 pb-1 border-b border-[#333] flex justify-between items-center">
+                                        <span>Mover pedido para:</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setQuickMoveOrderId(null)}
+                                          className="text-[#888] hover:text-white"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => executeMoveOrder(order, 'novo')}
+                                        className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-[#ff8a65] flex items-center gap-1.5"
+                                      >
+                                        <Flame className="w-3 h-3" /> 1. Novos
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => executeMoveOrder(order, 'preparando')}
+                                        className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-amber-300 flex items-center gap-1.5"
+                                      >
+                                        <Soup className="w-3 h-3" /> 2. Em Preparo
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => executeMoveOrder(order, 'pronto')}
+                                        className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-emerald-300 flex items-center gap-1.5"
+                                      >
+                                        <Package className="w-3 h-3" /> 3. Pronto
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => executeMoveOrder(order, 'em_entrega')}
+                                        className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-sky-300 flex items-center gap-1.5"
+                                      >
+                                        <Bike className="w-3 h-3" /> 4. Em Rota
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => executeMoveOrder(order, 'concluido')}
+                                        className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-slate-300 flex items-center gap-1.5"
+                                      >
+                                        <CheckCircle2 className="w-3 h-3" /> 5. Finalizado
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {/* Botões de Ação Operacional do Card */}
+                                  <div className="pt-1.5 border-t border-[#353535]/60 flex items-center gap-1">
+                                    {/* Seta Voltar Etapa (se não for Novo) */}
                                     {col.key !== 'novo' && (
                                       <button
                                         type="button"
@@ -1594,97 +2613,126 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                               ? 'novo'
                                               : col.key === 'pronto'
                                               ? 'preparando'
-                                              : 'pronto';
+                                              : col.key === 'em_entrega'
+                                              ? 'pronto'
+                                              : 'em_entrega';
                                           executeMoveOrder(order, prevCol);
                                         }}
-                                        className="h-8 w-8 rounded-lg bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border border-[#383838] flex items-center justify-center shrink-0 transition-all active:scale-95"
-                                        title="Mover para etapa anterior"
+                                        className="h-7 w-7 rounded-lg bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border border-[#383838] flex items-center justify-center shrink-0 transition-all active:scale-95"
+                                        title="Voltar para etapa anterior"
                                       >
-                                        <ArrowLeft className="w-3.5 h-3.5" />
+                                        <ArrowLeft className="w-3 h-3" />
                                       </button>
                                     )}
 
-                                    {/* Ação Primária da Etapa */}
+                                    {/* Ação Primária da Etapa Atual */}
                                     {col.key === 'novo' ? (
-                                      <div className="flex-1 flex gap-1.5">
+                                      <div className="flex-1 flex gap-1">
                                         <button
                                           type="button"
-                                          onClick={() => onRejectOrder(order.id)}
-                                          className="px-2.5 py-1.5 rounded-lg bg-[#303030] hover:bg-[#3d3d3d] text-white text-[11px] font-semibold transition-colors"
+                                          onClick={() => setRejectOrderTarget(order)}
+                                          className="px-2 py-1 rounded-lg bg-[#2f2020] hover:bg-[#452525] text-red-300 border border-red-500/30 text-[10px] font-semibold transition-colors active:scale-95"
+                                          title="Recusar pedido"
                                         >
                                           Recusar
                                         </button>
                                         <button
                                           type="button"
                                           onClick={() => executeMoveOrder(order, 'preparando')}
-                                          className="flex-1 btn-flame text-white py-1.5 rounded-lg text-[11px] font-bold font-['Montserrat'] shadow transition-all active:scale-95 flex items-center justify-center gap-1"
+                                          className="flex-1 btn-flame text-white py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] shadow transition-all active:scale-95 flex items-center justify-center gap-1"
                                         >
                                           <span>Aceitar</span>
-                                          <ArrowRight className="w-3 h-3" />
+                                          <ArrowRight className="w-2.5 h-2.5" />
                                         </button>
                                       </div>
                                     ) : col.key === 'preparando' ? (
                                       <button
                                         type="button"
                                         onClick={() => executeMoveOrder(order, 'pronto')}
-                                        className="flex-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 py-1.5 rounded-lg text-[11px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                        className="flex-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                       >
+                                        <Package className="w-3 h-3" />
                                         <span>Marcar Pronto</span>
-                                        <ArrowRight className="w-3 h-3" />
+                                        <ArrowRight className="w-2.5 h-2.5" />
                                       </button>
                                     ) : col.key === 'pronto' ? (
-                                      <div className="flex-1 space-y-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => executeMoveOrder(order, 'em_entrega')}
-                                          className="w-full bg-[#019ad8]/20 text-[#86cfff] hover:bg-[#019ad8]/30 border border-[#019ad8]/40 py-1.5 rounded-lg text-[11px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1.5"
-                                        >
-                                          <Bike className="w-3.5 h-3.5" />
-                                          <span>Despachar</span>
-                                          <ArrowRight className="w-3 h-3" />
-                                        </button>
-                                        {(storeSettings.couriers || []).filter(c => c.active).length > 1 && (
+                                      <div className="flex-1 space-y-0.5">
+                                        {order.type === 'Delivery' ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => executeMoveOrder(order, 'em_entrega')}
+                                            className="w-full bg-[#019ad8]/20 text-[#86cfff] hover:bg-[#019ad8]/30 border border-[#019ad8]/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                          >
+                                            <Bike className="w-3 h-3" />
+                                            <span>Despachar Rota</span>
+                                            <ArrowRight className="w-2.5 h-2.5" />
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => executeMoveOrder(order, 'concluido')}
+                                            className="w-full bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                          >
+                                            <CheckCircle className="w-3 h-3" />
+                                            <span>Entregar no Balcão</span>
+                                          </button>
+                                        )}
+                                        {order.type === 'Delivery' && (storeSettings.couriers || []).filter(c => c.active).length > 1 && (
                                           <button
                                             type="button"
                                             onClick={() => setDispatchOrderTarget(order)}
-                                            className="w-full text-[9px] text-[#86cfff]/80 hover:text-white text-center underline"
+                                            className="w-full text-[8.5px] text-[#86cfff]/80 hover:text-white text-center underline"
                                           >
                                             Escolher motoboy
                                           </button>
                                         )}
                                       </div>
-                                    ) : (
+                                    ) : col.key === 'em_entrega' ? (
                                       <button
                                         type="button"
-                                        onClick={() => onCompleteOrder(order.id)}
-                                        className="flex-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 py-1.5 rounded-lg text-[11px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                        onClick={() => executeMoveOrder(order, 'concluido')}
+                                        className="flex-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                       >
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span>Concluir Pedido</span>
+                                        <CheckCircle className="w-3 h-3" />
+                                        <span>Concluir Entrega</span>
                                       </button>
+                                    ) : (
+                                      /* Coluna Finalizados */
+                                      <div className="flex-1 flex gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => executeMoveOrder(order, 'pronto')}
+                                          className="flex-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] py-1 rounded-lg text-[9.5px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1"
+                                          title="Reabrir pedido caso tenha sido concluído por engano"
+                                        >
+                                          <RotateCcw className="w-2.5 h-2.5" />
+                                          <span>Reabrir</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => onPrintOrder(order)}
+                                          className="px-1.5 py-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] rounded-lg text-[9.5px] font-bold transition-all"
+                                          title="Imprimir segunda via"
+                                        >
+                                          2ª Via
+                                        </button>
+                                      </div>
                                     )}
 
-                                    {/* Seta Avançar (se houver próxima etapa) */}
-                                    {col.key === 'preparando' && (
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'pronto')}
-                                        className="h-8 w-8 rounded-lg bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border border-[#383838] flex items-center justify-center shrink-0 transition-all active:scale-95"
-                                        title="Avançar para Pronto"
-                                      >
-                                        <ArrowRight className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                    {col.key === 'pronto' && (
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'em_entrega')}
-                                        className="h-8 w-8 rounded-lg bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border border-[#383838] flex items-center justify-center shrink-0 transition-all active:scale-95"
-                                        title="Avançar para Entrega"
-                                      >
-                                        <ArrowRight className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
+                                    {/* Botão de Menu Rápido Mover */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuickMoveOrderId(isQuickMoveOpen ? null : order.id)}
+                                      className={`h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 ${
+                                        isQuickMoveOpen
+                                          ? 'bg-[#ff5722] text-white border-[#ff5722]'
+                                          : 'bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border-[#383838]'
+                                      }`}
+                                      title="Mover diretamente para qualquer coluna"
+                                    >
+                                      <SlidersHorizontal className="w-2.5 h-2.5" />
+                                      <span className="hidden sm:inline">Mover</span>
+                                    </button>
                                   </div>
                                 </div>
                               );
@@ -1696,9 +2744,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   })}
                 </div>
 
-                {/* Barra Inferior com Resumo e Criar Pedido Manual */}
+                {/* Indicador de Dots / Paginação do Carrossel */}
+                {ordersLayoutMode === 'carousel' && (
+                  <div className="flex items-center justify-center gap-2 pt-1 pb-2">
+                    {kanbanColumns.map((col, idx) => (
+                      <button
+                        key={col.key}
+                        type="button"
+                        onClick={() => scrollToCarouselIndex(idx)}
+                        className={`transition-all rounded-full ${
+                          safeCarouselIndex === idx
+                            ? `w-8 h-2.5 ${col.topBar} shadow-md`
+                            : 'w-2.5 h-2.5 bg-[#353535] hover:bg-[#666]'
+                        }`}
+                        title={`Ir para ${col.title}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+                {/* Barra Inferior com Métricas Operacionais e Novo Pedido Manual */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  <div className="bg-[#1b1a19] border border-[#353535] rounded-xl p-4 flex items-center justify-between">
+                  <div className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 flex items-center justify-between shadow-md">
                     <div>
                       <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Ticket Médio</span>
                       <span className="font-['Montserrat'] font-black text-lg text-[#ff5722]">
@@ -1711,15 +2779,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="bg-[#1b1a19] border border-[#353535] rounded-xl p-4 flex items-center justify-between">
+                  <div className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 flex items-center justify-between shadow-md">
                     <div>
-                      <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Pedidos em Aberto</span>
+                      <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Pedidos em Produção</span>
                       <span className="font-['Montserrat'] font-black text-lg text-white">
                         {abertosOrders.length}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Histórico Fechado</span>
+                      <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Entregues Hoje</span>
                       <span className="font-['Montserrat'] font-black text-lg text-emerald-400">
                         {historicoOrders.length}
                       </span>
@@ -1728,7 +2796,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={onOpenManualOrder}
-                    className="bg-[#1c1b1b] hover:bg-[#252525] border-2 border-dashed border-[#ff5722]/50 hover:border-[#ff5722] rounded-xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 shadow-sm group"
+                    className="bg-[#1c1b1b] hover:bg-[#252525] border-2 border-dashed border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 shadow-sm group"
                   >
                     <div className="w-8 h-8 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Plus className="w-4 h-4 text-[#ff5722]" />
@@ -5404,6 +6472,61 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 className="text-xs text-white bg-[#353535] hover:bg-[#444] px-4 py-2 rounded-md font-bold font-['Montserrat']"
               >
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação para Recusar Pedido */}
+      {rejectOrderTarget && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#20201f] border border-[#353535] rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 border border-red-500/40">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-['Montserrat'] font-black text-white text-base">
+                  Recusar Pedido #{rejectOrderTarget.orderNumber}?
+                </h3>
+                <p className="text-xs text-[#b4b5b5] font-light">
+                  Cliente: {rejectOrderTarget.customerName}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#161616] rounded-xl p-3 border border-[#303030] text-xs space-y-1.5 text-[#b4b5b5]">
+              <div className="flex justify-between text-white font-medium">
+                <span>Total do Pedido:</span>
+                <span className="text-[#ff5722] font-black font-['Montserrat']">
+                  R$ {(rejectOrderTarget.total || 0).toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+              <p className="text-[11px] text-[#8e8f8f] leading-relaxed">
+                Ao recusar, o pedido será cancelado no sistema e arquivado no histórico de hoje.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#353535]">
+              <button
+                type="button"
+                onClick={() => setRejectOrderTarget(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white bg-[#2a2a2a] hover:bg-[#333] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onRejectOrder(rejectOrderTarget.id);
+                  setRejectOrderTarget(null);
+                  setKdsToast(`Pedido #${rejectOrderTarget.orderNumber} cancelado.`);
+                  setTimeout(() => setKdsToast(null), 3000);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all shadow-md"
+              >
+                Confirmar Recusa
               </button>
             </div>
           </div>
