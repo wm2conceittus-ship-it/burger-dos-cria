@@ -1071,12 +1071,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       {/* Floating Action Cart Button */}
       <button
         onClick={onOpenCart}
-        className="fixed right-5 sm:right-6 bottom-24 w-11 h-11 rounded-full btn-flame flex items-center justify-center text-white shadow-lg shadow-[#ff5722]/30 z-40 active:scale-95 transition-all hover:scale-105"
+        className="fixed right-3.5 sm:right-5 bottom-18 sm:bottom-20 w-9 h-9 rounded-full btn-flame flex items-center justify-center text-white shadow-sm shadow-[#ff5722]/30 z-40 active:scale-95 transition-all hover:scale-105"
         title="Ver Carrinho"
       >
-        <ShoppingCart className="w-5 h-5" />
+        <ShoppingCart className="w-4 h-4" />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+          <span className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-[8.5px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-sm">
             {cartCount}
           </span>
         )}

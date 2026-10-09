@@ -371,18 +371,18 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-44">
+    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-36">
       {/* Top Header */}
-      <header className="fixed top-0 left-0 w-full z-50 px-5 bg-[#131313]/95 backdrop-blur-md border-b border-[#353535]/30 h-16">
-        <div className="max-w-2xl mx-auto w-full h-full flex justify-between items-center">
-          <div className="flex items-center gap-3">
+      <header className="fixed top-0 left-0 w-full z-50 px-4 bg-[#131313]/95 backdrop-blur-md border-b border-[#353535]/30 h-13 flex items-center">
+        <div className="max-w-md mx-auto w-full h-full flex justify-between items-center">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={onBack}
               className="text-[#ffb5a0] hover:text-white p-1 rounded-full active:scale-95 transition-transform"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/30">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#ff5722]/30">
               <img
                 src={APP_IMAGES.logo}
                 alt="Logo"
@@ -391,8 +391,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#353535]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#353535]">
               <img
                 src={APP_IMAGES.userAvatar}
                 alt="Avatar"
@@ -401,22 +401,22 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             </div>
             <button
               onClick={onOpenChat}
-              className="w-9 h-9 rounded-full bg-[#20201f] border border-[#353535] flex items-center justify-center text-[#ffb5a0] hover:text-white"
+              className="w-8 h-8 rounded-full bg-[#20201f] border border-[#353535] flex items-center justify-center text-[#ffb5a0] hover:text-white"
             >
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="pt-20 px-5 max-w-2xl mx-auto space-y-6">
+      <main className="pt-15 px-3 sm:px-4 max-w-md mx-auto space-y-2.5 pb-24">
         {/* Title */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-['Montserrat'] text-2xl font-bold text-[#e5e2e1]">
+            <h1 className="font-['Montserrat'] text-base sm:text-lg font-bold text-[#e5e2e1]">
               Seu Carrinho
             </h1>
-            <p className="text-xs text-[#b4b5b5] mt-0.5">
+            <p className="text-[10px] text-[#b4b5b5] mt-0.5">
               {items.length === 0
                 ? 'Seu carrinho está vazio'
                 : `${items.length} ${items.length === 1 ? 'item selecionado' : 'itens selecionados'}`}
@@ -426,37 +426,37 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             <button
               type="button"
               onClick={onClearCart}
-              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 hover:border-red-500/60 bg-red-950/20 active:scale-95 transition-all font-semibold"
+              className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1 px-2 py-0.5 rounded border border-red-500/30 hover:border-red-500/60 bg-red-950/20 active:scale-95 transition-all font-semibold"
               title="Remover todos os itens do carrinho"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Limpar Carrinho</span>
+              <Trash2 className="w-2.5 h-2.5" />
+              <span>Limpar</span>
             </button>
           )}
         </div>
 
         {/* Empty state */}
         {items.length === 0 ? (
-          <div className="bg-[#20201f] rounded-lg p-8 text-center border border-[#353535]/50 space-y-4">
-            <p className="text-[#b4b5b5] text-sm">
+          <div className="bg-[#20201f] rounded-lg p-5 text-center border border-[#353535]/50 space-y-2.5">
+            <p className="text-[#b4b5b5] text-xs">
               Você ainda não adicionou nenhum burger ou bebida.
             </p>
             <button
               onClick={onBack}
-              className="btn-flame px-6 py-2.5 rounded-md font-['Montserrat'] font-bold text-sm text-white"
+              className="btn-flame px-4 py-1.5 rounded-md font-['Montserrat'] font-bold text-xs text-white"
             >
               Explorar Cardápio
             </button>
           </div>
         ) : (
           /* Items List */
-          <section className="space-y-3.5">
+          <section className="space-y-2">
             {items.map(item => (
               <div
                 key={item.id}
-                className="bg-[#20201f] rounded-lg overflow-hidden flex items-stretch border border-[#353535]/50 shadow-md group hover:border-[#ff5722]/30 transition-all"
+                className="bg-[#20201f] rounded-lg overflow-hidden flex items-stretch border border-[#353535]/50 shadow-sm group hover:border-[#ff5722]/30 transition-all"
               >
-                <div className="w-24 sm:w-28 flex-shrink-0 relative overflow-hidden bg-[#1c1b1b]">
+                <div className="w-16 sm:w-18 flex-shrink-0 relative overflow-hidden bg-[#1c1b1b]">
                   <img
                     src={item.product.image}
                     alt={item.product.name}
@@ -464,71 +464,71 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                   />
                 </div>
 
-                <div className="flex-grow p-3.5 flex flex-col justify-between">
+                <div className="flex-grow p-2 sm:p-2.5 flex flex-col justify-between">
                   <div>
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-['Montserrat'] font-bold text-sm text-[#e5e2e1]">
+                    <div className="flex justify-between items-start gap-1">
+                      <h3 className="font-['Montserrat'] font-bold text-xs text-[#e5e2e1] leading-tight line-clamp-1">
                         {item.product.name}
                       </h3>
                       <button
                         onClick={() => onRemoveItem(item.id)}
-                        className="text-[#b4b5b5] hover:text-[#ffb4ab] p-1 transition-colors"
+                        className="text-[#b4b5b5] hover:text-[#ffb4ab] p-0.5 transition-colors -mt-0.5"
                         title="Remover item"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                    <div className="flex flex-wrap items-center gap-1 mt-0.5">
                       {item.pizzaSize && (
-                        <span className="bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40 text-[10px] font-bold font-['Montserrat'] px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <span className="bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40 text-[8.5px] font-bold font-['Montserrat'] px-1.5 py-0.2 rounded flex items-center gap-1">
                           🍕 Tam: {item.pizzaSize} {item.pizzaSize === 'Família' ? '(12 fatias)' : `(${item.pizzaSize === 'P' ? '4 fatias' : item.pizzaSize === 'M' ? '6 fatias' : '8 fatias'})`}
                         </span>
                       )}
                       {item.juiceSize && (
-                        <span className="bg-[#ff9800]/20 text-[#ffd180] border border-[#ff9800]/40 text-[10px] font-bold font-['Montserrat'] px-2 py-0.5 rounded-md flex items-center gap-1">
-                          🥤 Tam: {item.juiceSize === '1L' ? '1 Litro (1lt)' : item.juiceSize}
+                        <span className="bg-[#ff9800]/20 text-[#ffd180] border border-[#ff9800]/40 text-[8.5px] font-bold font-['Montserrat'] px-1.5 py-0.2 rounded flex items-center gap-1">
+                          🥤 Tam: {item.juiceSize === '1L' ? '1 Litro' : item.juiceSize}
                         </span>
                       )}
                       {item.meatDoneness && (
-                        <span className="bg-[#353535] text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                        <span className="bg-[#353535] text-white text-[8.5px] font-semibold px-1.5 py-0.2 rounded">
                           {item.meatDoneness}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-[#b4b5b5] mt-1 font-light line-clamp-1">
+                    <p className="text-[10px] text-[#b4b5b5] mt-0.5 font-light line-clamp-1">
                       {item.additionals.length > 0
                         ? item.additionals.map(a => a.name).join(', ')
                         : item.product.description}
                     </p>
                     {item.notes && (
-                      <p className="text-[11px] text-[#ffb5a0] italic mt-0.5">
+                      <p className="text-[9.5px] text-[#ffb5a0] italic mt-0.5 line-clamp-1">
                         "{item.notes}"
                       </p>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-[#353535]/30">
-                    <div className="flex items-center bg-[#2a2a2a] rounded-md p-0.5 border border-[#353535]">
+                  <div className="flex justify-between items-center mt-1.5 pt-1 border-t border-[#353535]/30">
+                    <div className="flex items-center bg-[#2a2a2a] rounded p-0.5 border border-[#353535]">
                       <button
                         onClick={() => onUpdateQuantity(item.id, -1)}
-                        className="w-7 h-7 flex items-center justify-center text-[#ffb5a0] hover:text-white transition-colors"
+                        className="w-5 h-5 flex items-center justify-center text-[#ffb5a0] hover:text-white transition-colors"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-2.5 h-2.5" />
                       </button>
-                      <span className="px-2.5 text-xs font-bold text-white font-['Montserrat']">
+                      <span className="px-1.5 text-[11px] font-bold text-white font-['Montserrat']">
                         {item.quantity}
                       </span>
                       <button
                         onClick={() => onUpdateQuantity(item.id, 1)}
-                        className="w-7 h-7 flex items-center justify-center text-[#ffb5a0] hover:text-white transition-colors"
+                        className="w-5 h-5 flex items-center justify-center text-[#ffb5a0] hover:text-white transition-colors"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-2.5 h-2.5" />
                       </button>
                     </div>
 
-                    <span className="font-['Montserrat'] font-bold text-sm text-[#ffb5a0]">
+                    <span className="font-['Montserrat'] font-bold text-xs text-[#ffb5a0]">
                       R$ {item.totalPrice.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
@@ -539,15 +539,15 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         )}
 
         {/* Identificação / Cadastro do Cliente */}
-        <section className="space-y-1.5">
+        <section className="space-y-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-medium text-[#b4b5b5] flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#ff5722]" /> Dados do Cliente para Entrega
+            <h3 className="text-[10px] font-medium text-[#b4b5b5] flex items-center gap-1">
+              <User className="w-3 h-3 text-[#ff5722]" /> Dados do Cliente para Entrega
             </h3>
             {customerProfile && onOpenCustomerRegister && (
               <button
                 onClick={onOpenCustomerRegister}
-                className="text-[11px] text-[#ff8a65] hover:text-white underline font-semibold"
+                className="text-[9.5px] text-[#ff8a65] hover:text-white underline font-semibold"
               >
                 Editar Dados
               </button>
@@ -555,45 +555,45 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           </div>
 
           {customerProfile ? (
-            <div className="bg-[#20201f] rounded-lg p-3.5 flex items-center justify-between border border-[#353535]/50 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
-                  <UserCheck className="w-5 h-5" />
+            <div className="bg-[#20201f] rounded-lg p-2 sm:p-2.5 flex items-center justify-between border border-[#353535]/50 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
+                  <UserCheck className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-[11px] font-semibold text-white">
                     {customerProfile.name}
                   </span>
-                  <span className="text-xs text-[#b4b5b5] flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-[#ff5722]" /> {customerProfile.phone}
+                  <span className="text-[10px] text-[#b4b5b5] flex items-center gap-1">
+                    <Phone className="w-2 h-2 text-[#ff5722]" /> {customerProfile.phone}
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded font-extrabold uppercase font-['Montserrat']">
+              <span className="text-[8.5px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-extrabold uppercase font-['Montserrat']">
                 Cadastrado
               </span>
             </div>
           ) : (
             <div
               onClick={onOpenCustomerRegister}
-              className="bg-[#20201f] rounded-lg p-3.5 border border-[#ff5722]/50 hover:border-[#ff5722] cursor-pointer flex items-center justify-between shadow-md transition-all group"
+              className="bg-[#20201f] rounded-lg p-2 border border-[#ff5722]/50 hover:border-[#ff5722] cursor-pointer flex items-center justify-between shadow-sm transition-all group"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center flex-shrink-0">
-                  <UserPlus className="w-5 h-5" />
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white group-hover:text-[#ff8a65] transition-colors">
+                  <p className="text-[11px] font-bold text-white group-hover:text-[#ff8a65] transition-colors">
                     Cadastro Obrigatório Pendente
                   </p>
-                  <p className="text-[11px] text-[#b4b5b5]">
-                    Clique aqui para preencher seu nome e WhatsApp.
+                  <p className="text-[9.5px] text-[#b4b5b5]">
+                    Clique aqui para preencher nome e WhatsApp.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                className="text-xs font-bold text-white bg-[#ff5722] px-3.5 py-1.5 rounded-md"
+                className="text-[10px] font-bold text-white bg-[#ff5722] px-2 py-0.5 rounded"
               >
                 Cadastrar
               </button>
@@ -602,165 +602,165 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         </section>
 
         {/* Modalidade do Pedido: Delivery, Retirada no Balcão ou Consumir na Mesa */}
-        <section className="space-y-2">
-          <h3 className="text-xs font-bold text-white font-['Montserrat'] flex items-center justify-between">
+        <section className="space-y-1">
+          <h3 className="text-[10px] font-bold text-white font-['Montserrat'] flex items-center justify-between">
             <span>Como deseja receber seu pedido?</span>
             {orderType === 'Mesa' && (
-              <span className="text-[10px] text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded font-extrabold uppercase">
+              <span className="text-[8.5px] text-amber-400 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded font-extrabold uppercase">
                 Consumo no Local
               </span>
             )}
           </h3>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1">
             <button
               type="button"
               onClick={() => setOrderType('Delivery')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+              className={`py-1.5 px-1 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all ${
                 orderType === 'Delivery'
-                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm shadow-[#ff5722]/30'
                   : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
               }`}
             >
-              <Bike className="w-5 h-5" />
-              <span className="text-xs font-bold font-['Montserrat']">Delivery</span>
-              <span className="text-[9px] opacity-80">Entrega</span>
+              <Bike className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-bold font-['Montserrat']">Delivery</span>
+              <span className="text-[7.5px] opacity-80">Entrega</span>
             </button>
 
             <button
               type="button"
               onClick={() => setOrderType('Retirada')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+              className={`py-1.5 px-1 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all ${
                 orderType === 'Retirada'
-                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm shadow-[#ff5722]/30'
                   : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
               }`}
             >
-              <ShoppingBag className="w-5 h-5" />
-              <span className="text-xs font-bold font-['Montserrat']">Retirada</span>
-              <span className="text-[9px] opacity-80">Balcão (Grátis)</span>
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-bold font-['Montserrat']">Retirada</span>
+              <span className="text-[7.5px] opacity-80">Balcão (Grátis)</span>
             </button>
 
             <button
               type="button"
               onClick={() => setOrderType('Mesa')}
-              className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition-all ${
+              className={`py-1.5 px-1 rounded-lg border flex flex-col items-center justify-center gap-0.5 transition-all ${
                 orderType === 'Mesa'
-                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-lg shadow-[#ff5722]/30'
+                  ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm shadow-[#ff5722]/30'
                   : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border-[#353535]'
               }`}
             >
-              <UtensilsCrossed className="w-5 h-5" />
-              <span className="text-xs font-bold font-['Montserrat']">Na Mesa</span>
-              <span className="text-[9px] opacity-80">Salão (Grátis)</span>
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-bold font-['Montserrat']">Na Mesa</span>
+              <span className="text-[7.5px] opacity-80">Salão</span>
             </button>
           </div>
         </section>
 
         {/* DETALHES DE ACORDO COM A MODALIDADE */}
         {orderType === 'Mesa' && (
-          <section className="bg-[#1c1b1b] rounded-xl p-4 border border-[#ff5722]/40 space-y-3 shadow-lg animate-in fade-in">
-            <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
-              <div className="flex items-center gap-2">
-                <UtensilsCrossed className="w-4 h-4 text-[#ff5722]" />
-                <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white">
+          <section className="bg-[#1c1b1b] rounded-lg p-3 border border-[#ff5722]/40 space-y-2 shadow-sm animate-in fade-in">
+            <div className="flex items-center justify-between pb-1.5 border-b border-[#353535]">
+              <div className="flex items-center gap-1.5">
+                <UtensilsCrossed className="w-3.5 h-3.5 text-[#ff5722]" />
+                <h4 className="font-['Montserrat'] font-bold text-xs text-white">
                   Identificação da sua Mesa no Salão
                 </h4>
               </div>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
-                Sem Taxa de Entrega
+              <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/20 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                Sem Taxa
               </span>
             </div>
 
             <div>
-              <label className="block text-[#b4b5b5] text-xs font-semibold mb-1.5">
+              <label className="block text-[#b4b5b5] text-[10px] font-semibold mb-1">
                 Selecione o número da mesa em que você está sentado:
               </label>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1.5">
                 {(storeSettings?.tables || Array.from({ length: 10 }, (_, i) => ({ number: i + 1, label: `Mesa ${i + 1}` }))).map(t => (
                   <button
                     key={t.number}
                     type="button"
                     onClick={() => setTableNumber(t.number)}
-                    className={`py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex flex-col items-center justify-center transition-all ${
+                    className={`py-1.5 rounded-md font-['Montserrat'] font-bold text-[11px] flex flex-col items-center justify-center transition-all ${
                       tableNumber === t.number
-                        ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/40 scale-105 border border-white'
+                        ? 'bg-[#ff5722] text-white shadow-sm shadow-[#ff5722]/40 scale-102 border border-white'
                         : 'bg-[#121212] text-[#b4b5b5] hover:text-white border border-[#353535]'
                     }`}
                   >
-                    <span>Mesa</span>
-                    <span className="text-sm font-black font-mono">{t.number < 10 ? `0${t.number}` : t.number}</span>
+                    <span className="text-[8px] opacity-80">Mesa</span>
+                    <span className="text-xs font-black font-mono">{t.number < 10 ? `0${t.number}` : t.number}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="p-2.5 bg-black/40 rounded-lg border border-[#353535] text-[11px] text-[#b4b5b5] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#ff5722] shrink-0" />
+            <div className="p-2 bg-black/40 rounded border border-[#353535] text-[10px] text-[#b4b5b5] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
               <span>
-                Seu pedido entrará direto na chapa da cozinha e o garçom servirá quentinho na <strong>Mesa {tableNumber < 10 ? `0${tableNumber}` : tableNumber}</strong>!
+                Pedido direto na chapa para a <strong>Mesa {tableNumber < 10 ? `0${tableNumber}` : tableNumber}</strong>!
               </span>
             </div>
           </section>
         )}
 
         {orderType === 'Retirada' && (
-          <section className="bg-[#1c1b1b] rounded-xl p-4 border border-[#353535] space-y-2 animate-in fade-in">
-            <div className="flex items-center gap-2 text-white font-bold text-xs">
-              <ShoppingBag className="w-4 h-4 text-[#ff5722]" />
+          <section className="bg-[#1c1b1b] rounded-lg p-3 border border-[#353535] space-y-1.5 animate-in fade-in">
+            <div className="flex items-center gap-1.5 text-white font-bold text-xs">
+              <ShoppingBag className="w-3.5 h-3.5 text-[#ff5722]" />
               <span>Retirada no Balcão da Hamburgueria</span>
             </div>
-            <p className="text-xs text-[#b4b5b5]">
+            <p className="text-[11px] text-[#b4b5b5]">
               Endereço: <strong className="text-white">{storeSettings?.address || storeSettings?.deliveryArea?.baseAddress || 'Rua Augusta, 1000 - Consolação, São Paulo - SP'}</strong>
             </p>
-            <p className="text-[11px] text-emerald-400">
+            <p className="text-[10px] text-emerald-400">
               ✓ Economize a taxa de frete e retire seu lanche no balcão sem filas!
             </p>
           </section>
         )}
 
         {orderType === 'Delivery' && (
-          <section className="space-y-1.5">
-            <h3 className="text-xs font-medium text-[#b4b5b5]">
+          <section className="space-y-1">
+            <h3 className="text-[10px] font-medium text-[#b4b5b5]">
               Endereço de Entrega
             </h3>
-            <div className="bg-[#20201f] rounded-lg p-4 flex items-center justify-between border border-[#353535]/50 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
-                  <MapPin className="w-5 h-5" />
+            <div className="bg-[#20201f] rounded-lg p-2.5 sm:p-3 flex items-center justify-between border border-[#353535]/50 shadow-sm">
+              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                <div className="w-7 h-7 rounded-full bg-[#ff5722]/10 flex items-center justify-center text-[#ff5722] flex-shrink-0">
+                  <MapPin className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-white truncate">
                     {deliveryAddress.split(' - ')[0] || deliveryAddress}
                   </span>
-                  <span className="text-xs text-[#b4b5b5]">
+                  <span className="text-[10px] text-[#b4b5b5] truncate">
                     {deliveryAddress.split(' - ')[1] || 'Centro, São Paulo - SP'}
                   </span>
                 </div>
               </div>
               <button
                 onClick={onOpenAddressModal}
-                className="text-[#ffb5a0] hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-md hover:bg-[#353535] border border-[#353535] transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                className="text-[#ffb5a0] hover:text-white text-[10px] font-semibold px-2 py-1 rounded hover:bg-[#353535] border border-[#353535] transition-colors flex items-center gap-1 whitespace-nowrap flex-shrink-0"
               >
-                <Navigation className="w-3.5 h-3.5 text-[#ff5722]" /> Usar GPS / Alterar
+                <Navigation className="w-3 h-3 text-[#ff5722]" /> Alterar
               </button>
             </div>
 
           {/* Feedback do Raio de Atendimento da Loja */}
           {isOutsideRadius ? (
-            <div className="p-2.5 bg-red-950/60 border border-red-500/40 rounded-lg text-xs text-red-300 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <div className="p-2 bg-red-950/60 border border-red-500/40 rounded-lg text-[10px] text-red-300 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
               <span>
-                Atenção: Este endereço fica a ~{matchedZone?.distanceKm} km (além do raio de atendimento de {radiusLimit} km). Considere a opção de Retirada no Balcão ou altere o endereço.
+                Atenção: Endereço a ~{matchedZone?.distanceKm} km (fora do raio de {radiusLimit} km). Escolha Retirada no Balcão.
               </span>
             </div>
           ) : matchedZone ? (
-            <div className="p-2 bg-emerald-950/40 border border-emerald-500/30 rounded-lg text-xs text-emerald-300 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-[11px]">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Área atendida: <strong>{matchedZone.name}</strong> (~{matchedZone.distanceKm || 3} km da base)</span>
+            <div className="p-2 bg-emerald-950/40 border border-emerald-500/30 rounded-lg text-[10px] text-emerald-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+                <span>Área atendida: <strong>{matchedZone.name}</strong></span>
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.2 rounded font-mono font-bold">
                 {matchedZone.estimatedTime || '25-35 min'}
               </span>
             </div>
@@ -769,87 +769,84 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         )}
 
         {/* Possui um cupom? */}
-        <section className="space-y-1.5">
-          <label className="block text-xs font-medium text-[#b4b5b5]">
-            Possui um cupom?
+        <section className="space-y-1">
+          <label className="block text-[10px] font-medium text-[#b4b5b5]">
+            Possui um cupom de desconto?
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <div className="relative flex-grow">
               <input
                 type="text"
                 value={couponCode}
                 onChange={e => setCouponCode(e.target.value)}
-                placeholder="Ex: CRIAS10 ou FOGO20"
-                className="w-full bg-[#20201f] border border-[#353535] rounded-md px-4 py-3 text-sm text-[#e5e2e1] placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722] uppercase tracking-wider"
+                placeholder="Ex: CRIAS10"
+                className="w-full bg-[#20201f] border border-[#353535] rounded-md px-2.5 py-1.5 text-xs text-[#e5e2e1] placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722] uppercase tracking-wider"
               />
               {appliedCouponName && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-[#ff5722]/20 text-[#ff8a65] px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> {appliedCouponName}
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-[#ff5722]/20 text-[#ff8a65] px-1 py-0.2 rounded font-mono font-bold flex items-center gap-0.5">
+                  <Tag className="w-2 h-2" /> {appliedCouponName}
                 </span>
               )}
             </div>
             <button
               onClick={handleApplyCoupon}
-              className="bg-[#353535] hover:bg-[#454747] text-white px-5 rounded-md text-xs font-bold font-['Montserrat'] transition-colors"
+              className="bg-[#353535] hover:bg-[#454747] text-white px-3 py-1.5 rounded-md text-[11px] font-bold font-['Montserrat'] transition-colors"
             >
               Aplicar
             </button>
           </div>
           {couponError && (
-            <p className="text-[11px] text-[#ffb4ab] mt-1">{couponError}</p>
+            <p className="text-[10px] text-[#ffb4ab] mt-0.5">{couponError}</p>
           )}
           {appliedCouponName && (
-            <p className="text-[11px] text-[#86cfff] mt-1">
-              Desconto de {(discountPercent * 100).toFixed(0)}% aplicado com sucesso!
+            <p className="text-[10px] text-[#86cfff] mt-0.5">
+              Desconto de {(discountPercent * 100).toFixed(0)}% aplicado!
             </p>
           )}
         </section>
 
         {/* Forma de Pagamento */}
-        <section className="space-y-3">
+        <section className="space-y-2">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-semibold text-[#b4b5b5] uppercase tracking-wider font-['Montserrat']">
+            <h3 className="text-[10px] font-semibold text-[#b4b5b5] uppercase tracking-wider font-['Montserrat']">
               Forma de Pagamento
             </h3>
             <button
               type="button"
               onClick={() => setShowAddMethodInput(!showAddMethodInput)}
-              className="text-xs text-[#ffb5a0] hover:text-white font-medium flex items-center gap-1 transition-colors"
+              className="text-[10px] text-[#ffb5a0] hover:text-white font-medium flex items-center gap-1 transition-colors"
             >
-              <PlusCircle className="w-3.5 h-3.5 text-[#ff5722]" />
-              <span>{showAddMethodInput ? 'Fechar' : '+ Adicionar Forma'}</span>
+              <PlusCircle className="w-3 h-3 text-[#ff5722]" />
+              <span>{showAddMethodInput ? 'Fechar' : '+ Outra'}</span>
             </button>
           </div>
 
           {/* Form to add custom payment method */}
           {showAddMethodInput && (
-            <div className="bg-[#1c1b1b] border border-[#ff5722]/40 rounded-lg p-3.5 space-y-2.5 animate-in fade-in">
-              <span className="text-xs font-bold text-white block font-['Montserrat']">
-                Adicionar Nova Opção de Pagamento
+            <div className="bg-[#1c1b1b] border border-[#ff5722]/40 rounded-lg p-2.5 space-y-2 animate-in fade-in">
+              <span className="text-[11px] font-bold text-white block font-['Montserrat']">
+                Adicionar Opção de Pagamento
               </span>
-              <p className="text-[11px] text-[#b4b5b5]">
-                Digite o nome da bandeira, app ou convênio que deseja utilizar:
-              </p>
-              <form onSubmit={handleAddPaymentMethod} className="flex gap-2">
+              <form onSubmit={handleAddPaymentMethod} className="flex gap-1.5">
                 <input
                   type="text"
                   required
                   value={newMethodName}
                   onChange={e => setNewMethodName(e.target.value)}
-                  placeholder="Ex: Ticket Restaurante, PicPay, Alelo..."
-                  className="flex-grow bg-[#20201f] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
+                  placeholder="Ex: Ticket, Alelo, PicPay..."
+                  className="flex-grow bg-[#20201f] border border-[#353535] rounded-md px-2.5 py-1 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
                 />
                 <button
                   type="submit"
-                  className="btn-flame text-white px-3.5 py-2 rounded-md text-xs font-bold font-['Montserrat'] whitespace-nowrap active:scale-95 transition-all"
+                  className="btn-flame text-white px-3 py-1 rounded-md text-[11px] font-bold font-['Montserrat'] whitespace-nowrap active:scale-95 transition-all"
                 >
                   Adicionar
                 </button>
               </form>
 
               {/* Quick suggestions */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {['Ticket Restaurante', 'Alelo Refeição', 'Sodexo / Pluxee', 'PicPay', 'VR Smart'].map(
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {['Ticket Restaurante', 'Alelo Refeição', 'Sodexo / Pluxee', 'PicPay'].map(
                   preset => (
                     <button
                       key={preset}
@@ -857,7 +854,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                       onClick={() => {
                         setNewMethodName(preset);
                       }}
-                      className="text-[10px] bg-[#2a2a2a] hover:bg-[#353535] text-[#ffb5a0] px-2 py-1 rounded-lg border border-[#353535] transition-colors"
+                      className="text-[9px] bg-[#2a2a2a] hover:bg-[#353535] text-[#ffb5a0] px-1.5 py-0.5 rounded border border-[#353535] transition-colors"
                     >
                       + {preset}
                     </button>
@@ -868,7 +865,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           )}
 
           {/* Methods List */}
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {activeMethods.map(methodName => {
               const isSelected = paymentMethod === methodName;
               const isPix = methodName.toLowerCase().includes('pix');
@@ -886,67 +883,67 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                 : Wallet;
 
               return (
-                <div key={methodName} className="space-y-2">
+                <div key={methodName}>
                   <button
                     type="button"
                     onClick={() => handleSelectPaymentMethod(methodName)}
-                    className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all active:scale-[0.99] text-left group ${
+                    className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all active:scale-[0.99] text-left group ${
                       isSelected
                         ? isPix
-                          ? 'border-emerald-500/80 bg-emerald-950/20 shadow-[0_0_15px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/50'
-                          : 'border-[#ff5722] bg-[#ff5722]/10 shadow-[0_0_15px_rgba(255,87,34,0.15)] ring-1 ring-[#ff5722]'
+                          ? 'border-emerald-500/80 bg-emerald-950/20 shadow-[0_0_12px_rgba(16,185,129,0.12)] ring-1 ring-emerald-500/50'
+                          : 'border-[#ff5722] bg-[#ff5722]/10 shadow-[0_0_12px_rgba(255,87,34,0.12)] ring-1 ring-[#ff5722]'
                         : 'bg-[#20201f] border-[#353535]/50 hover:border-[#ff5722]/50 hover:bg-[#252525]'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
                           isSelected
                             ? isPix
-                              ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
-                              : 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/30'
+                              ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                              : 'bg-[#ff5722] text-white shadow-sm shadow-[#ff5722]/30'
                             : 'bg-[#2a2a2a] text-[#b4b5b5] group-hover:text-white'
                         }`}
                       >
-                        <Icon className="w-4.5 h-4.5" />
+                        <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-white font-['Montserrat'] block">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white font-['Montserrat'] truncate">
                             {methodName}
                           </span>
                           {isPix && (
-                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
-                              Instantâneo
+                            <span className="text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1 py-0.2 rounded font-black uppercase">
+                              Pix
                             </span>
                           )}
                           {(isCard || isCash) && (
-                            <span className="text-[9px] bg-[#2a2a2a] text-[#ffb5a0] px-1.5 py-0.2 rounded font-medium">
-                              Na entrega
+                            <span className="text-[8px] bg-[#2a2a2a] text-[#ffb5a0] px-1 py-0.2 rounded font-medium">
+                              Entrega
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-[#b4b5b5] block mt-0.5">
+                        <span className="text-[9.5px] text-[#b4b5b5] block truncate">
                           {isPix
-                            ? 'Aprovação imediata • QR Code e Copia e Cola'
+                            ? 'Aprovação imediata • QR Code'
                             : isCash
-                            ? 'Pague em dinheiro ao motoboy (com troco)'
+                            ? 'Em dinheiro com troco'
                             : isCardCredit
-                            ? 'Maquininha sem fio (todas as bandeiras)'
+                            ? 'Cartão de crédito na maquininha'
                             : isCardDebit
-                            ? 'Maquininha sem fio (Visa, Elo, Master)'
-                            : 'Aceito na maquininha ou aplicativo'}
+                            ? 'Cartão de débito na maquininha'
+                            : 'Aceito na maquininha ou app'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center gap-1.5 pl-2">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-0.5 transition-all group-hover:scale-105 ${
+                    <div className="shrink-0 flex items-center gap-0.5 pl-1.5">
+                      <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 transition-all group-hover:scale-105 ${
                         isPix
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                           : 'bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40'
                       }`}>
-                        Pagar <ChevronRight className="w-3.5 h-3.5" />
+                        Pagar <ChevronRight className="w-2.5 h-2.5" />
                       </span>
                     </div>
                   </button>
@@ -957,25 +954,25 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         </section>
 
         {/* Summary Breakdown */}
-        <section className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 space-y-3">
-          <div className="flex justify-between items-center text-xs">
+        <section className="bg-[#20201f] rounded-lg p-3 border border-[#353535]/50 space-y-1.5">
+          <div className="flex justify-between items-center text-[11px]">
             <span className="text-[#b4b5b5]">Subtotal</span>
             <span className="text-white font-medium">
               R$ {subtotal.toFixed(2).replace('.', ',')}
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-[#b4b5b5] flex items-center gap-1.5">
+          <div className="flex justify-between items-center text-[11px]">
+            <span className="text-[#b4b5b5] flex items-center gap-1">
               <span>Taxa de entrega</span>
               {matchedZone && (
-                <span className="text-[10px] text-[#ff8a65] font-semibold">({matchedZone.name})</span>
+                <span className="text-[9px] text-[#ff8a65] font-semibold">({matchedZone.name})</span>
               )}
             </span>
             {isPickup ? (
-              <span className="text-emerald-400 font-bold uppercase text-[11px]">Retirada no Balcão (Grátis)</span>
+              <span className="text-emerald-400 font-bold uppercase text-[9px]">Retirada no Balcão (Grátis)</span>
             ) : isFreeDelivery ? (
-              <span className="text-emerald-400 font-bold uppercase text-[11px]">Grátis (Promocional)</span>
+              <span className="text-emerald-400 font-bold uppercase text-[9px]">Grátis (Promocional)</span>
             ) : (
               <span className="text-white font-medium">
                 R$ {deliveryFee.toFixed(2).replace('.', ',')}
@@ -984,17 +981,17 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           </div>
 
           {discountAmount > 0 && (
-            <div className="flex justify-between items-center text-xs text-[#86cfff]">
+            <div className="flex justify-between items-center text-[11px] text-[#86cfff]">
               <span>Desconto ({appliedCouponName})</span>
               <span>- R$ {discountAmount.toFixed(2).replace('.', ',')}</span>
             </div>
           )}
 
-          <div className="pt-3 border-t border-[#353535] flex justify-between items-center">
-            <span className="font-['Montserrat'] font-bold text-sm text-white">
+          <div className="pt-1.5 border-t border-[#353535] flex justify-between items-center">
+            <span className="font-['Montserrat'] font-bold text-xs text-white">
               Total
             </span>
-            <span className="font-['Montserrat'] font-extrabold text-xl text-[#ff5722]">
+            <span className="font-['Montserrat'] font-extrabold text-base text-[#ff5722]">
               R$ {total.toFixed(2).replace('.', ',')}
             </span>
           </div>
@@ -1003,14 +1000,14 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
       {/* Sticky Bottom Bar */}
       {items.length > 0 && (
-        <div className="fixed bottom-16 left-0 w-full z-40 bg-gradient-to-t from-[#131313] via-[#131313]/95 to-transparent p-4 pb-4">
-          <div className="max-w-2xl mx-auto">
+        <div className="fixed bottom-14 sm:bottom-16 left-0 w-full z-40 bg-gradient-to-t from-[#131313] via-[#131313]/95 to-transparent p-2 px-3">
+          <div className="max-w-md mx-auto">
             <button
               onClick={() => handleSelectPaymentMethod(paymentMethod)}
-              className="w-full py-4 rounded-xl font-['Montserrat'] font-bold text-base flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xl btn-flame text-white"
+              className="w-full py-2.5 rounded-lg font-['Montserrat'] font-bold text-xs sm:text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md btn-flame text-white"
             >
               <span>Ir para Pagamento ({paymentMethod}) • R$ {total.toFixed(2).replace('.', ',')}</span>
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1019,26 +1016,26 @@ export const CartScreen: React.FC<CartScreenProps> = ({
       {/* MODAL / TELA DE PAGAMENTO DEDICADA */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end sm:justify-center items-center sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1a1918] border border-[#353535] w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+          <div className="bg-[#1a1918] border border-[#353535] w-full sm:max-w-md rounded-t-2xl sm:rounded-xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
             {/* Modal Top Header */}
-            <div className="p-4 px-5 border-b border-[#353535] flex items-center justify-between bg-[#20201f]">
-              <div className="flex items-center gap-3">
+            <div className="p-3 px-4 border-b border-[#353535] flex items-center justify-between bg-[#20201f]">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
                   className="p-1 rounded-full text-[#b4b5b5] hover:text-white hover:bg-[#333] transition-colors"
                   title="Voltar ao Carrinho"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
                 <div>
-                  <h3 className="font-['Montserrat'] font-bold text-base text-white flex items-center gap-2">
+                  <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-1.5">
                     <span>Tela de Pagamento</span>
-                    <span className="text-[10px] bg-[#ff5722]/20 text-[#ff8a65] px-2 py-0.5 rounded-full font-bold uppercase">
+                    <span className="text-[9px] bg-[#ff5722]/20 text-[#ff8a65] px-1.5 py-0.2 rounded-full font-bold uppercase">
                       {paymentMethod.split(' (')[0]}
                     </span>
                   </h3>
-                  <span className="text-[11px] text-[#b4b5b5]">
+                  <span className="text-[10px] text-[#b4b5b5]">
                     {items.length} {items.length === 1 ? 'item' : 'itens'} • Total: <strong className="text-white font-mono">R$ {total.toFixed(2).replace('.', ',')}</strong>
                   </span>
                 </div>
@@ -1047,9 +1044,9 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPaymentModal(false)}
-                className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#353535] text-[#b4b5b5] hover:text-white flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-full bg-[#2a2a2a] hover:bg-[#353535] text-[#b4b5b5] hover:text-white flex items-center justify-center transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -1502,19 +1499,19 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             </div>
 
             {/* Modal Bottom CTA */}
-            <div className="p-4 border-t border-[#353535] bg-[#20201f] space-y-2">
+            <div className="p-3 border-t border-[#353535] bg-[#20201f] space-y-1.5">
               <button
                 type="button"
                 onClick={handleConfirmPayment}
-                className="w-full py-4 rounded-xl font-['Montserrat'] font-bold text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 transition-all shadow-xl btn-flame text-white"
+                className="w-full py-3 rounded-lg font-['Montserrat'] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md btn-flame text-white"
               >
                 <span>Concluir e Fazer Pedido • R$ {total.toFixed(2).replace('.', ',')}</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowPaymentModal(false)}
-                className="w-full py-1 text-center text-xs text-[#8e8f8f] hover:text-white transition-colors"
+                className="w-full py-1 text-center text-[11px] text-[#8e8f8f] hover:text-white transition-colors"
               >
                 Voltar e alterar itens do carrinho
               </button>
