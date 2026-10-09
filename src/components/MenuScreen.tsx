@@ -1060,11 +1060,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed right-5 sm:right-6 bottom-38 w-11 h-11 rounded-full bg-[#20201f]/95 hover:bg-[#ff5722] text-[#ff8a65] hover:text-white border border-[#ff5722]/50 backdrop-blur-md flex items-center justify-center shadow-xl shadow-black/70 z-40 active:scale-90 transition-all duration-200 animate-in fade-in zoom-in-75 group"
+          className="fixed right-4 sm:right-5.5 bottom-29 sm:bottom-32 w-8 h-8 rounded-full bg-[#20201f]/95 hover:bg-[#ff5722] text-[#ff8a65] hover:text-white border border-[#ff5722]/40 backdrop-blur-md flex items-center justify-center shadow-md shadow-black/60 z-40 active:scale-90 transition-all duration-200 animate-in fade-in zoom-in-75 group"
           title="Voltar ao Topo"
           aria-label="Voltar ao Topo"
         >
-          <ArrowUp className="w-5 h-5 transition-transform duration-200 group-hover:-translate-y-0.5" />
+          <ArrowUp className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-y-0.5" />
         </button>
       )}
 
