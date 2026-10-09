@@ -64,7 +64,10 @@ import {
   Volume2,
   VolumeX,
   Globe,
+  Upload,
+  Camera,
 } from 'lucide-react';
+import { compressImageFile } from '../utils/imageUpload';
 import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
@@ -5208,7 +5211,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
               {/* Foto de Perfil / Presets */}
               <div>
-                <label className="block text-[#b4b5b5] mb-1.5 font-medium">Foto de Perfil do Entregador</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[#b4b5b5] font-medium">Foto de Perfil do Entregador</label>
+                  <label className="text-[10px] text-[#ff8a65] hover:text-[#ff5722] cursor-pointer flex items-center gap-1 font-semibold">
+                    <Upload className="w-3 h-3" />
+                    <span>Upload do Dispositivo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const compressed = await compressImageFile(file, 400, 400, 0.85);
+                            setCFormAvatar(compressed);
+                          } catch (err: any) {
+                            alert(err?.message || 'Erro ao carregar imagem');
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
                 <div className="flex items-center gap-2 mb-2">
                   {COURIER_AVATAR_PRESETS.map((preset, i) => (
                     <button
