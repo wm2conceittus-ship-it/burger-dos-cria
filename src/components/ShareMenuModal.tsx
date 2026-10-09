@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Share2, ExternalLink, MessageCircle, QrCode, Globe, ShieldCheck } from 'lucide-react';
 import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 
@@ -19,13 +19,17 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  if (!isOpen) return null;
-
   const defaultUrl = tableNumber
     ? getPublicMenuUrl(`/?mesa=${tableNumber}`, customBaseUrl)
     : getPublicMenuUrl('', customBaseUrl);
 
   const [customUrl, setCustomUrl] = useState(defaultUrl);
+
+  useEffect(() => {
+    setCustomUrl(defaultUrl);
+  }, [defaultUrl, isOpen]);
+
+  if (!isOpen) return null;
 
   const handleCopy = async () => {
     const success = await copyToClipboard(customUrl || defaultUrl);
