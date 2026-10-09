@@ -6,20 +6,24 @@ interface ShareMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   tableNumber?: number;
+  customBaseUrl?: string;
+  onSaveCustomBaseUrl?: (url: string) => void;
 }
 
 export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
   isOpen,
   onClose,
   tableNumber,
+  customBaseUrl,
+  onSaveCustomBaseUrl,
 }) => {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const defaultUrl = tableNumber
-    ? getPublicMenuUrl(`/?mesa=${tableNumber}`)
-    : getPublicMenuUrl();
+    ? getPublicMenuUrl(`/?mesa=${tableNumber}`, customBaseUrl)
+    : getPublicMenuUrl('', customBaseUrl);
 
   const [customUrl, setCustomUrl] = useState(defaultUrl);
 
@@ -27,6 +31,9 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
     const success = await copyToClipboard(customUrl || defaultUrl);
     if (success) {
       setCopied(true);
+      if (onSaveCustomBaseUrl && customUrl && customUrl !== defaultUrl) {
+        onSaveCustomBaseUrl(customUrl);
+      }
       setTimeout(() => setCopied(false), 2500);
     }
   };

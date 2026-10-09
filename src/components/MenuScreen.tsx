@@ -113,7 +113,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   };
 
   const getShareUrl = () => {
-    return getPublicMenuUrl();
+    return getPublicMenuUrl('', storeSettings?.customMenuUrl);
   };
 
   const handleCopyLink = async () => {

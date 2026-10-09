@@ -157,6 +157,7 @@ export interface StoreSettings {
   managerPin?: string;
   deliveryArea?: DeliveryAreaConfig;
   coupons?: Coupon[];
+  customMenuUrl?: string;
 }
 
 export type TableStatus = 'livre' | 'ocupada' | 'conta_pedida' | 'reservada';

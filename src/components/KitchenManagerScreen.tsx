@@ -63,6 +63,7 @@ import {
   CheckCircle2,
   Volume2,
   VolumeX,
+  Globe,
 } from 'lucide-react';
 import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
@@ -3472,6 +3473,53 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
                 />
               </div>
+
+              {/* Link Público Oficial do Cardápio para Clientes */}
+              <div className="pt-3 border-t border-[#353535] space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-white font-bold flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-[#ff5722]" />
+                    Link Público Oficial do Cardápio (Para Clientes)
+                  </label>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
+                    100% Livre Sem Login
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                  Este é o link oficial que os clientes conseguem abrir diretamente no WhatsApp, celular ou Instagram sem precisar de senha ou login.
+                </p>
+                <div className="flex items-center gap-2 bg-[#141414] border border-[#353535] rounded-lg p-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getPublicMenuUrl('', storeSettings.customMenuUrl)}
+                    className="bg-transparent text-[#ff8a65] font-mono text-xs w-full focus:outline-none select-all truncate"
+                    onClick={e => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = getPublicMenuUrl('', storeSettings.customMenuUrl);
+                      await copyToClipboard(url);
+                      setFinancialToast('Link público copiado com sucesso! 🔗');
+                      setTimeout(() => setFinancialToast(null), 3000);
+                    }}
+                    className="px-3 py-1.5 rounded-md bg-[#ff5722] hover:bg-[#ff7043] text-white text-xs font-bold shrink-0 flex items-center gap-1 active:scale-95"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copiar</span>
+                  </button>
+                  <a
+                    href={getPublicMenuUrl('', storeSettings.customMenuUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-md bg-[#252525] hover:bg-[#333] text-white text-xs font-bold shrink-0 flex items-center gap-1 border border-[#444] active:scale-95"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Abrir</span>
+                  </a>
+                </div>
+              </div>
             </div>
             )}
 
@@ -5508,6 +5556,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       <ShareMenuModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+        customBaseUrl={storeSettings.customMenuUrl}
+        onSaveCustomBaseUrl={url =>
+          onUpdateStoreSettings({
+            ...storeSettings,
+            customMenuUrl: url,
+          })
+        }
       />
     </div>
   );

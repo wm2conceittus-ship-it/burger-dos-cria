@@ -1582,7 +1582,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               <div className="relative w-48 h-48 flex items-center justify-center bg-white rounded-xl">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-                    getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`)
+                    getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`, storeSettings?.customMenuUrl)
                   )}`}
                   alt={`QR Code Mesa ${selectedQrTable.number}`}
                   className="w-48 h-48 object-contain rounded-lg"
@@ -1616,12 +1616,12 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
 
             <div className="p-2.5 bg-[#141414] rounded-lg border border-[#353535] flex items-center justify-between text-xs">
               <span className="font-mono text-[10px] text-[#ff8a65] truncate">
-                {getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`)}
+                {getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`, storeSettings?.customMenuUrl)}
               </span>
               <button
                 type="button"
                 onClick={async () => {
-                  await copyToClipboard(getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`));
+                  await copyToClipboard(getPublicMenuUrl(`/?mesa=${selectedQrTable.number}`, storeSettings?.customMenuUrl));
                   showToast(`Link público da Mesa ${selectedQrTable.number} copiado!`);
                 }}
                 className="text-xs text-white font-bold underline ml-2 whitespace-nowrap"
