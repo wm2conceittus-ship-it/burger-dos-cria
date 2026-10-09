@@ -2476,7 +2476,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <button
                 type="button"
                 onClick={onOpenAddProduct}
-                className="px-3.5 py-2 rounded-xl btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/20 shrink-0 w-full sm:w-auto"
+                className="px-3.5 py-2 rounded-md btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/20 shrink-0 w-full sm:w-auto"
               >
                 <Plus className="w-3.5 h-3.5" /> Adicionar Produto
               </button>
