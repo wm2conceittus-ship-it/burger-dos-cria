@@ -252,8 +252,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                       <span className="text-[#b4b5b5] text-[11px] flex items-center gap-1">
                         <Users className="w-3.5 h-3.5 text-[#8e8f8f]" /> {size.people}
                       </span>
-                      <span className="font-['Montserrat'] font-extrabold text-sm text-white">
-                        R$ {calculatedPrice.toFixed(2).replace('.', ',')}
+                      <span className="font-['Montserrat'] font-extrabold text-sm text-white whitespace-nowrap shrink-0">
+                        R$&nbsp;{calculatedPrice.toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                   </div>
@@ -337,8 +337,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
                     <div className="flex justify-between items-center pt-2 border-t border-[#353535]/50 text-xs">
                       <span className="text-[#8e8f8f] text-[10px]">Preço unitário</span>
-                      <span className="font-['Montserrat'] font-extrabold text-sm text-white">
-                        R$ {calculatedPrice.toFixed(2).replace('.', ',')}
+                      <span className="font-['Montserrat'] font-extrabold text-sm text-white whitespace-nowrap shrink-0">
+                        R$&nbsp;{calculatedPrice.toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                   </div>
@@ -420,8 +420,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                     <p className="text-base font-medium text-white">{item.name}</p>
                     <p className="text-xs text-[#b4b5b5] mt-0.5">{item.subtitle}</p>
                   </div>
-                  <span className="text-sm font-semibold text-[#ffb5a0]">
-                    + R$ {item.price.toFixed(2).replace('.', ',')}
+                  <span className="text-sm font-semibold text-[#ffb5a0] whitespace-nowrap shrink-0 pl-2">
+                    + R$&nbsp;{item.price.toFixed(2).replace('.', ',')}
                   </span>
                 </label>
               );
@@ -480,8 +480,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
             </div>
             <div className="flex flex-col items-end leading-tight">
               <span className="text-[10px] opacity-85">Total</span>
-              <span className="font-extrabold text-base md:text-lg">
-                R$ {totalPrice.toFixed(2).replace('.', ',')}
+              <span className="font-extrabold text-base md:text-lg whitespace-nowrap">
+                R$&nbsp;{totalPrice.toFixed(2).replace('.', ',')}
               </span>
             </div>
           </button>

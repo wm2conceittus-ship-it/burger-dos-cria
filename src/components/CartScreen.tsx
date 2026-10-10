@@ -533,8 +533,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                       </button>
                     </div>
 
-                    <span className="font-['Montserrat'] font-bold text-xs text-[#ffb5a0]">
-                      R$ {item.totalPrice.toFixed(2).replace('.', ',')}
+                    <span className="font-['Montserrat'] font-bold text-xs text-[#ffb5a0] whitespace-nowrap shrink-0">
+                      R$&nbsp;{item.totalPrice.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
                 </div>

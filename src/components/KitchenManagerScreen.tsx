@@ -2037,8 +2037,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             {touchDrag.order.customerName}
                           </span>
                         </div>
-                        <span className="text-[11px] font-mono font-bold text-emerald-400">
-                          R$ {Number(touchDrag.order.total || 0).toFixed(2).replace('.', ',')}
+                        <span className="text-[11px] font-mono font-bold text-emerald-400 whitespace-nowrap shrink-0">
+                          R$&nbsp;{Number(touchDrag.order.total || 0).toFixed(2).replace('.', ',')}
                         </span>
                       </div>
 
@@ -2486,17 +2486,37 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           <Bike className="w-2.5 h-2.5 text-sky-400 shrink-0" />
                                           {order.courierName}
                                         </span>
-                                        {order.courierPhone && (
-                                          <a
-                                            href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.courierName}, tudo bem? Mensagem sobre o pedido #${order.orderNumber}:`)}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
-                                            onClick={e => e.stopPropagation()}
-                                          >
-                                            <Phone className="w-2 h-2" /> WhatsApp
-                                          </a>
-                                        )}
+                                        {order.courierPhone && (() => {
+                                          const courierMsg = [
+                                            `*🛵 NOVA ENTREGA - ${storeSettings.storeName || 'BURGUER DOS CRIAS'}*`,
+                                            `*Pedido:* #${order.orderNumber}`,
+                                            `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
+                                            `*Endereço:* ${order.address || 'Não informado'}`,
+                                            order.address ? `*Rota GPS:* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
+                                            `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
+                                            isOnlinePaid
+                                              ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
+                                              : isNeedMachine
+                                              ? '💳 *PAGAMENTO:* LEVAR MAQUININHA (COBRAR NA ENTREGA)'
+                                              : isCash
+                                              ? `💵 *PAGAMENTO:* DINHEIRO ${order.changeFor ? `(LEVAR TROCO P/ ${order.changeFor})` : '(SEM TROCO)'}`
+                                              : `💰 *PAGAMENTO:* ${order.paymentMethod || 'Cobrar na entrega'}`,
+                                            order.notes ? `*Observações:* ${order.notes}` : ''
+                                          ].filter(Boolean).join('\n');
+
+                                          return (
+                                            <a
+                                              href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(courierMsg)}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
+                                              onClick={e => e.stopPropagation()}
+                                              title="Enviar ficha da entrega para o WhatsApp do entregador"
+                                            >
+                                              <Phone className="w-2 h-2" /> WhatsApp
+                                            </a>
+                                          );
+                                        })()}
                                       </div>
                                       {order.courierVehicle && (
                                         <span className="text-[#8e8f8f] block truncate text-[8.5px]">
@@ -2510,8 +2530,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   <div className="space-y-0.5 pt-0.5">
                                     <div className="flex items-center justify-between text-xs">
                                       <span className="text-[#8e8f8f] text-[10px] font-bold uppercase tracking-wider">Total:</span>
-                                      <span className="font-['Montserrat'] font-black text-xs sm:text-[13px] text-[#ff5722]">
-                                        R$ {(order.total || 0).toFixed(2).replace('.', ',')}
+                                      <span className="font-['Montserrat'] font-black text-xs sm:text-[13px] text-[#ff5722] whitespace-nowrap shrink-0">
+                                        R$&nbsp;{(order.total || 0).toFixed(2).replace('.', ',')}
                                       </span>
                                     </div>
 
@@ -2939,8 +2959,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-[#8e8f8f] font-medium">Total:</span>
-                              <span className="font-['Montserrat'] font-black text-sm text-[#ff5722]">
-                                R$ {order.total.toFixed(2).replace('.', ',')}
+                              <span className="font-['Montserrat'] font-black text-sm text-[#ff5722] whitespace-nowrap shrink-0">
+                                R$&nbsp;{order.total.toFixed(2).replace('.', ',')}
                               </span>
                             </div>
 
@@ -3224,8 +3244,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-[#8e8f8f] font-medium">Total:</span>
-                          <span className="font-['Montserrat'] font-black text-sm text-[#ff5722]">
-                            R$ {order.total.toFixed(2).replace('.', ',')}
+                          <span className="font-['Montserrat'] font-black text-sm text-[#ff5722] whitespace-nowrap shrink-0">
+                            R$&nbsp;{order.total.toFixed(2).replace('.', ',')}
                           </span>
                         </div>
 
@@ -3587,9 +3607,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             {product.description}
                           </p>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722] block">
-                            R$ {product.price.toFixed(2).replace('.', ',')}
+                        <div className="text-right flex-shrink-0 whitespace-nowrap pl-2">
+                          <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722] block whitespace-nowrap">
+                            R$&nbsp;{product.price.toFixed(2).replace('.', ',')}
                           </span>
                           {product.costPrice !== undefined && product.costPrice > 0 ? (
                             <span className="text-[9.5px] text-emerald-400 font-mono block" title={`Lucro de R$ ${(product.price - product.costPrice).toFixed(2).replace('.', ',')}`}>

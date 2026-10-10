@@ -716,13 +716,13 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   <p className="text-xs sm:text-sm text-[#e4beb4]/90 mb-3 line-clamp-2 font-light">
                     {dailySpecial.description}
                   </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[#ff5722] font-['Montserrat'] font-extrabold text-xl sm:text-2xl">
-                      R$ {dailySpecial.price.toFixed(0)}
+                  <div className="flex items-baseline gap-2 shrink-0 whitespace-nowrap">
+                    <span className="text-[#ff5722] font-['Montserrat'] font-extrabold text-xl sm:text-2xl whitespace-nowrap">
+                      R$&nbsp;{dailySpecial.price.toFixed(0)}
                     </span>
                     {dailySpecial.originalPrice && (
-                      <span className="text-[#b4b5b5]/70 line-through text-xs sm:text-sm font-['Montserrat']">
-                        R$ {dailySpecial.originalPrice.toFixed(0)}
+                      <span className="text-[#b4b5b5]/70 line-through text-xs sm:text-sm font-['Montserrat'] whitespace-nowrap">
+                        R$&nbsp;{dailySpecial.originalPrice.toFixed(0)}
                       </span>
                     )}
                   </div>
@@ -799,17 +799,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
                   <div className="p-4 flex-grow flex flex-col justify-between">
                     <div>
-                      <div className="flex justify-between items-baseline mb-1.5">
-                        <h4 className="font-['Montserrat'] font-bold text-base text-white">
+                      <div className="flex justify-between items-start gap-2 mb-1.5">
+                        <h4 className="font-['Montserrat'] font-bold text-base text-white flex-1 min-w-0 leading-snug">
                           {combo.name}
                         </h4>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="font-['Montserrat'] font-extrabold text-base text-[#ff5722]">
-                            R$ {combo.price.toFixed(2).replace('.', ',')}
+                        <div className="flex items-baseline gap-1.5 shrink-0 whitespace-nowrap pl-1 text-right">
+                          <span className="font-['Montserrat'] font-extrabold text-base text-[#ff5722] whitespace-nowrap">
+                            R$&nbsp;{combo.price.toFixed(2).replace('.', ',')}
                           </span>
                           {combo.originalPrice && (
-                            <span className="text-xs text-[#b4b5b5] line-through">
-                              R$ {combo.originalPrice.toFixed(0)}
+                            <span className="text-xs text-[#b4b5b5] line-through whitespace-nowrap">
+                              R$&nbsp;{combo.originalPrice.toFixed(0)}
                             </span>
                           )}
                         </div>
@@ -1304,22 +1304,24 @@ const ProductGridCard: React.FC<{
 
       <div className="p-4 flex-grow flex flex-col justify-between">
         <div>
-          <div className="flex justify-between items-start mb-1">
-            <h4 className="font-['Montserrat'] font-bold text-base text-white">
+          <div className="flex justify-between items-start gap-2 mb-1.5">
+            <h4 className="font-['Montserrat'] font-bold text-base text-white flex-1 min-w-0 leading-snug">
               {product.name}
             </h4>
-            {product.category === 'pizzas' ? (
-              <div className="text-right">
-                <span className="text-[10px] text-[#b4b5b5] block leading-none">A partir de</span>
-                <span className="font-['Montserrat'] font-bold text-sm text-[#ff5722]">
-                  R$ {(product.pizzaPrices?.P ?? Math.max(15, product.price - 12)).toFixed(2).replace('.', ',')}
+            <div className="shrink-0 text-right whitespace-nowrap pl-1">
+              {product.category === 'pizzas' ? (
+                <div>
+                  <span className="text-[10px] text-[#b4b5b5] block leading-none">A partir de</span>
+                  <span className="font-['Montserrat'] font-extrabold text-sm sm:text-base text-[#ff5722] whitespace-nowrap">
+                    R$&nbsp;{(product.pizzaPrices?.P ?? Math.max(15, product.price - 12)).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              ) : (
+                <span className="font-['Montserrat'] font-extrabold text-sm sm:text-base text-[#ff5722] whitespace-nowrap inline-block">
+                  R$&nbsp;{product.price.toFixed(2).replace('.', ',')}
                 </span>
-              </div>
-            ) : (
-              <span className="font-['Montserrat'] font-bold text-sm text-[#ff5722]">
-                R$ {product.price.toFixed(2).replace('.', ',')}
-              </span>
-            )}
+              )}
+            </div>
           </div>
 
           {product.category === 'pizzas' && (
@@ -1463,13 +1465,13 @@ const DrinkCard: React.FC<{
           <p className="text-[10px] text-[#b4b5b5] truncate mt-0.5">{product.description}</p>
         </div>
 
-        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-[#353535]/30">
-          <div>
+        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-[#353535]/30 gap-2">
+          <div className="shrink-0 whitespace-nowrap">
             {isJuice && (
               <span className="text-[9px] text-[#b4b5b5] block leading-none">A partir de</span>
             )}
-            <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722]">
-              R$ {(isJuice ? (product.juicePrices?.['300ml'] ?? Math.max(5, product.price - 3)) : product.price).toFixed(2).replace('.', ',')}
+            <span className="font-['Montserrat'] font-bold text-xs text-[#ff5722] whitespace-nowrap inline-block">
+              R$&nbsp;{(isJuice ? (product.juicePrices?.['300ml'] ?? Math.max(5, product.price - 3)) : product.price).toFixed(2).replace('.', ',')}
             </span>
           </div>
 

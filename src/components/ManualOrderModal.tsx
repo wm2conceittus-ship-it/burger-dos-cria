@@ -423,9 +423,9 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                     <p className="text-[10px] text-[#ffb5a0] italic">{it.notes}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[#ff5722] font-bold font-['Montserrat']">
-                    R$ {(it.price * it.quantity).toFixed(2).replace('.', ',')}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[#ff5722] font-bold font-['Montserrat'] whitespace-nowrap">
+                    R$&nbsp;{(it.price * it.quantity).toFixed(2).replace('.', ',')}
                   </span>
                   <button
                     type="button"
@@ -442,8 +442,8 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
           {/* Total summary */}
           <div className="p-3 bg-[#1c1b1b] rounded-xl border border-[#353535] flex justify-between items-center text-sm font-['Montserrat'] font-bold">
             <span className="text-[#b4b5b5]">Total do Pedido:</span>
-            <span className="text-[#ff5722] text-base">
-              R$ {total.toFixed(2).replace('.', ',')}
+            <span className="text-[#ff5722] text-base whitespace-nowrap">
+              R$&nbsp;{total.toFixed(2).replace('.', ',')}
             </span>
           </div>
 

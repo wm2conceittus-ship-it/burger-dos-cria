@@ -894,11 +894,11 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                     {isFree ? 'Capacidade' : isReserved ? 'Reserva' : 'Total Parcial'}
                   </span>
                   <span
-                    className={`font-mono font-bold text-sm ${
+                    className={`font-mono font-bold text-sm whitespace-nowrap ${
                       isFree ? 'text-[#8e8f8f]' : isReserved ? 'text-blue-300' : isBillRequested ? 'text-amber-300' : 'text-[#ff5722]'
                     }`}
                   >
-                    {isFree ? `${table.capacity} Lugares` : isReserved ? `${table.reservationTime || '20:30'}` : `R$ ${total.toFixed(2).replace('.', ',')}`}
+                    {isFree ? `${table.capacity} Lugares` : isReserved ? `${table.reservationTime || '20:30'}` : `R$\u00A0${total.toFixed(2).replace('.', ',')}`}
                   </span>
                 </div>
 
@@ -1438,9 +1438,9 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="font-mono font-bold text-white text-xs">
-                      R$ {product.price.toFixed(2).replace('.', ',')}
+                  <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
+                    <span className="font-mono font-bold text-white text-xs whitespace-nowrap">
+                      R$&nbsp;{product.price.toFixed(2).replace('.', ',')}
                     </span>
                     <button
                       type="button"
