@@ -11,7 +11,29 @@ export function generatePixPayload(params: {
 }): string {
   const { pixKey, merchantName = 'BURGER DOS CRIAS', merchantCity = 'SAO PAULO', amount, txid = '***' } = params;
 
-  const cleanKey = (pixKey || '11987654321').trim();
+  let cleanKey = (pixKey || '11987654321').trim();
+  
+  // Format cleanKey according to BCB standard
+  if (cleanKey.includes('@')) {
+    cleanKey = cleanKey.toLowerCase().trim();
+  } else {
+    const digits = cleanKey.replace(/\D/g, '');
+    // CNPJ (14 digits)
+    if (digits.length === 14) {
+      cleanKey = digits;
+    } else if (cleanKey.startsWith('+')) {
+      cleanKey = `+${cleanKey.replace(/\D/g, '')}`;
+    } else if (digits.length === 10 || digits.length === 11) {
+      // If it looks like Brazilian phone (e.g. 11987654321 or (11) 98765-4321)
+      // Check if it's formatted as phone or explicitly with DDD >= 11
+      if (cleanKey.includes('(') || cleanKey.includes('-') || cleanKey.startsWith('9')) {
+        cleanKey = `+55${digits}`;
+      } else {
+        // Keep as digits (works for CPF or phone)
+        cleanKey = digits;
+      }
+    }
+  }
   const cleanName = merchantName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

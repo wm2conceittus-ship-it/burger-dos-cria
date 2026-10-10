@@ -35,6 +35,7 @@ import {
   UtensilsCrossed,
   ShoppingBag,
   Bike,
+  Edit2,
 } from 'lucide-react';
 
 interface CartScreenProps {
@@ -100,6 +101,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const [changeFor, setChangeFor] = useState<string>('');
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [hasCopiedDirectPixKey, setHasCopiedDirectPixKey] = useState(false);
+  const [isEditPixModalOpen, setIsEditPixModalOpen] = useState(false);
+  const [editPixModalKey, setEditPixModalKey] = useState(storeSettings?.pixKey || '');
   const [showQrCodeInline, setShowQrCodeInline] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -245,7 +248,12 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   const handleCopyPix = () => {
-    const pixKey = storeSettings?.pixKey || '11987654321';
+    const pixKey = storeSettings?.pixKey || '';
+    if (!pixKey) {
+      setEditPixModalKey('');
+      setIsEditPixModalOpen(true);
+      return;
+    }
     navigator.clipboard.writeText(pixKey);
     setHasCopiedPix(true);
     setTimeout(() => setHasCopiedPix(false), 2500);
@@ -1158,15 +1166,40 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                   {/* Chave Pix Direta (Alternativa para digitação manual no banco) */}
                   <div className="bg-[#1c1b1b] p-3 rounded-xl border border-[#353535] flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <span className="text-[9px] uppercase font-bold text-[#8e8f8f] block">Chave Pix da Hamburgueria:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase font-bold text-[#8e8f8f] block">Chave Pix da Hamburgueria:</span>
+                        {onUpdateStoreSettings && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditPixModalKey(storeSettings?.pixKey || '');
+                              setIsEditPixModalOpen(true);
+                            }}
+                            className="text-[10px] text-[#ff8a65] hover:text-[#ff5722] font-semibold underline flex items-center gap-0.5 active:scale-95"
+                          >
+                            <Edit2 className="w-2.5 h-2.5" />
+                            <span>Alterar Chave</span>
+                          </button>
+                        )}
+                      </div>
                       <span className="text-xs font-mono font-bold text-white truncate block">
-                        {storeSettings?.pixKey || '11987654321'}
+                        {storeSettings?.pixKey || (
+                          <span className="text-amber-400 font-sans font-normal text-[11px]">
+                            Nenhuma chave cadastrada
+                          </span>
+                        )}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText(storeSettings?.pixKey || '11987654321');
+                        const key = storeSettings?.pixKey || '';
+                        if (!key) {
+                          setEditPixModalKey('');
+                          setIsEditPixModalOpen(true);
+                          return;
+                        }
+                        navigator.clipboard.writeText(key);
                         setHasCopiedDirectPixKey(true);
                         setTimeout(() => setHasCopiedDirectPixKey(false), 2500);
                       }}
@@ -1550,6 +1583,98 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                 className="w-full py-1 text-center text-[11px] text-[#8e8f8f] hover:text-white transition-colors"
               >
                 Voltar e alterar itens do carrinho
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Configuração Rápida da Chave Pix (Pelo Checkout / Gestor) */}
+      {isEditPixModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-[#1c1b1b] border-2 border-[#ff5722]/50 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#ff5722] flex items-center justify-center text-white shadow-md">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                    Configurar Chave Pix da Hamburgueria
+                  </h3>
+                  <p className="text-[11px] text-[#b4b5b5]">
+                    Salva automaticamente no Firebase e atualiza o QR Code do pedido.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditPixModalOpen(false)}
+                className="text-[#b4b5b5] hover:text-white p-1 rounded-lg hover:bg-[#252525] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-white mb-1.5">
+                  Digite ou cole a sua Chave Pix:
+                </label>
+                <input
+                  type="text"
+                  value={editPixModalKey}
+                  onChange={e => setEditPixModalKey(e.target.value)}
+                  placeholder="Ex: (11) 98765-4321 ou 123.456.789-00 ou contato@pix.com"
+                  className="w-full bg-[#252525] border-2 border-[#3d3d3d] rounded-lg px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722]"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (storeSettings && onUpdateStoreSettings) {
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          pixKey: editPixModalKey.trim(),
+                        });
+                      }
+                      setIsEditPixModalOpen(false);
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="bg-[#252525] p-3 rounded-lg border border-[#353535] text-[11px] text-[#b4b5b5] space-y-1">
+                <p className="text-white font-semibold">Exemplos válidos:</p>
+                <p>• <strong>Celular:</strong> (11) 98765-4321 ou 11987654321</p>
+                <p>• <strong>CPF ou CNPJ:</strong> somente números ou com pontuação</p>
+                <p>• <strong>E-mail:</strong> financeiro@hamburgueria.com.br</p>
+                <p>• <strong>Chave Aleatória:</strong> código gerado no app do banco</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#353535]">
+              <button
+                type="button"
+                onClick={() => setIsEditPixModalOpen(false)}
+                className="px-3.5 py-2 rounded-lg text-xs font-medium text-[#b4b5b5] hover:bg-[#252525] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (storeSettings && onUpdateStoreSettings) {
+                    onUpdateStoreSettings({
+                      ...storeSettings,
+                      pixKey: editPixModalKey.trim(),
+                    });
+                  }
+                  setIsEditPixModalOpen(false);
+                }}
+                className="btn-flame text-white px-4 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>Salvar Chave Pix</span>
               </button>
             </div>
           </div>

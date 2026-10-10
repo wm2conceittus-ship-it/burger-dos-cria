@@ -78,7 +78,13 @@ import {
   Minimize2,
   Maximize2,
   SlidersHorizontal,
+  QrCode,
+  Smartphone,
+  Building2,
+  Key,
+  Mail,
 } from 'lucide-react';
+import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
 import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
@@ -424,6 +430,38 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
+
+  // Pix Key state for Manager configuration
+  const [pixKeyInput, setPixKeyInput] = useState<string>(() => storeSettings.pixKey ?? '');
+  const [pixKeyType, setPixKeyType] = useState<'telefone' | 'cpf' | 'cnpj' | 'email' | 'aleatoria'>(() => {
+    const k = (storeSettings.pixKey || '').trim();
+    if (k.includes('@')) return 'email';
+    const digits = k.replace(/\D/g, '');
+    if (digits.length === 14) return 'cnpj';
+    if (digits.length === 11 && !k.startsWith('+55') && !k.includes('(')) return 'cpf';
+    if (k.length > 20 && k.includes('-')) return 'aleatoria';
+    return 'telefone';
+  });
+  const [pixSavedToast, setPixSavedToast] = useState(false);
+  const [pixCopiedToast, setPixCopiedToast] = useState(false);
+
+  // Sync pixKeyInput whenever storeSettings.pixKey updates from Firebase
+  useEffect(() => {
+    if (storeSettings.pixKey !== undefined) {
+      setPixKeyInput(storeSettings.pixKey);
+    }
+  }, [storeSettings.pixKey]);
+
+  const handleSavePixKey = (keyToSave?: string) => {
+    const raw = keyToSave !== undefined ? keyToSave : pixKeyInput;
+    const trimmed = raw.trim();
+    onUpdateStoreSettings({
+      ...storeSettings,
+      pixKey: trimmed,
+    });
+    setPixSavedToast(true);
+    setTimeout(() => setPixSavedToast(false), 3500);
+  };
 
   // Coupon Management State
   const [couponToast, setCouponToast] = useState<string | null>(null);
@@ -4632,26 +4670,215 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 Configure quais formas de pagamento aparecem para os clientes no carrinho (Pix, cartões na maquininha, dinheiro, vales-refeição).
               </p>
 
-                {/* Chave Pix Config */}
-                <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg p-3 space-y-2">
-                  <label className="block text-xs font-semibold text-white">
-                    Chave Pix da Hamburgueria (Recebimento dos Clientes)
-                  </label>
-                  <input
-                    type="text"
-                    value={storeSettings.pixKey || '11987654321'}
-                    onChange={e =>
-                      onUpdateStoreSettings({
-                        ...storeSettings,
-                        pixKey: e.target.value,
-                      })
-                    }
-                    placeholder="CNPJ, Telefone, E-mail ou Chave Aleatória"
-                    className="w-full bg-[#20201f] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#ff5722]"
-                  />
-                  <span className="text-[10px] text-[#b4b5b5] block">
-                    O cliente consegue copiar esta chave com 1 clique diretamente na tela de finalização do pedido.
-                  </span>
+                {/* Chave Pix Config - Painel Completo e Confiável */}
+                <div className="bg-[#1c1b1b] border-2 border-[#ff5722]/40 rounded-xl p-4 sm:p-5 space-y-4 shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff5722]/5 rounded-bl-full pointer-events-none" />
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#353535] pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#ff5722] to-[#e64a19] flex items-center justify-center text-white shadow-md">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
+                          Chave Pix Oficial da Hamburgueria
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
+                            storeSettings.pixKey
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }`}>
+                            {storeSettings.pixKey ? 'Configurada' : 'Pendente'}
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-[#b4b5b5]">
+                          Usada para gerar o QR Code Dinâmico e Chave Copia e Cola no Carrinho e nos Pedidos.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Feedback de Salvo */}
+                    {pixSavedToast && (
+                      <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-300 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 animate-in fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Chave salva com sucesso!</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seletor do Tipo de Chave */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#8e8f8f] uppercase mb-1.5">
+                      1. Tipo de Chave Pix:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                      {[
+                        { id: 'telefone', label: 'Celular', icon: Smartphone },
+                        { id: 'cpf', label: 'CPF', icon: User },
+                        { id: 'cnpj', label: 'CNPJ', icon: Building2 },
+                        { id: 'email', label: 'E-mail', icon: Mail },
+                        { id: 'aleatoria', label: 'Aleatória (EVP)', icon: Key },
+                      ].map(type => {
+                        const Icon = type.icon;
+                        const isSelected = pixKeyType === type.id;
+                        return (
+                          <button
+                            key={type.id}
+                            type="button"
+                            onClick={() => setPixKeyType(type.id as any)}
+                            className={`p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border transition-all ${
+                              isSelected
+                                ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm font-bold'
+                                : 'bg-[#252525] text-[#b4b5b5] border-[#353535] hover:text-white hover:bg-[#2e2e2e]'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                            <span>{type.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Input de Chave Pix com Ações Integradas */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-semibold text-white">
+                        2. Digite ou Cole a sua Chave Pix:
+                      </label>
+                      {pixKeyInput && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPixKeyInput('');
+                            handleSavePixKey('');
+                          }}
+                          className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" /> Limpar chave
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={pixKeyInput}
+                        onChange={e => setPixKeyInput(e.target.value)}
+                        onBlur={() => handleSavePixKey()}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSavePixKey();
+                          }
+                        }}
+                        placeholder={
+                          pixKeyType === 'telefone'
+                            ? 'Ex: (11) 98765-4321 ou 11987654321'
+                            : pixKeyType === 'cpf'
+                            ? 'Ex: 123.456.789-00 ou 12345678900'
+                            : pixKeyType === 'cnpj'
+                            ? 'Ex: 12.345.678/0001-90 ou 12345678000190'
+                            : pixKeyType === 'email'
+                            ? 'Ex: financeiro@hamburgueria.com.br'
+                            : 'Ex: 123e4567-e89b-12d3-a456-426614174000'
+                        }
+                        className="w-full bg-[#252525] border-2 border-[#3d3d3d] rounded-lg px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722] transition-colors pr-24"
+                      />
+
+                      {/* Botão Salvar dentro do input */}
+                      <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSavePixKey()}
+                          className="btn-flame text-white px-3 py-1.5 rounded-md text-xs font-bold font-['Montserrat'] flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                        >
+                          <Check className="w-3.5 h-3.5" /> Salvar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[#b4b5b5] gap-1 pt-0.5">
+                      <span>
+                        Aceita qualquer formato (com ou sem pontuação). Salva automaticamente ao sair do campo.
+                      </span>
+                      {storeSettings.pixKey ? (
+                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Ativa no Cardápio: {storeSettings.pixKey}
+                        </span>
+                      ) : (
+                        <span className="text-amber-400 font-semibold flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Nenhuma chave cadastrada
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Preview ao Vivo do QR Code e Cópia */}
+                  <div className="bg-[#252525] rounded-lg p-3 border border-[#353535] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <div className="w-16 h-16 bg-white p-1 rounded-md shrink-0 flex items-center justify-center shadow-sm">
+                        <img
+                          src={getPixQrCodeUrl(
+                            generatePixPayload({
+                              pixKey: pixKeyInput || storeSettings.pixKey || '11987654321',
+                              merchantName: storeSettings.storeName || 'BURGER DOS CRIAS',
+                              merchantCity: 'SAO PAULO',
+                              amount: 25.0,
+                            }),
+                            120
+                          )}
+                          alt="QR Code Pix Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#ff8a65] block">
+                          Como o cliente vê no Carrinho:
+                        </span>
+                        <p className="text-xs font-mono font-bold text-white truncate max-w-[260px]">
+                          {pixKeyInput || storeSettings.pixKey || '(Digite sua chave acima)'}
+                        </p>
+                        <p className="text-[10px] text-[#8e8f8f]">
+                          Favorecido: {storeSettings.storeName || 'BURGER DOS CRIAS'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const k = (pixKeyInput || storeSettings.pixKey || '').trim();
+                          if (!k) return;
+                          navigator.clipboard.writeText(k);
+                          setPixCopiedToast(true);
+                          setTimeout(() => setPixCopiedToast(false), 2500);
+                        }}
+                        className="px-3 py-1.5 bg-[#1c1b1b] hover:bg-[#333] text-white border border-[#3d3d3d] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                      >
+                        {pixCopiedToast ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copiada!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-[#ff8a65]" />
+                            <span>Testar Cópia</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSavePixKey()}
+                        className="btn-flame text-white px-4 py-1.5 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 shadow-sm active:scale-95"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Salvar no Firebase</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Lista de formas ativas e remoção */}
@@ -4721,7 +4948,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {['Vale Refeição (VR)', 'Ticket Restaurante', 'Alelo', 'Sodexo / Pluxee', 'PicPay', 'Caju / Flash'].map(
+                    {['Pix', 'Vale Refeição (VR)', 'Ticket Restaurante', 'Alelo', 'Sodexo / Pluxee', 'PicPay', 'Caju / Flash'].map(
                       sug => (
                         <button
                           key={sug}
