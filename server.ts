@@ -291,13 +291,25 @@ app.get('/api/mercadopago/payment-status/:id', async (req: Request, res: Respons
 
     return res.json({
       id,
-      status: 'approved',
-      status_detail: 'accredited',
-      approved: true,
+      status: 'pending',
+      status_detail: 'waiting_transfer',
+      approved: false,
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
+});
+
+// 5b. POST /api/mercadopago/simulate-approval/:id (Test/Sandbox approval simulation)
+app.post('/api/mercadopago/simulate-approval/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const existing = paymentsDb.get(String(id)) || { id };
+  existing.status = 'approved';
+  existing.status_detail = 'accredited';
+  existing.date_approved = new Date().toISOString();
+  paymentsDb.set(String(id), existing);
+  console.log(`[MercadoPago Simulation] Payment #${id} marked as APPROVED!`);
+  return res.json({ success: true, payment: existing });
 });
 
 // 6. POST /api/mercadopago/create-preference (Checkout Pro)

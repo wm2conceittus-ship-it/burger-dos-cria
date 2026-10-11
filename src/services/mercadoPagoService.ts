@@ -116,6 +116,18 @@ export const mercadoPagoApi = {
     return await res.json();
   },
 
+  // Simulate payment approval (test / sandbox)
+  async simulateApproval(paymentId: string | number): Promise<{ success: boolean }> {
+    const res = await fetch(`/api/mercadopago/simulate-approval/${paymentId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error('Falha ao simular aprovação do pagamento');
+    }
+    return await res.json();
+  },
+
   // Create Checkout Pro Preference
   async createPreference(params: {
     items: Array<{ title: string; quantity: number; unit_price: number }>;

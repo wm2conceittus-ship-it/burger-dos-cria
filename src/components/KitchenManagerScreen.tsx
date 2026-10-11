@@ -83,6 +83,8 @@ import {
   Building2,
   Key,
   Mail,
+  Image as ImageIcon,
+  Link2,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -95,7 +97,7 @@ import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { ShareMenuModal } from './ShareMenuModal';
-import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
+import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -118,6 +120,7 @@ interface KitchenManagerScreenProps {
   onNavigateToMenu: () => void;
   onLockManager?: () => void;
   onUpdateOrderStatus?: (orderId: string, newStatus: any) => void;
+  onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
   onDeleteProduct?: (productId: string) => void;
   onClearOrders?: () => void;
   initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes';
@@ -153,6 +156,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onNavigateToMenu,
   onLockManager,
   onUpdateOrderStatus,
+  onUpdatePaymentStatus,
   onDeleteProduct,
   onClearOrders,
   initialTab,
@@ -177,7 +181,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'pizzas' | 'salgados' | 'sucos' | 'bebidas'>('all');
-  const [managerPinInput, setManagerPinInput] = useState(storeSettings.managerPin || '123456');
+  const [managerPinInput, setManagerPinInput] = useState('');
   const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -430,9 +434,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
+  const [viewingReceiptOrder, setViewingReceiptOrder] = useState<Order | null>(null);
 
-  // Pix Key state for Manager configuration
+  // Pix Key & QR Code Image state for Manager configuration
   const [pixKeyInput, setPixKeyInput] = useState<string>(() => storeSettings.pixKey ?? '');
+  const [pixQrCodeImageUrlInput, setPixQrCodeImageUrlInput] = useState<string>(() => storeSettings.pixQrCodeImageUrl ?? '');
+  const [isUploadingPixQr, setIsUploadingPixQr] = useState(false);
+  const [pixQrUploadError, setPixQrUploadError] = useState<string | null>(null);
   const [pixKeyType, setPixKeyType] = useState<'telefone' | 'cpf' | 'cnpj' | 'email' | 'aleatoria'>(() => {
     const k = (storeSettings.pixKey || '').trim();
     if (k.includes('@')) return 'email';
@@ -445,22 +453,48 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [pixSavedToast, setPixSavedToast] = useState(false);
   const [pixCopiedToast, setPixCopiedToast] = useState(false);
 
-  // Sync pixKeyInput whenever storeSettings.pixKey updates from Firebase
+  // Sync pix states whenever storeSettings updates from Firebase
   useEffect(() => {
     if (storeSettings.pixKey !== undefined) {
       setPixKeyInput(storeSettings.pixKey);
     }
   }, [storeSettings.pixKey]);
 
-  const handleSavePixKey = (keyToSave?: string) => {
-    const raw = keyToSave !== undefined ? keyToSave : pixKeyInput;
-    const trimmed = raw.trim();
+  useEffect(() => {
+    if (storeSettings.pixQrCodeImageUrl !== undefined) {
+      setPixQrCodeImageUrlInput(storeSettings.pixQrCodeImageUrl || '');
+    }
+  }, [storeSettings.pixQrCodeImageUrl]);
+
+  const handleSavePixSettings = (keyToSave?: string, qrImageToSave?: string) => {
+    const rawKey = keyToSave !== undefined ? keyToSave : pixKeyInput;
+    const rawImage = qrImageToSave !== undefined ? qrImageToSave : pixQrCodeImageUrlInput;
+    const trimmedKey = rawKey.trim();
+    const trimmedImage = rawImage.trim();
     onUpdateStoreSettings({
       ...storeSettings,
-      pixKey: trimmed,
+      pixKey: trimmedKey,
+      pixQrCodeImageUrl: trimmedImage || undefined,
     });
     setPixSavedToast(true);
     setTimeout(() => setPixSavedToast(false), 3500);
+  };
+
+  const handlePixQrFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPixQrUploadError(null);
+    setIsUploadingPixQr(true);
+    try {
+      const compressed = await compressImageFile(file, 600, 600, 0.88);
+      setPixQrCodeImageUrlInput(compressed);
+      handleSavePixSettings(undefined, compressed);
+    } catch (err: any) {
+      setPixQrUploadError(err.message || 'Falha ao processar imagem do QR Code.');
+    } finally {
+      setIsUploadingPixQr(false);
+      e.target.value = '';
+    }
   };
 
   // Coupon Management State
@@ -484,6 +518,44 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [courierSearch, setCourierSearch] = useState('');
   const [courierToast, setCourierToast] = useState<string | null>(null);
   const [dispatchOrderTarget, setDispatchOrderTarget] = useState<Order | null>(null);
+  const [openWhatsAppOnDispatch, setOpenWhatsAppOnDispatch] = useState(true);
+
+  const buildCourierWhatsAppMsg = (order: Order, courierName?: string) => {
+    const isOnlinePaid = Boolean(order.mercadoPagoPaymentId || order.paymentStatus === 'aprovado');
+    const isNeedMachine = Boolean(
+      order.paymentMethod?.toLowerCase().includes('cart') ||
+      order.paymentMethod?.toLowerCase().includes('crédito') ||
+      order.paymentMethod?.toLowerCase().includes('débito')
+    );
+    const isCash = Boolean(order.paymentMethod?.toLowerCase().includes('dinheiro'));
+
+    return [
+      `*🛵 NOVA ENTREGA - ${storeSettings.storeName || 'BURGUER DOS CRIAS'}*`,
+      courierName ? `*Entregador:* ${courierName}` : '',
+      `*Pedido:* #${order.orderNumber}`,
+      `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
+      `*Endereço:* ${order.address || 'Não informado'}`,
+      order.address ? `*📍 Rota GPS (Google Maps):* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
+      `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
+      isOnlinePaid
+        ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
+        : isNeedMachine
+        ? '💳 *PAGAMENTO:* LEVAR MAQUININHA (COBRAR NA ENTREGA)'
+        : isCash
+        ? `💵 *PAGAMENTO:* DINHEIRO ${order.changeFor ? `(LEVAR TROCO P/ ${order.changeFor})` : '(SEM TROCO)'}`
+        : `💰 *PAGAMENTO:* ${order.paymentMethod || 'Cobrar na entrega'}`,
+      order.notes ? `*Observações:* ${order.notes}` : '',
+      `\n_Por favor, confirme quando retirar a bag na chapa!_`
+    ].filter(Boolean).join('\n');
+  };
+
+  const openCourierWhatsApp = (phone: string, order: Order, courierName?: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone) return;
+    const phoneWith55 = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const msg = buildCourierWhatsAppMsg(order, courierName);
+    window.open(`https://wa.me/${phoneWith55}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   // Courier Form State
   const [cFormName, setCFormName] = useState('');
@@ -2308,13 +2380,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
                           ) : (
                             col.orders.map(order => {
+                              const isPix = Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('pix'));
+                              const isPixApproved = isPix && order.paymentStatus === 'aprovado';
+                              const isPixPending = isPix && order.paymentStatus !== 'aprovado';
+
                               const isOnlinePaid =
-                                order.paymentStatus === 'aprovado' ||
-                                Boolean(
-                                  order.paymentMethod &&
-                                    (order.paymentMethod.toLowerCase().includes('online') ||
-                                      order.paymentMethod.toLowerCase().includes('pix'))
-                                );
+                                (order.paymentStatus === 'aprovado' && !isPix) ||
+                                Boolean(order.mercadoPagoPaymentId) ||
+                                Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix);
 
                               const isNeedMachine =
                                 Boolean(
@@ -2573,7 +2646,91 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       </span>
                                     </div>
 
-                                    {isOnlinePaid ? (
+                                    {isPixApproved ? (
+                                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-md px-1.5 py-1 text-[9px] space-y-0.5">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                            <CheckCircle className="w-2.5 h-2.5" />
+                                            {order.mercadoPagoPaymentId ? 'PIX APROVADO AUTOMATICAMENTE' : 'PIX CONFIRMADO'}
+                                          </span>
+                                          <span className="text-[7.5px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-black uppercase">
+                                            {order.mercadoPagoPaymentId ? 'API MP' : 'PAGO'}
+                                          </span>
+                                        </div>
+                                        {order.mercadoPagoPaymentId && (
+                                          <span className="text-[8px] text-emerald-300/80 font-mono block">
+                                            Transação: #{order.mercadoPagoPaymentId}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : isPixPending ? (
+                                      <div className="bg-amber-950/40 border border-amber-500/50 rounded-lg p-1.5 space-y-1.5 text-[9px]">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-amber-300 font-bold flex items-center gap-1">
+                                            <Clock className="w-2.5 h-2.5 text-amber-400 animate-spin" />
+                                            {order.mercadoPagoPaymentId ? 'PIX: AGUARDANDO API BANCO' : 'PIX: CONFERIR CONTA'}
+                                          </span>
+                                          <span className="text-[7.5px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-bold uppercase">
+                                            PENDENTE
+                                          </span>
+                                        </div>
+
+                                        {order.mercadoPagoPaymentId && (
+                                          <button
+                                            type="button"
+                                            onClick={async e => {
+                                              e.stopPropagation();
+                                              await mercadoPagoApi.simulateApproval(order.mercadoPagoPaymentId!);
+                                              onUpdatePaymentStatus?.(order.id, 'aprovado');
+                                            }}
+                                            className="w-full bg-sky-950/60 hover:bg-sky-900/60 text-sky-200 border border-sky-500/40 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[8.5px] transition-colors"
+                                          >
+                                            <Zap className="w-2.5 h-2.5 text-sky-400" />
+                                            <span>Simular Aprovação API (Teste)</span>
+                                          </button>
+                                        )}
+
+                                        {order.pixReceiptUrl && (
+                                          <button
+                                            type="button"
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              setViewingReceiptOrder(order);
+                                            }}
+                                            className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[9px] transition-colors"
+                                          >
+                                            <Eye className="w-2.5 h-2.5 text-amber-400" />
+                                            <span>Ver Comprovante Anexado</span>
+                                          </button>
+                                        )}
+
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              onUpdatePaymentStatus?.(order.id, 'aprovado');
+                                            }}
+                                            className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1 px-1.5 rounded flex items-center justify-center gap-1 text-[9px] shadow-sm transition-all active:scale-95"
+                                          >
+                                            <Check className="w-2.5 h-2.5" />
+                                            <span>Confirmar Pix Recebido</span>
+                                          </button>
+                                          {order.customerPhone && (
+                                            <a
+                                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido #${order.orderNumber}. Poderia nos enviar o comprovante do Pix?`)}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              onClick={e => e.stopPropagation()}
+                                              className="p-1 rounded bg-[#242424] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040]"
+                                              title="Pedir comprovante via WhatsApp"
+                                            >
+                                              <MessageSquare className="w-2.5 h-2.5" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : isOnlinePaid ? (
                                       <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px]">
                                         <span className="text-emerald-400 font-bold flex items-center gap-1">
                                           <CheckCircle className="w-2.5 h-2.5" /> PAGO ONLINE
@@ -2880,13 +3037,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 const isEntregue = order.status === 'entregue';
                 const isRecusado = order.status === 'recusado';
 
+                const isPix = Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('pix'));
+                const isPixApproved = isPix && order.paymentStatus === 'aprovado';
+                const isPixPending = isPix && order.paymentStatus !== 'aprovado';
+
                 const isOnlinePaid =
-                  order.paymentStatus === 'aprovado' ||
-                  Boolean(
-                    order.paymentMethod &&
-                      (order.paymentMethod.toLowerCase().includes('online') ||
-                        order.paymentMethod.toLowerCase().includes('pix'))
-                  );
+                  (!isPix && order.paymentStatus === 'aprovado') ||
+                  Boolean(order.mercadoPagoPaymentId) ||
+                  Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix);
 
                 const isNeedMachine =
                   Boolean(
@@ -2934,7 +3092,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 <h3 className="font-['Montserrat'] font-bold text-base text-white">
                                   {order.orderNumber} - {order.customerName}
                                 </h3>
-                                {isOnlinePaid ? (
+                                {isPixApproved ? (
+                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                    Pix Pago
+                                  </span>
+                                ) : isPixPending ? (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                    Pix: Conferir Conta
+                                  </span>
+                                ) : isOnlinePaid ? (
                                   <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
                                     Pago Online
                                   </span>
@@ -3002,7 +3168,63 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </span>
                             </div>
 
-                            {isOnlinePaid ? (
+                            {isPixApproved ? (
+                              <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2.5 flex items-center justify-between text-[11px]">
+                                <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                  <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="truncate">PIX CONFIRMADO / PAGO</span>
+                                </div>
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                  PAGO
+                                </span>
+                              </div>
+                            ) : isPixPending ? (
+                              <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2.5 space-y-2 text-[11px]">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-amber-300 font-bold min-w-0">
+                                    <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-spin" />
+                                    <span className="truncate">PIX: CONFERIR CONTA BANCÁRIA</span>
+                                  </div>
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                    PENDENTE
+                                  </span>
+                                </div>
+
+                                {order.pixReceiptUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingReceiptOrder(order)}
+                                    className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-colors"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Ver Comprovante Anexado pelo Cliente</span>
+                                  </button>
+                                )}
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => onUpdatePaymentStatus?.(order.id, 'aprovado')}
+                                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs shadow-sm transition-all active:scale-95"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Confirmar Pix Recebido</span>
+                                  </button>
+                                  {order.customerPhone && (
+                                    <a
+                                      href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido #${order.orderNumber}. Poderia nos enviar o comprovante do Pix?`)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="py-1.5 px-2.5 rounded-lg bg-[#242424] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040] text-xs font-bold flex items-center gap-1"
+                                      title="Pedir comprovante via WhatsApp"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ) : isOnlinePaid ? (
                               <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
                                 <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
                                   <CheckCircle className="w-3.5 h-3.5 shrink-0" />
@@ -3136,14 +3358,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     </div>
                                   </div>
                                   {order.courierPhone && (
-                                    <a
-                                      href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.courierName}, tudo bem? Mensagem sobre o pedido URGENTE ${order.orderNumber}:`)}`}
-                                      target="_blank"
-                                      rel="noreferrer"
+                                    <button
+                                      type="button"
+                                      onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
                                       className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
+                                      title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                     >
                                       <Phone className="w-3 h-3" /> WhatsApp
-                                    </a>
+                                    </button>
                                   )}
                                 </div>
                                 <a
@@ -3212,7 +3434,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             <h3 className="font-['Montserrat'] font-bold text-sm md:text-base text-white">
                               {order.orderNumber} - {order.customerName}
                             </h3>
-                            {isOnlinePaid ? (
+                            {isPixApproved ? (
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                Pix Pago
+                              </span>
+                            ) : isPixPending ? (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                Pix: Conferir Conta
+                              </span>
+                            ) : isOnlinePaid ? (
                               <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
                                 Pago Online
                               </span>
@@ -3287,7 +3517,63 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           </span>
                         </div>
 
-                        {isOnlinePaid ? (
+                        {isPixApproved ? (
+                          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2.5 flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                              <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">PIX CONFIRMADO / PAGO</span>
+                            </div>
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                              PAGO
+                            </span>
+                          </div>
+                        ) : isPixPending ? (
+                          <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2.5 space-y-2 text-[11px]">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-amber-300 font-bold min-w-0">
+                                <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-spin" />
+                                <span className="truncate">PIX: CONFERIR CONTA BANCÁRIA</span>
+                              </div>
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                PENDENTE
+                              </span>
+                            </div>
+
+                            {order.pixReceiptUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setViewingReceiptOrder(order)}
+                                className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Ver Comprovante Anexado pelo Cliente</span>
+                              </button>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => onUpdatePaymentStatus?.(order.id, 'aprovado')}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs shadow-sm transition-all active:scale-95"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Confirmar Pix Recebido</span>
+                              </button>
+                              {order.customerPhone && (
+                                <a
+                                  href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido #${order.orderNumber}. Poderia nos enviar o comprovante do Pix?`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="py-1.5 px-2.5 rounded-lg bg-[#242424] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040] text-xs font-bold flex items-center gap-1"
+                                  title="Pedir comprovante via WhatsApp"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <span>WhatsApp</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ) : isOnlinePaid ? (
                           <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
                               <CheckCircle className="w-3.5 h-3.5 shrink-0" />
@@ -3428,14 +3714,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 </div>
                               </div>
                               {order.courierPhone && (
-                                <a
-                                  href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.courierName}, tudo bem? Mensagem da cozinha sobre o pedido ${order.orderNumber}:`)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
                                   className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
+                                  title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                 >
                                   <Phone className="w-3 h-3" /> WhatsApp
-                                </a>
+                                </button>
                               )}
                             </div>
 
@@ -4608,14 +4894,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <div className="flex justify-between items-center">
                   <label className="block text-white font-bold flex items-center gap-1.5">
                     <Globe className="w-4 h-4 text-[#ff5722]" />
-                    Link Público Oficial do Cardápio (Para Clientes)
+                    Link do Cardápio para Clientes (WhatsApp / Celular)
                   </label>
                   <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">
-                    100% Livre Sem Login
+                    Ícone do Gestor Oculto
                   </span>
                 </div>
                 <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
-                  Este é o link oficial que os clientes conseguem abrir diretamente no WhatsApp, celular ou Instagram sem precisar de senha ou login.
+                  Este é o link oficial para enviar aos clientes. O ícone de acesso e opções do gestor ficam 100% invisíveis para os clientes.
                 </p>
                 <div className="flex items-center gap-2 bg-[#141414] border border-[#353535] rounded-lg p-2">
                   <input
@@ -4630,7 +4916,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     onClick={async () => {
                       const url = getPublicMenuUrl('', storeSettings.customMenuUrl);
                       await copyToClipboard(url);
-                      setFinancialToast('Link público copiado com sucesso! 🔗');
+                      setFinancialToast('Link do cliente copiado! Ícone do gestor ficará oculto. 🔗');
                       setTimeout(() => setFinancialToast(null), 3000);
                     }}
                     className="px-3 py-1.5 rounded-md bg-[#ff5722] hover:bg-[#ff7043] text-white text-xs font-bold shrink-0 flex items-center gap-1 active:scale-95"
@@ -4645,8 +4931,55 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     className="px-3 py-1.5 rounded-md bg-[#252525] hover:bg-[#333] text-white text-xs font-bold shrink-0 flex items-center gap-1 border border-[#444] active:scale-95"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Abrir</span>
+                    <span>Testar</span>
                   </a>
+                </div>
+
+                {/* Link Exclusivo do Gestor */}
+                <div className="pt-3 border-t border-[#353535]/60 mt-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-white font-bold text-xs flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-[#ff5722]" />
+                      Link Exclusivo do Gestor (App Web)
+                    </label>
+                    <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold">
+                      Acesso Gestor Ativo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#8e8f8f] leading-relaxed mb-2">
+                    Abre o app web com o ícone do gestor visível para você gerenciar os pedidos e a cozinha.
+                  </p>
+                  <div className="flex items-center gap-2 bg-[#141414] border border-[#353535] rounded-lg p-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={getManagerMenuUrl('', storeSettings.customMenuUrl)}
+                      className="bg-transparent text-amber-300 font-mono text-xs w-full focus:outline-none select-all truncate"
+                      onClick={e => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const url = getManagerMenuUrl('', storeSettings.customMenuUrl);
+                        await copyToClipboard(url);
+                        setFinancialToast('Link do Gestor copiado com sucesso! 🔑');
+                        setTimeout(() => setFinancialToast(null), 3000);
+                      }}
+                      className="px-3 py-1.5 rounded-md bg-[#333] hover:bg-[#444] text-white text-xs font-bold shrink-0 flex items-center gap-1 active:scale-95 border border-[#555]"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar</span>
+                    </button>
+                    <a
+                      href={getManagerMenuUrl('', storeSettings.customMenuUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-md bg-[#ff5722] hover:bg-[#ff7043] text-white text-xs font-bold shrink-0 flex items-center gap-1 active:scale-95"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Abrir</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4705,6 +5038,101 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     )}
                   </div>
 
+                  {/* Seletor do Modo de Aprovação Pix (Opção 1 vs Opção 2) */}
+                  <div className="bg-[#141414] p-3.5 rounded-xl border border-[#353535] space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                        Modo de Operação do Pix no Checkout:
+                      </label>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
+                        (storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                      }`}>
+                        {(storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
+                          ? '⚡ Opção 2: 100% Automático Ativo'
+                          : '📱 Opção 1: Conferência Manual'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {/* Card Opção 2: 100% Automático */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateStoreSettings({
+                            ...storeSettings,
+                            pixApprovalMode: 'automatic',
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-left transition-all relative ${
+                          (storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
+                            ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50 shadow-md'
+                            : 'bg-[#1e1e1e] border-[#333] hover:border-[#555] opacity-75'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-xs text-white flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                            Aprovação 100% Automática
+                          </span>
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded uppercase">
+                            Recomendado
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                          Gera QR Code dinâmico com valor exato via <strong>Mercado Pago API</strong>. O sistema identifica a transferência na hora e aprova o pedido sozinho!
+                        </p>
+                      </button>
+
+                      {/* Card Opção 1: Manual */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateStoreSettings({
+                            ...storeSettings,
+                            pixApprovalMode: 'manual',
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          storeSettings.pixApprovalMode === 'manual'
+                            ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/50 shadow-md'
+                            : 'bg-[#1e1e1e] border-[#333] hover:border-[#555] opacity-75'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-xs text-white flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-400" />
+                            Pix Direto (Conferência Manual)
+                          </span>
+                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded uppercase">
+                            Chave da Loja
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                          O cliente transfere direto para a sua conta e você confere o extrato ou o comprovante manualmente antes de liberar o pedido.
+                        </p>
+                      </button>
+                    </div>
+
+                    {(storeSettings.pixApprovalMode ?? 'automatic') === 'automatic' && (
+                      <div className="p-2.5 bg-emerald-950/30 rounded-lg border border-emerald-500/30 flex items-center justify-between text-[11px] text-emerald-300">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Status do Gateway: <strong>Ativo</strong> ({storeSettings.mercadoPago?.environment === 'production' ? 'Produção' : 'Modo Sandbox / Teste'})</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setConfigTab('gateway')}
+                          className="text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 px-2 py-1 rounded font-bold border border-emerald-500/40 transition-colors"
+                        >
+                          Configurar Credenciais MP →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Seletor do Tipo de Chave */}
                   <div>
                     <label className="block text-[11px] font-semibold text-[#8e8f8f] uppercase mb-1.5">
@@ -4743,14 +5171,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
                       <label className="block text-xs font-semibold text-white">
-                        2. Digite ou Cole a sua Chave Pix:
+                        2. Digite ou Cole a sua Chave Pix (Para gerar o Código Copia e Cola):
                       </label>
                       {pixKeyInput && (
                         <button
                           type="button"
                           onClick={() => {
                             setPixKeyInput('');
-                            handleSavePixKey('');
+                            handleSavePixSettings('');
                           }}
                           className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
                         >
@@ -4764,11 +5192,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         type="text"
                         value={pixKeyInput}
                         onChange={e => setPixKeyInput(e.target.value)}
-                        onBlur={() => handleSavePixKey()}
+                        onBlur={() => handleSavePixSettings()}
                         onKeyDown={e => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            handleSavePixKey();
+                            handleSavePixSettings();
                           }
                         }}
                         placeholder={
@@ -4789,7 +5217,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => handleSavePixKey()}
+                          onClick={() => handleSavePixSettings()}
                           className="btn-flame text-white px-3 py-1.5 rounded-md text-xs font-bold font-['Montserrat'] flex items-center gap-1 shadow-sm active:scale-95 transition-all"
                         >
                           <Check className="w-3.5 h-3.5" /> Salvar
@@ -4799,11 +5227,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[#b4b5b5] gap-1 pt-0.5">
                       <span>
-                        Aceita qualquer formato (com ou sem pontuação). Salva automaticamente ao sair do campo.
+                        Chave usada pelo sistema para codificar o Pix Copia e Cola.
                       </span>
                       {storeSettings.pixKey ? (
                         <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Ativa no Cardápio: {storeSettings.pixKey}
+                          <CheckCircle className="w-3 h-3" /> Chave salva: {storeSettings.pixKey}
                         </span>
                       ) : (
                         <span className="text-amber-400 font-semibold flex items-center gap-1">
@@ -4813,70 +5241,230 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  {/* Preview ao Vivo do QR Code e Cópia */}
-                  <div className="bg-[#252525] rounded-lg p-3 border border-[#353535] flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                      <div className="w-16 h-16 bg-white p-1 rounded-md shrink-0 flex items-center justify-center shadow-sm">
-                        <img
-                          src={getPixQrCodeUrl(
-                            generatePixPayload({
+                  {/* 3. Imagem do QR Code Pix - Upload ou Link Direto */}
+                  <div className="bg-[#242323] border border-[#383838] rounded-xl p-3.5 sm:p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-[#353535] pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-[#ff5722]" />
+                        <label className="text-xs font-bold text-white uppercase tracking-wider">
+                          3. Imagem do QR Code Pix (Upload ou Link Web)
+                        </label>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border w-fit ${
+                        pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      }`}>
+                        {pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
+                          ? '✓ Imagem Personalizada Ativa'
+                          : '⚡ QR Code Gerado Automaticamente'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[#b4b5b5]">
+                      Você pode fazer upload da imagem do QR Code gerada pelo app do seu banco ou colar um link direto de imagem. Se preferir não enviar uma imagem, o sistema gerará o QR Code automaticamente usando a chave Pix acima.
+                    </p>
+
+                    {/* Ações de Upload e Link */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Opção A: Upload de Imagem */}
+                      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg p-3 space-y-2 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Upload className="w-3.5 h-3.5 text-[#ff5722]" />
+                            Upload do Arquivo (PNG, JPG)
+                          </span>
+                          <p className="text-[10px] text-[#8e8f8f]">
+                            Selecione a foto ou print do QR Code no seu celular ou computador.
+                          </p>
+                        </div>
+
+                        <label className={`w-full py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${
+                          isUploadingPixQr
+                            ? 'bg-[#333] border-[#555] text-white cursor-wait'
+                            : 'bg-[#292828] hover:bg-[#333] border-[#444] hover:border-[#ff5722] text-white shadow-sm'
+                        }`}>
+                          <Upload className="w-4 h-4 text-[#ff5722]" />
+                          <span>{isUploadingPixQr ? 'Otimizando imagem...' : 'Escolher Imagem do QR Code'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingPixQr}
+                            onChange={handlePixQrFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {/* Opção B: Link / URL da Imagem */}
+                      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg p-3 space-y-2 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Link2 className="w-3.5 h-3.5 text-[#ff5722]" />
+                            Link / URL da Imagem
+                          </span>
+                          <p className="text-[10px] text-[#8e8f8f]">
+                            Ou cole a URL direta onde a imagem do QR Code está hospedada.
+                          </p>
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="url"
+                            value={pixQrCodeImageUrlInput}
+                            onChange={e => setPixQrCodeImageUrlInput(e.target.value)}
+                            onBlur={() => handleSavePixSettings()}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSavePixSettings();
+                              }
+                            }}
+                            placeholder="https://exemplo.com/pix-qrcode.png"
+                            className="w-full bg-[#252525] border border-[#444] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-[#555] focus:outline-none focus:border-[#ff5722]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Feedback de erro no upload se houver */}
+                    {pixQrUploadError && (
+                      <div className="p-2.5 bg-red-950/50 border border-red-500/40 rounded-lg text-red-200 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                        <span>{pixQrUploadError}</span>
+                      </div>
+                    )}
+
+                    {/* Preview da imagem atual configurada e botão de remover */}
+                    {(pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl) && (
+                      <div className="bg-[#181818] border border-purple-500/30 rounded-lg p-2.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-11 h-11 bg-white rounded p-0.5 shrink-0 shadow flex items-center justify-center">
+                            <img
+                              src={pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl}
+                              alt="QR Code Personalizado"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold text-white block">
+                              Imagem do QR Code Personalizado Carregada
+                            </span>
+                            <span className="text-[10px] text-[#b4b5b5] block truncate">
+                              Esta imagem será exibida diretamente aos clientes no checkout.
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPixQrCodeImageUrlInput('');
+                            handleSavePixSettings(undefined, '');
+                          }}
+                          className="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/50 text-red-300 hover:text-red-200 border border-red-500/40 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Remover Imagem</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview Fiel de como o cliente vê no Checkout */}
+                  <div className="bg-[#252525] rounded-xl p-3.5 sm:p-4 border border-[#353535] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#353535] pb-2">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-white block flex items-center gap-1.5">
+                          <Eye className="w-3.5 h-3.5 text-[#ff5722]" />
+                          Como o cliente vê no Checkout (Pagamento Pix)
+                        </span>
+                        <p className="text-[10.5px] text-[#b4b5b5]">
+                          Garantia de privacidade: apenas o QR Code e o botão de copiar código são exibidos. Nenhuma chave alfanumérica é exposta.
+                        </p>
+                      </div>
+                      <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase w-fit">
+                        🔒 Chave alfanumérica oculta
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      {/* Simulação do Card de Checkout */}
+                      <div className="flex items-center gap-3.5 bg-[#181818] p-3 rounded-xl border border-[#383838] w-full sm:w-auto">
+                        <div className="w-20 h-20 bg-white p-1 rounded-lg shrink-0 flex items-center justify-center shadow-md border-2 border-emerald-500/40">
+                          <img
+                            src={
+                              pixQrCodeImageUrlInput ||
+                              storeSettings.pixQrCodeImageUrl ||
+                              getPixQrCodeUrl(
+                                generatePixPayload({
+                                  pixKey: pixKeyInput || storeSettings.pixKey || '11987654321',
+                                  merchantName: storeSettings.storeName || 'BURGER DOS CRIAS',
+                                  merchantCity: 'SAO PAULO',
+                                  amount: 25.0,
+                                }),
+                                140
+                              )
+                            }
+                            alt="QR Code Pix Preview"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>QR Code Ativo no Checkout</span>
+                          </div>
+                          <span className="text-[10px] text-[#8e8f8f] block">
+                            {pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
+                              ? 'Fonte: Imagem enviada pelo gestor'
+                              : 'Fonte: Gerado dinamicamente via chave Pix'}
+                          </span>
+                          <span className="text-[10px] text-[#ffb5a0] block font-mono">
+                            Favorecido: {storeSettings.storeName || 'BURGER DOS CRIAS'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Botões de Ação do Gestor */}
+                      <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const payload = generatePixPayload({
                               pixKey: pixKeyInput || storeSettings.pixKey || '11987654321',
                               merchantName: storeSettings.storeName || 'BURGER DOS CRIAS',
                               merchantCity: 'SAO PAULO',
                               amount: 25.0,
-                            }),
-                            120
+                            });
+                            navigator.clipboard.writeText(payload);
+                            setPixCopiedToast(true);
+                            setTimeout(() => setPixCopiedToast(false), 2500);
+                          }}
+                          className="px-3 py-2 bg-[#1c1b1b] hover:bg-[#333] text-white border border-[#3d3d3d] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                        >
+                          {pixCopiedToast ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400 font-bold">Código Copiado!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-[#ff8a65]" />
+                              <span>Testar "Copiar Código"</span>
+                            </>
                           )}
-                          alt="QR Code Pix Preview"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#ff8a65] block">
-                          Como o cliente vê no Carrinho:
-                        </span>
-                        <p className="text-xs font-mono font-bold text-white truncate max-w-[260px]">
-                          {pixKeyInput || storeSettings.pixKey || '(Digite sua chave acima)'}
-                        </p>
-                        <p className="text-[10px] text-[#8e8f8f]">
-                          Favorecido: {storeSettings.storeName || 'BURGER DOS CRIAS'}
-                        </p>
-                      </div>
-                    </div>
+                        </button>
 
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const k = (pixKeyInput || storeSettings.pixKey || '').trim();
-                          if (!k) return;
-                          navigator.clipboard.writeText(k);
-                          setPixCopiedToast(true);
-                          setTimeout(() => setPixCopiedToast(false), 2500);
-                        }}
-                        className="px-3 py-1.5 bg-[#1c1b1b] hover:bg-[#333] text-white border border-[#3d3d3d] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
-                      >
-                        {pixCopiedToast ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copiada!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5 text-[#ff8a65]" />
-                            <span>Testar Cópia</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSavePixKey()}
-                        className="btn-flame text-white px-4 py-1.5 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 shadow-sm active:scale-95"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Salvar no Firebase</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSavePixSettings()}
+                          className="btn-flame text-white px-4 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Salvar no Firebase</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -5966,7 +6554,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </span>
                     </h3>
                     <p className="text-[11px] text-[#b4b5b5]">
-                      Senha numérica de 4 dígitos necessária para entrar neste painel de gestão de pedidos e finanças.
+                      Senha numérica de 6 dígitos necessária para entrar neste painel de gestão de pedidos e finanças.
                     </p>
                   </div>
                 </div>
@@ -5975,29 +6563,30 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-[#353535]/50">
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-[#b4b5b5]">
-                    Alterar PIN de Acesso (6 dígitos numéricos)
+                    Definir Novo PIN de Acesso (6 dígitos numéricos)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
-                      type="text"
+                      type="password"
                       maxLength={6}
                       inputMode="numeric"
                       value={managerPinInput}
                       onChange={e => setManagerPinInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="Ex: 123456"
+                      placeholder="••••••"
                       className="w-36 bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-center tracking-widest text-lg font-bold focus:border-[#ff5722] focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => {
                         if (managerPinInput.length !== 6) {
-                          alert('O PIN deve conter exatamente 6 dígitos numéricos.');
+                          alert('O novo PIN deve conter exatamente 6 dígitos numéricos.');
                           return;
                         }
                         onUpdateStoreSettings({
                           ...storeSettings,
                           managerPin: managerPinInput,
                         });
+                        setManagerPinInput('');
                         setPinToast('PIN de segurança do gestor atualizado com sucesso!');
                         setTimeout(() => setPinToast(null), 3500);
                       }}
@@ -6006,8 +6595,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       Salvar Novo PIN
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#8e8e8e]">
-                    PIN ativo no momento: <strong className="text-white font-mono">{storeSettings.managerPin || '123456'}</strong>
+                  <p className="text-[11px] text-[#8e8e8e] flex items-center gap-1.5">
+                    Status do PIN: <span className="text-emerald-400 font-semibold">●●●●●● (6 dígitos ativos e protegidos)</span>
                   </p>
                 </div>
 
@@ -6659,6 +7248,30 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </button>
             </div>
 
+            {/* Opção de Envio Automático para WhatsApp */}
+            <div className="bg-[#181818] p-2.5 rounded-lg border border-[#353535] flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[11px] text-white font-medium block truncate">
+                    Abrir WhatsApp com rota e ficha da entrega
+                  </span>
+                  <span className="text-[10px] text-[#8e8f8f] block truncate">
+                    Envia endereço, GPS Google Maps e pagamento ao selecionar
+                  </span>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                <input
+                  type="checkbox"
+                  checked={openWhatsAppOnDispatch}
+                  onChange={e => setOpenWhatsAppOnDispatch(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
               {(storeSettings.couriers || [])
                 .filter(c => c.active)
@@ -6674,6 +7287,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         vehicle: c.vehicleModel || (c.vehicle ? `Veículo (${c.vehicle})` : undefined),
                         plate: c.plate,
                       });
+                      if (openWhatsAppOnDispatch && c.phone) {
+                        openCourierWhatsApp(c.phone, dispatchOrderTarget, c.name);
+                      }
                       setDispatchOrderTarget(null);
                     }}
                     className="w-full flex items-center justify-between p-3 bg-[#1c1b1b] hover:bg-[#252525] border border-[#353535] hover:border-[#ff5722] rounded-md text-left transition-all group"
@@ -6695,9 +7311,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </p>
                       </div>
                     </div>
-                    <span className="text-[11px] text-[#86cfff] font-bold font-['Montserrat'] px-2.5 py-1 rounded-lg bg-[#019ad8]/15 border border-[#019ad8]/30">
-                      Entregar 🛵
-                    </span>
+                    <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
+                      <span className="text-[11px] text-[#86cfff] font-bold font-['Montserrat'] px-2.5 py-1 rounded-lg bg-[#019ad8]/15 border border-[#019ad8]/30 group-hover:bg-[#ff5722]/20 group-hover:text-[#ff8a65] group-hover:border-[#ff5722]/40 transition-colors">
+                        Entregar 🛵
+                      </span>
+                      {c.phone ? (
+                        <span className="text-[9.5px] text-emerald-400 font-medium flex items-center gap-1">
+                          <Phone className="w-2.5 h-2.5" /> WhatsApp ativo
+                        </span>
+                      ) : (
+                        <span className="text-[9.5px] text-[#8e8f8f]">
+                          Sem telefone
+                        </span>
+                      )}
+                    </div>
                   </button>
                 ))}
             </div>
@@ -6942,6 +7569,81 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5" /> Excluir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Visualização do Comprovante Pix Anexado */}
+      {viewingReceiptOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[#353535] flex items-center justify-between bg-[#151515]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-['Montserrat']">
+                    Comprovante Pix • Pedido #{viewingReceiptOrder.orderNumber}
+                  </h3>
+                  <p className="text-[11px] text-[#b4b5b5]">
+                    Cliente: <strong>{viewingReceiptOrder.customerName}</strong> • R$ {viewingReceiptOrder.total.toFixed(2).replace('.', ',')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingReceiptOrder(null)}
+                className="w-8 h-8 rounded-lg bg-[#282828] hover:bg-[#333] text-[#b4b5b5] hover:text-white flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 flex flex-col items-center justify-center bg-[#101010]">
+              {viewingReceiptOrder.pixReceiptUrl ? (
+                <img
+                  src={viewingReceiptOrder.pixReceiptUrl}
+                  alt="Comprovante Pix do Cliente"
+                  className="max-h-[60vh] max-w-full object-contain rounded-lg border border-[#353535] shadow-lg"
+                />
+              ) : (
+                <div className="py-12 text-center text-[#8e8f8f] text-xs">
+                  Nenhum comprovante anexado para este pedido.
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-[#353535] bg-[#151515] flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              <span className="text-[11px] text-[#b4b5b5]">
+                Status atual: <strong className={viewingReceiptOrder.paymentStatus === 'aprovado' ? 'text-emerald-400' : 'text-amber-400'}>
+                  {viewingReceiptOrder.paymentStatus === 'aprovado' ? '✓ Pago / Confirmado' : '🟡 Aguardando Conferência'}
+                </strong>
+              </span>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setViewingReceiptOrder(null)}
+                  className="px-3 py-2 rounded-lg bg-[#282828] hover:bg-[#353535] text-white text-xs font-semibold"
+                >
+                  Fechar
+                </button>
+                {viewingReceiptOrder.paymentStatus !== 'aprovado' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdatePaymentStatus?.(viewingReceiptOrder.id, 'aprovado');
+                      setViewingReceiptOrder(null);
+                    }}
+                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30 active:scale-95 transition-all"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Confirmar Pagamento</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ interface HeaderProps {
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   transparent?: boolean;
+  showManagerIcon?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   isFavorite = false,
   onToggleFavorite,
   transparent = false,
+  showManagerIcon = true,
 }) => {
   if (transparent) {
     return (
@@ -95,17 +97,19 @@ export const Header: React.FC<HeaderProps> = ({
           <MessageSquare className="w-5 h-5" />
         </button>
 
-        <button 
-          onClick={() => onNavigate('kitchen')}
-          className="w-10 h-10 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-colors"
-          title="Perfil / Alternar para Cozinha"
-        >
-          <img
-            src={APP_IMAGES.userAvatar}
-            alt="Avatar do Usuário"
-            className="w-full h-full object-cover"
-          />
-        </button>
+        {showManagerIcon && (
+          <button 
+            onClick={() => onNavigate('kitchen')}
+            className="w-10 h-10 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-colors"
+            title="Perfil / Alternar para Cozinha"
+          >
+            <img
+              src={APP_IMAGES.userAvatar}
+              alt="Avatar do Usuário"
+              className="w-full h-full object-cover"
+            />
+          </button>
+        )}
       </div>
     </header>
   );

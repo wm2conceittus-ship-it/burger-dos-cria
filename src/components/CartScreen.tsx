@@ -36,7 +36,12 @@ import {
   ShoppingBag,
   Bike,
   Edit2,
+  Upload,
+  Image as ImageIcon,
+  FileText,
 } from 'lucide-react';
+import { compressImageFile } from '../utils/imageUpload';
+import { mercadoPagoApi, PixResponse } from '../services/mercadoPagoService';
 
 interface CartScreenProps {
   items: CartItem[];
@@ -57,7 +62,9 @@ interface CartScreenProps {
     changeFor?: string,
     mercadoPagoPaymentId?: string,
     orderType?: 'Delivery' | 'Retirada' | 'Mesa',
-    tableNumber?: number
+    tableNumber?: number,
+    pixReceiptUrl?: string,
+    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado'
   ) => void;
 }
 
@@ -99,9 +106,25 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const [appliedCouponName, setAppliedCouponName] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Pix');
   const [changeFor, setChangeFor] = useState<string>('');
-  const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [showQrCodeInline, setShowQrCodeInline] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [customerPixReceipt, setCustomerPixReceipt] = useState<string>('');
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState<boolean>(false);
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingReceipt(true);
+    try {
+      const compressed = await compressImageFile(file, 800, 800, 0.82);
+      setCustomerPixReceipt(compressed);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploadingReceipt(false);
+      e.target.value = '';
+    }
+  };
 
   // Card Payment Form State
   const [cardMode, setCardMode] = useState<'online' | 'delivery'>('online');
@@ -199,8 +222,31 @@ export const CartScreen: React.FC<CartScreenProps> = ({
       }
     }
 
+    if (paymentMethod.toLowerCase().includes('pix')) {
+      setShowPaymentModal(false);
+      onCheckout(
+        isAutoPixMode ? 'Pix (Aprovação Automática)' : paymentMethod,
+        discountAmount,
+        changeFor,
+        autoPixData?.id ? String(autoPixData.id) : undefined,
+        orderType,
+        orderType === 'Mesa' ? tableNumber : undefined,
+        customerPixReceipt || undefined,
+        isAutoPixApproved ? 'aprovado' : 'pendente'
+      );
+      return;
+    }
+
     setShowPaymentModal(false);
-    onCheckout(paymentMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
+    onCheckout(
+      paymentMethod,
+      discountAmount,
+      changeFor,
+      undefined,
+      orderType,
+      orderType === 'Mesa' ? tableNumber : undefined,
+      customerPixReceipt || undefined
+    );
   };
 
   const handleSelectPaymentMethod = (methodName: string) => {
@@ -274,12 +320,22 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const discountAmount = (subtotal * discountPercent) + fixedDiscount;
   const total = Math.max(0, subtotal + deliveryFee - discountAmount);
 
+  // Opção 2: Modo de Aprovação 100% Automática do Pix (Mercado Pago API)
+  const isAutoPixMode =
+    (storeSettings?.pixApprovalMode ?? 'automatic') === 'automatic' &&
+    storeSettings?.mercadoPago?.isEnabled !== false;
+
+  const [autoPixData, setAutoPixData] = useState<PixResponse | null>(null);
+  const [isLoadingAutoPix, setIsLoadingAutoPix] = useState(false);
+  const [isAutoPixApproved, setIsAutoPixApproved] = useState(false);
+  const [isSimulatingApproval, setIsSimulatingApproval] = useState(false);
+
   // Pix QR Code and EMV Payload State
   const [hasCopiedPixCode, setHasCopiedPixCode] = useState(false);
   const [pixTimeLeft, setPixTimeLeft] = useState(15 * 60);
 
   useEffect(() => {
-    if (paymentMethod !== 'Pix') return;
+    if (!paymentMethod.toLowerCase().includes('pix')) return;
     const interval = setInterval(() => {
       setPixTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -306,8 +362,152 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
   const pixQrCodeUrl = useMemo(() => getPixQrCodeUrl(pixPayload, 260), [pixPayload]);
 
+  // Inicializar chamada de criação do Pix dinâmico quando a modal abrir com Pix em Modo Automático
+  useEffect(() => {
+    if (!showPaymentModal || !paymentMethod.toLowerCase().includes('pix') || !isAutoPixMode) {
+      return;
+    }
+
+    let isMounted = true;
+    async function initAutoPix() {
+      setIsLoadingAutoPix(true);
+      try {
+        const response = await mercadoPagoApi.createPix({
+          transaction_amount: total,
+          description: `Pedido ${storeSettings?.storeName || 'Burguer dos Crias'}`,
+          payer: {
+            email: customerProfile?.email || 'cliente@email.com',
+            first_name: customerProfile?.name || 'Cliente',
+            identification: { type: 'CPF', number: '19119119100' },
+          },
+          customAccessToken: storeSettings?.mercadoPago?.accessToken,
+        });
+
+        if (isMounted) {
+          setAutoPixData(response);
+          setIsAutoPixApproved(false);
+        }
+      } catch (err: any) {
+        console.warn('Erro ao criar Pix automático Mercado Pago:', err);
+      } finally {
+        if (isMounted) setIsLoadingAutoPix(false);
+      }
+    }
+
+    initAutoPix();
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    showPaymentModal,
+    paymentMethod,
+    total,
+    isAutoPixMode,
+    storeSettings?.storeName,
+    storeSettings?.mercadoPago?.accessToken,
+    customerProfile?.email,
+    customerProfile?.name,
+  ]);
+
+  // Polling em tempo real para detecção automática da aprovação bancária
+  useEffect(() => {
+    if (
+      !showPaymentModal ||
+      !paymentMethod.toLowerCase().includes('pix') ||
+      !isAutoPixMode ||
+      !autoPixData?.id ||
+      isAutoPixApproved
+    ) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await mercadoPagoApi.checkPaymentStatus(
+          autoPixData.id,
+          storeSettings?.mercadoPago?.accessToken
+        );
+        if (res.approved) {
+          setIsAutoPixApproved(true);
+          setTimeout(() => {
+            setShowPaymentModal(false);
+            onCheckout(
+              'Pix (Aprovação Automática)',
+              discountAmount,
+              changeFor,
+              String(autoPixData.id),
+              orderType,
+              orderType === 'Mesa' ? tableNumber : undefined,
+              undefined,
+              'aprovado'
+            );
+          }, 1200);
+        }
+      } catch {
+        // ignore
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [
+    showPaymentModal,
+    paymentMethod,
+    isAutoPixMode,
+    autoPixData?.id,
+    isAutoPixApproved,
+    storeSettings?.mercadoPago?.accessToken,
+    discountAmount,
+    changeFor,
+    orderType,
+    tableNumber,
+    onCheckout,
+  ]);
+
+  const handleSimulatePixApproval = async () => {
+    if (!autoPixData?.id) return;
+    setIsSimulatingApproval(true);
+    try {
+      await mercadoPagoApi.simulateApproval(autoPixData.id);
+      setIsAutoPixApproved(true);
+      setTimeout(() => {
+        setShowPaymentModal(false);
+        onCheckout(
+          'Pix (Aprovação Automática)',
+          discountAmount,
+          changeFor,
+          String(autoPixData.id),
+          orderType,
+          orderType === 'Mesa' ? tableNumber : undefined,
+          undefined,
+          'aprovado'
+        );
+      }, 1000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSimulatingApproval(false);
+    }
+  };
+
+  const activePixPayload = useMemo(() => {
+    if (isAutoPixMode && autoPixData?.qr_code) {
+      return autoPixData.qr_code;
+    }
+    return pixPayload;
+  }, [isAutoPixMode, autoPixData?.qr_code, pixPayload]);
+
+  const activeQrCodeImage = useMemo(() => {
+    if (isAutoPixMode && autoPixData?.qr_code_base64) {
+      return `data:image/png;base64,${autoPixData.qr_code_base64}`;
+    }
+    if (isAutoPixMode && autoPixData?.qr_code) {
+      return getPixQrCodeUrl(autoPixData.qr_code, 260);
+    }
+    return storeSettings?.pixQrCodeImageUrl || pixQrCodeUrl;
+  }, [isAutoPixMode, autoPixData?.qr_code_base64, autoPixData?.qr_code, storeSettings?.pixQrCodeImageUrl, pixQrCodeUrl]);
+
   const handleCopyPixCode = () => {
-    navigator.clipboard.writeText(pixPayload);
+    navigator.clipboard.writeText(activePixPayload);
     setHasCopiedPixCode(true);
     setTimeout(() => setHasCopiedPixCode(false), 2500);
   };
@@ -1089,47 +1289,77 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               {paymentMethod.toLowerCase().includes('pix') && (
                 <div className="space-y-4 animate-in fade-in">
                   {/* Status & Timer */}
-                  <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="relative flex h-2.5 w-2.5">
+                  <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-3 w-3 shrink-0">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                       </span>
-                      <span className="font-bold text-white text-xs">
-                        Aprovação Automática Imediata
-                      </span>
+                      <div>
+                        <span className="font-bold text-white text-xs block">
+                          {isAutoPixMode
+                            ? 'Aprovação 100% Automática em Tempo Real'
+                            : 'Transferência Direta via Pix'}
+                        </span>
+                        <span className="text-[10px] text-emerald-300 block font-medium">
+                          {isLoadingAutoPix
+                            ? 'Conectando à rede bancária...'
+                            : isAutoPixApproved
+                            ? '✓ Pagamento detectado e aprovado!'
+                            : isAutoPixMode
+                            ? 'Aguardando pagamento no app do seu banco...'
+                            : 'Pague e anexe o comprovante abaixo'}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs font-mono font-bold text-emerald-400 bg-black/40 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                    <span className="text-xs font-mono font-bold text-emerald-400 bg-black/40 px-2.5 py-1 rounded-full border border-emerald-500/30 shrink-0">
                       {formatTimer(pixTimeLeft)}
                     </span>
                   </div>
 
-                  {/* QR Code Container com Logo no Centro */}
-                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30">
-                    <div className="relative w-36 h-36 flex items-center justify-center">
-                      <img
-                        src={pixQrCodeUrl}
-                        alt="QR Code Pix"
-                        className="w-36 h-36 object-contain rounded-lg"
-                      />
-                      {/* Logo da Hamburgueria no centro do QR Code */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-10 h-10 rounded-full bg-white p-1 shadow-2xl border-2 border-[#ff5722] flex items-center justify-center overflow-hidden">
-                          <img
-                            src={APP_IMAGES.logo}
-                            alt="Logo da Hamburgueria"
-                            className="w-full h-full object-cover rounded-full"
-                          />
-                        </div>
-                      </div>
+                  {/* Feedback de Aprovação Imediata */}
+                  {isAutoPixApproved && (
+                    <div className="bg-emerald-500 text-black p-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 shadow-2xl animate-pulse">
+                      <CheckCircle className="w-5 h-5 text-black shrink-0" />
+                      <span>PAGAMENTO APROVADO! ENVIANDO PEDIDO PARA A COZINHA...</span>
                     </div>
+                  )}
+
+                  {/* QR Code Container */}
+                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30 relative">
+                    {isLoadingAutoPix ? (
+                      <div className="w-36 h-36 flex flex-col items-center justify-center gap-2 text-zinc-600">
+                        <Clock className="w-8 h-8 animate-spin text-[#ff5722]" />
+                        <span className="text-[10px] font-bold">Gerando Pix...</span>
+                      </div>
+                    ) : (
+                      <div className="relative w-36 h-36 flex items-center justify-center">
+                        <img
+                          src={activeQrCodeImage}
+                          alt="QR Code Pix"
+                          className="w-36 h-36 object-contain rounded-lg"
+                        />
+                        {/* Logo da Hamburgueria no centro do QR Code */}
+                        {!storeSettings?.pixQrCodeImageUrl && !autoPixData?.qr_code_base64 && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-10 h-10 rounded-full bg-white p-1 shadow-2xl border-2 border-[#ff5722] flex items-center justify-center overflow-hidden">
+                              <img
+                                src={APP_IMAGES.logo}
+                                alt="Logo da Hamburgueria"
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-1.5 flex items-center gap-1 text-[10px] text-zinc-800 font-extrabold uppercase tracking-wide">
                       <QrCode className="w-3.5 h-3.5 text-[#ff5722]" />
-                      <span>Pague pelo seu banco</span>
+                      <span>R$ {total.toFixed(2).replace('.', ',')}</span>
                     </div>
                   </div>
 
-                  {/* Pix Copia e Cola Button */}
+                  {/* Pix Copia e Cola Button - Copiar Código */}
                   <button
                     type="button"
                     onClick={handleCopyPixCode}
@@ -1138,26 +1368,124 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     {hasCopiedPixCode ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-200" />
-                        <span>✓ Código Pix Copiado com Sucesso!</span>
+                        <span>✓ Código Copiado!</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-4 h-4" />
-                        <span>Copiar Código Pix (Copia e Cola)</span>
+                        <span>Copiar Código</span>
                       </>
                     )}
                   </button>
 
-                  {/* Passo a Passo Seguro */}
-                  <div className="bg-[#161616] p-3.5 rounded-xl border border-[#353535]/60 text-[#b4b5b5] space-y-1.5 text-[11px] leading-relaxed">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#ff5722]" />
-                      Como pagar via Pix:
-                    </span>
-                    <p>1. Aponte a câmera para o <strong>QR Code</strong> acima ou use o botão <strong>Copiar Código Pix (Copia e Cola)</strong>.</p>
-                    <p>2. Abra o app do seu banco, escolha <strong>Pix Copia e Cola</strong> e conclua o pagamento de <strong>R$ {total.toFixed(2).replace('.', ',')}</strong>.</p>
-                    <p>3. Clique no botão abaixo para confirmar seu pedido na cozinha!</p>
-                  </div>
+                  {/* Botão de Demonstração / Teste no Modo Sandbox */}
+                  {isAutoPixMode &&
+                    (!storeSettings?.mercadoPago?.environment || storeSettings?.mercadoPago?.environment === 'sandbox') &&
+                    autoPixData?.id &&
+                    !isAutoPixApproved && (
+                      <button
+                        type="button"
+                        onClick={handleSimulatePixApproval}
+                        disabled={isSimulatingApproval}
+                        className="w-full bg-[#1e293b] hover:bg-[#334155] text-sky-300 border border-sky-500/40 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md"
+                      >
+                        <Zap className="w-4 h-4 text-sky-400" />
+                        <span>{isSimulatingApproval ? 'Simulando aprovação instantânea...' : '⚡ Simular Pagamento Aprovado (Demonstração Teste)'}</span>
+                      </button>
+                    )}
+
+                  {/* Passo a Passo e Modo de Confirmação */}
+                  {isAutoPixMode ? (
+                    <div className="bg-[#161616] p-3.5 rounded-xl border border-emerald-500/30 text-[#b4b5b5] space-y-2 text-[11px] leading-relaxed">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        Como funciona a Aprovação 100% Automática:
+                      </span>
+                      <p>1. Aponte a câmera do seu banco para o <strong>QR Code</strong> acima ou toque em <strong>Copiar Código</strong>.</p>
+                      <p>2. Confirme o pagamento de <strong>R$ {total.toFixed(2).replace('.', ',')}</strong> no app do seu banco.</p>
+                      <p>3. <strong>Pronto!</strong> Não precisa enviar comprovante: o sistema identifica a transferência na hora e envia seu pedido direto para a chapa.</p>
+                    </div>
+                  ) : (
+                    /* Comprovante do Pix & WhatsApp (Modo Manual) */
+                    <div className="bg-[#181818] p-3.5 rounded-xl border border-[#353535] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-[#ff5722]" />
+                          Comprovante do Pagamento:
+                        </span>
+                        {customerPixReceipt && (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">
+                            ✓ Anexado
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[11px] text-[#b4b5b5]">
+                        Anexe o print do seu banco abaixo ou envie no WhatsApp da loja para agilizar a liberação.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* Botão de Anexar Foto do Comprovante */}
+                        <label className={`py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                          customerPixReceipt
+                            ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+                            : 'bg-[#252525] hover:bg-[#303030] border-[#444] text-white'
+                        }`}>
+                          <Upload className="w-3.5 h-3.5 text-[#ff5722]" />
+                          <span>
+                            {isUploadingReceipt
+                              ? 'Processando...'
+                              : customerPixReceipt
+                              ? 'Trocar Comprovante'
+                              : 'Anexar Print do Pix'}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingReceipt}
+                            onChange={handleReceiptUpload}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* Botão de Enviar pelo WhatsApp */}
+                        <a
+                          href={`https://wa.me/55${(storeSettings?.whatsappSupport || '11987654321').replace(/\D/g, '')}?text=${encodeURIComponent(
+                            `Olá! Fiz o pagamento do meu pedido via Pix no valor de R$ ${total.toFixed(2).replace('.', ',')}. Segue o meu comprovante:`
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2 px-3 rounded-lg border border-emerald-600/50 bg-emerald-950/30 hover:bg-emerald-900/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Enviar no WhatsApp</span>
+                        </a>
+                      </div>
+
+                      {/* Preview do Comprovante se anexado */}
+                      {customerPixReceipt && (
+                        <div className="bg-[#121212] p-2 rounded-lg border border-emerald-500/30 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img
+                              src={customerPixReceipt}
+                              alt="Comprovante"
+                              className="w-9 h-9 object-cover rounded border border-emerald-500/40 shrink-0"
+                            />
+                            <span className="text-[10px] text-emerald-300 font-medium truncate">
+                              Comprovante anexado! A cozinha receberá para conferência.
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCustomerPixReceipt('')}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 rounded shrink-0"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

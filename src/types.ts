@@ -4,6 +4,7 @@ export interface CustomerProfile {
   id?: string;
   name: string;
   phone: string;
+  email?: string;
   address: string;
   street?: string;
   number?: string;
@@ -151,6 +152,8 @@ export interface StoreSettings {
   whatsappSupport: string;
   openingHours: string;
   pixKey?: string;
+  pixQrCodeImageUrl?: string;
+  pixApprovalMode?: 'automatic' | 'manual';
   acceptedPaymentMethods?: string[];
   mercadoPago?: MercadoPagoConfig;
   couriers?: Courier[];
@@ -233,6 +236,7 @@ export interface Order {
   changeFor?: string;
   mercadoPagoPaymentId?: string;
   paymentStatus?: 'pendente' | 'aprovado' | 'recusado';
+  pixReceiptUrl?: string;
   address: string;
   timeAgo: string;
   isUrgent?: boolean;

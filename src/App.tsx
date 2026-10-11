@@ -38,6 +38,7 @@ import { ManualOrderModal } from './components/ManualOrderModal';
 import { PrintModal } from './components/PrintModal';
 import { ProductFormModal } from './components/ProductFormModal';
 import { Toast } from './components/Toast';
+import { mercadoPagoApi } from './services/mercadoPagoService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('menu');
@@ -83,6 +84,7 @@ export default function App() {
     whatsappSupport: '(11) 98765-4321',
     openingHours: 'Terça a Domingo, 18h - 00h',
     pixKey: '11987654321',
+    pixApprovalMode: 'automatic',
     acceptedPaymentMethods: [
       'Pix',
       'Cartão de Crédito',
@@ -242,6 +244,59 @@ export default function App() {
   const [isManagerAuthenticated, setIsManagerAuthenticated] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
+  // Detecção de Modo Cliente vs Modo Gestor:
+  // Se o link contiver ?cliente=1 (ou cliente=true, mesa=...), vier do WhatsApp, ou estiver no link público compartilhado,
+  // oculta completamente o ícone do gestor para o cliente.
+  // O ícone do gestor é exibido apenas no site do app web para o gestor (com ?gestor=1 ou se autenticado com PIN).
+  const [isClientMode, setIsClientMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const params = new URLSearchParams(window.location.search);
+    const referrer = (document.referrer || '').toLowerCase();
+    const userAgent = (navigator.userAgent || '').toLowerCase();
+
+    // Se o gestor explicitamente acessou com o link de gestão (?gestor=1 ou ?admin=1)
+    if (params.get('gestor') === '1' || params.get('admin') === '1') {
+      try { sessionStorage.removeItem('burger_client_mode'); } catch {}
+      return false;
+    }
+
+    // Se veio do WhatsApp ou de links compartilhados para clientes
+    const isFromWhatsApp =
+      referrer.includes('whatsapp') ||
+      referrer.includes('wa.me') ||
+      userAgent.includes('whatsapp') ||
+      params.get('origem') === 'whatsapp' ||
+      params.get('utm_source') === 'whatsapp';
+
+    const isClientUrl =
+      params.get('cliente') === '1' ||
+      params.get('cliente') === 'true' ||
+      params.get('modo') === 'cliente' ||
+      params.has('mesa');
+
+    if (isFromWhatsApp || isClientUrl) {
+      try { sessionStorage.setItem('burger_client_mode', '1'); } catch {}
+      return true;
+    }
+
+    // Se já foi marcado como cliente nesta sessão
+    try {
+      if (sessionStorage.getItem('burger_client_mode') === '1') {
+        return true;
+      }
+    } catch {}
+
+    // No Shared App URL (ais-pre-*) enviado aos clientes, sempre trata como cliente por padrão para ocultar o gestor
+    const isSharedPublicUrl = window.location.hostname.includes('ais-pre-');
+    if (isSharedPublicUrl) {
+      try { sessionStorage.setItem('burger_client_mode', '1'); } catch {}
+      return true;
+    }
+
+    // No app web do gestor (desenvolvimento / localhost / ais-dev-*), o gestor tem acesso ao ícone
+    return false;
+  });
+
   // Modals state
   const [isDriverChatOpen, setIsDriverChatOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -278,6 +333,10 @@ export default function App() {
 
   const handlePinSuccess = () => {
     setIsManagerAuthenticated(true);
+    setIsClientMode(false);
+    try {
+      sessionStorage.removeItem('burger_client_mode');
+    } catch {}
     setIsPinModalOpen(false);
     setCurrentScreen('kitchen');
     showToast('Acesso de Gestor autenticado! 🔥');
@@ -555,7 +614,9 @@ export default function App() {
     changeFor?: string,
     mercadoPagoPaymentId?: string,
     orderType: 'Delivery' | 'Retirada' | 'Mesa' = 'Delivery',
-    tableNumber?: number
+    tableNumber?: number,
+    pixReceiptUrl?: string,
+    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado'
   ) => {
     if (!customerProfile) {
       setIsCustomerRegisterOpen(true);
@@ -595,12 +656,14 @@ export default function App() {
       paymentMethod,
       changeFor,
       mercadoPagoPaymentId,
+      pixReceiptUrl,
       paymentStatus:
-        mercadoPagoPaymentId ||
-        paymentMethod.toLowerCase().includes('online') ||
-        paymentMethod.toLowerCase().includes('pix')
+        customPaymentStatus ||
+        (mercadoPagoPaymentId
           ? 'aprovado'
-          : 'pendente',
+          : paymentMethod.toLowerCase().includes('online')
+          ? 'aprovado'
+          : 'pendente'),
       items: cartItems.map(ci => ({
         name: `${ci.product.name}${ci.pizzaSize ? ` [Tam: ${ci.pizzaSize}]` : ''}${ci.juiceSize ? ` [${ci.juiceSize === '1L' ? '1 Litro (1lt)' : ci.juiceSize}]` : ''}${ci.meatDoneness ? ` (${ci.meatDoneness})` : ''}`,
         quantity: ci.quantity,
@@ -744,6 +807,43 @@ export default function App() {
     updateOrderStatusInFirestore(orderId, newStatus);
   };
 
+  const handleUpdatePaymentStatus = (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => {
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, paymentStatus: status } : o))
+    );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, paymentStatus: status } : prev));
+    updateOrderInFirestore(orderId, { paymentStatus: status });
+    showToast(status === 'aprovado' ? '✓ Pagamento Pix aprovado!' : 'Status de pagamento atualizado.');
+  };
+
+  // Polling automático para pedidos Pix gerados via API Mercado Pago com status pendente
+  useEffect(() => {
+    const pendingPixOrders = orders.filter(
+      o => o.paymentStatus === 'pendente' && o.mercadoPagoPaymentId
+    );
+    if (pendingPixOrders.length === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const ord of pendingPixOrders) {
+        if (!ord.mercadoPagoPaymentId) continue;
+        try {
+          const res = await mercadoPagoApi.checkPaymentStatus(
+            ord.mercadoPagoPaymentId,
+            storeSettings.mercadoPago?.accessToken
+          );
+          if (res.approved) {
+            handleUpdatePaymentStatus(ord.id, 'aprovado');
+            showToast(`🎉 Pix do Pedido ${ord.orderNumber} Aprovado Automaticamente via API!`);
+          }
+        } catch {
+          // ignore transient polling errors
+        }
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [orders, storeSettings.mercadoPago?.accessToken]);
+
   const handleManualOrderAdd = (newOrder: Order) => {
     knownOrderIds.current.add(newOrder.id);
     setOrders(prev => [newOrder, ...prev]);
@@ -882,12 +982,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0F0F0F] text-[#e5e2e1] font-['Be_Vietnam_Pro'] antialiased selection:bg-[#ff5722] selection:text-white">
-      {/* Quick Screen Switcher Banner for review */}
-      <ScreenSwitcherBanner
-        currentScreen={currentScreen}
-        onNavigate={handleNavigateScreen}
-        cartCount={cartItems.length}
-      />
+      {/* Quick Screen Switcher Banner - Oculto quando o cliente abre o link compartilhado */}
+      {(!isClientMode || isManagerAuthenticated) && (
+        <ScreenSwitcherBanner
+          currentScreen={currentScreen}
+          onNavigate={handleNavigateScreen}
+          cartCount={cartItems.length}
+        />
+      )}
 
       {/* Main View Router */}
       {currentScreen === 'menu' && (
@@ -908,6 +1010,7 @@ export default function App() {
           onOpenChat={() => setIsDriverChatOpen(true)}
           cartCount={cartItems.length}
           isManager={isManagerAuthenticated}
+          showManagerIcon={!isClientMode || isManagerAuthenticated}
           onOpenManageMenu={handleOpenManageMenu}
           onOpenEditProduct={prod => {
             setEditingProduct(prod);
@@ -957,9 +1060,11 @@ export default function App() {
       {currentScreen === 'tracking' && (
         <OrderTrackingScreen
           order={activeTrackingOrder}
+          storeSettings={storeSettings}
           onBack={() => setCurrentScreen('menu')}
           onOpenChatWithDriver={() => setIsDriverChatOpen(true)}
           onOpenHelp={() => showToast('Suporte Burger Dash: Atendimento 24h via WhatsApp.')}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
         />
       )}
 
@@ -991,6 +1096,7 @@ export default function App() {
           onNavigateToMenu={() => setCurrentScreen('menu')}
           onLockManager={handleLockManager}
           onUpdateOrderStatus={handleKitchenUpdateStatus}
+          onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onDeleteProduct={handleDeleteProduct}
           onClearOrders={handleClearOrders}
         />
@@ -1032,6 +1138,7 @@ export default function App() {
           onNavigate={handleNavigateScreen}
           cartCount={cartItems.length}
           hasActiveOrder={Boolean(activeTrackingOrder)}
+          showManagerIcon={!isClientMode || isManagerAuthenticated}
         />
       )}
 

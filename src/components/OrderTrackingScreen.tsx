@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { Order } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Order, StoreSettings } from '../types';
 import { APP_IMAGES } from '../data/mockData';
-import { ArrowLeft, MessageSquare, Flame, Bike, Check, CheckCircle2, MapPin, ChevronRight, HelpCircle, Navigation, ExternalLink, UtensilsCrossed } from 'lucide-react';
+import {
+  ArrowLeft,
+  MessageSquare,
+  Flame,
+  Bike,
+  Check,
+  CheckCircle2,
+  MapPin,
+  ChevronRight,
+  HelpCircle,
+  Navigation,
+  ExternalLink,
+  UtensilsCrossed,
+  Zap,
+  Sparkles,
+} from 'lucide-react';
+import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface OrderTrackingScreenProps {
   order?: Order | null;
+  storeSettings?: StoreSettings;
   onBack: () => void;
   onOpenChatWithDriver: () => void;
   onOpenHelp: () => void;
+  onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
 }
 
 export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   order,
+  storeSettings,
   onBack,
   onOpenChatWithDriver,
   onOpenHelp,
+  onUpdatePaymentStatus,
 }) => {
   if (!order) {
     return (
@@ -53,6 +73,32 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   const isTable = order.type === 'Mesa';
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(1); // 0: Recebido, 1: Preparo, 2: Entrega, 3: Entregue
   const [showItemsList, setShowItemsList] = useState(false);
+
+  const isPixPending =
+    Boolean(order.paymentMethod?.toLowerCase().includes('pix')) &&
+    order.paymentStatus === 'pendente' &&
+    Boolean(order.mercadoPagoPaymentId);
+
+  // Polling em tempo real se o Pix ainda está aguardando confirmação do Mercado Pago
+  useEffect(() => {
+    if (!isPixPending || !order.mercadoPagoPaymentId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await mercadoPagoApi.checkPaymentStatus(
+          order.mercadoPagoPaymentId!,
+          storeSettings?.mercadoPago?.accessToken
+        );
+        if (res.approved && onUpdatePaymentStatus) {
+          onUpdatePaymentStatus(order.id, 'aprovado');
+        }
+      } catch {
+        // ignore
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isPixPending, order.mercadoPagoPaymentId, order.id, storeSettings?.mercadoPago?.accessToken, onUpdatePaymentStatus]);
 
   const steps = isTable
     ? [
@@ -189,6 +235,56 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
             </span>
           </p>
         </section>
+
+        {/* Banner de Pix Automático em Espera */}
+        {isPixPending && (
+          <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-3.5 space-y-2 shadow-lg animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                </span>
+                Aguardando Confirmação do Pix...
+              </span>
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                Detecção Automática Ativa
+              </span>
+            </div>
+            <p className="text-[11px] text-[#d4d4d4] leading-relaxed">
+              O sistema está conectado com a rede bancária. Assim que seu banco processar o Pix de <strong>R$ {order.total.toFixed(2).replace('.', ',')}</strong>, seu pedido será liberado automaticamente sem você precisar fazer nada!
+            </p>
+            {/* Botão de teste para demonstração no modo sandbox */}
+            {(!storeSettings?.mercadoPago?.environment || storeSettings?.mercadoPago?.environment === 'sandbox') && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (order.mercadoPagoPaymentId) {
+                    await mercadoPagoApi.simulateApproval(order.mercadoPagoPaymentId);
+                    if (onUpdatePaymentStatus) {
+                      onUpdatePaymentStatus(order.id, 'aprovado');
+                    }
+                  }
+                }}
+                className="w-full bg-amber-900/40 hover:bg-amber-800/60 text-amber-200 border border-amber-500/40 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>Simular Pagamento Instantâneo (Demonstração Teste)</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Banner se Pix foi aprovado automaticamente */}
+        {order.paymentMethod?.toLowerCase().includes('pix') && order.paymentStatus === 'aprovado' && (
+          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 flex items-center gap-2.5 text-emerald-300 text-xs shadow-md animate-in fade-in">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-white block">Pagamento Pix Aprovado 100% Automaticamente!</span>
+              <span className="text-[11px] text-emerald-200/90 block">Transação confirmada pelo Mercado Pago • Cozinha liberada.</span>
+            </div>
+          </div>
+        )}
 
         {/* Visual Timeline / Stepper */}
         <section className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-lg relative overflow-hidden">
@@ -364,11 +460,21 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
                 <p className="text-[11px] text-[#ffb5a0] mt-0.5 font-semibold">
                   Total: R$ {order.total.toFixed(2).replace('.', ',')} • {order.paymentMethod}
                 </p>
-                {order.mercadoPagoPaymentId && (
+                {order.mercadoPagoPaymentId ? (
                   <span className="inline-flex items-center gap-1 mt-1 text-[10px] bg-[#009ee3]/20 text-[#009ee3] border border-[#009ee3]/40 px-2 py-0.5 rounded-full font-bold">
                     ✓ Pago via Mercado Pago ({order.mercadoPagoPaymentId})
                   </span>
-                )}
+                ) : order.paymentMethod.toLowerCase().includes('pix') ? (
+                  order.paymentStatus === 'aprovado' ? (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+                      ✓ Pagamento Pix Confirmado pela Cozinha
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                      🟡 Pix em Conferência pela Hamburgueria
+                    </span>
+                  )
+                ) : null}
               </div>
               <ChevronRight
                 className={`w-5 h-5 text-[#b4b5b5] transition-transform duration-200 ${

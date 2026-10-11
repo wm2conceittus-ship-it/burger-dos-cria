@@ -51,6 +51,7 @@ interface MenuScreenProps {
   onOpenChat: () => void;
   cartCount: number;
   isManager?: boolean;
+  showManagerIcon?: boolean;
   onOpenManageMenu?: () => void;
   onOpenEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
@@ -82,12 +83,27 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   onOpenChat,
   cartCount,
   isManager,
+  showManagerIcon = true,
   onOpenManageMenu,
   onOpenEditProduct,
   onDeleteProduct,
   onOpenAddProduct,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<any>(null);
+
+  const handleLogoClick = () => {
+    logoClickCount.current += 1;
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+    logoClickTimer.current = setTimeout(() => {
+      logoClickCount.current = 0;
+    }, 1500);
+    if (logoClickCount.current >= 3) {
+      logoClickCount.current = 0;
+      onOpenKitchen();
+    }
+  };
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('burgers');
   const [favorites, setFavorites] = useState<string[]>(['gourmet-truffle']);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -240,14 +256,21 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             >
               <MenuIcon className="w-6 h-6" />
             </button>
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/40 shadow-sm flex-shrink-0">
+            <div 
+              onClick={handleLogoClick}
+              className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/40 shadow-sm flex-shrink-0 cursor-pointer select-none active:scale-95 transition-transform"
+              title="Burger dos Crias"
+            >
               <img
                 src={APP_IMAGES.logo}
                 alt="Burger dos Crias Logo"
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="hidden sm:flex flex-col">
+            <div 
+              onClick={handleLogoClick}
+              className="hidden sm:flex flex-col cursor-pointer select-none"
+            >
               <span className="font-['Montserrat'] font-extrabold text-sm tracking-tight text-white leading-tight">
                 BURGER DOS CRIAS
               </span>
@@ -300,20 +323,23 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <MessageSquare className="w-4 h-4" />
             </button>
 
-            <button
-              onClick={onOpenKitchen}
-              className="relative w-9 h-9 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-all group"
-              title="Acesso do Gestor (Restrito com PIN)"
-            >
-              <img
-                src={APP_IMAGES.userAvatar}
-                alt="Gestor"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-              />
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#1c1b1b] border border-[#ff5722]/80 rounded-full flex items-center justify-center text-[#ff5722] shadow-sm">
-                <Lock className="w-2 h-2" />
-              </span>
-            </button>
+            {/* Ícone de Acesso do Gestor - Visível apenas para o Gestor no app web (oculto para clientes) */}
+            {showManagerIcon && (
+              <button
+                onClick={onOpenKitchen}
+                className="relative w-9 h-9 rounded-full overflow-hidden border border-[#353535] hover:border-[#ff5722] transition-all group"
+                title="Acesso do Gestor (Restrito com PIN)"
+              >
+                <img
+                  src={APP_IMAGES.userAvatar}
+                  alt="Gestor"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#1c1b1b] border border-[#ff5722]/80 rounded-full flex items-center justify-center text-[#ff5722] shadow-sm">
+                  <Lock className="w-2 h-2" />
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -458,15 +484,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 >
                   <Share2 className="w-4 h-4" /> Compartilhar Cardápio
                 </button>
-                <button
-                  onClick={() => { setDrawerOpen(false); onOpenKitchen(); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-[#2a2a2a] text-[#b4b5b5] hover:text-white transition-colors border-t border-[#353535]/40 mt-1"
-                >
-                  <span className="flex items-center gap-3">
-                    <ChefHat className="w-4 h-4 text-[#ff5722]" /> Painel do Gestor
-                  </span>
-                  <Lock className="w-3.5 h-3.5 text-[#ff8a65]" />
-                </button>
+                {showManagerIcon && (
+                  <button
+                    onClick={() => { setDrawerOpen(false); onOpenKitchen(); }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-[#2a2a2a] text-[#b4b5b5] hover:text-white transition-colors border-t border-[#353535]/40 mt-1"
+                  >
+                    <span className="flex items-center gap-3">
+                      <ChefHat className="w-4 h-4 text-[#ff5722]" /> Painel do Gestor
+                    </span>
+                    <Lock className="w-3.5 h-3.5 text-[#ff8a65]" />
+                  </button>
+                )}
               </nav>
             </div>
 
@@ -492,12 +520,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 Você pode visualizar o cardápio, mas os pedidos estão pausados temporariamente.
               </p>
             </div>
-            <button
-              onClick={onOpenKitchen}
-              className="text-[11px] font-bold text-[#ff8a65] underline whitespace-nowrap ml-2"
-            >
-              Abrir Loja
-            </button>
+            {showManagerIcon && (
+              <button
+                onClick={onOpenKitchen}
+                className="text-[11px] font-bold text-[#ff8a65] underline whitespace-nowrap ml-2"
+              >
+                Abrir Loja
+              </button>
+            )}
           </div>
         )}
 

@@ -20,8 +20,8 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
   const [copied, setCopied] = useState(false);
 
   const defaultUrl = tableNumber
-    ? getPublicMenuUrl(`/?mesa=${tableNumber}`, customBaseUrl)
-    : getPublicMenuUrl('', customBaseUrl);
+    ? getPublicMenuUrl(`/?mesa=${tableNumber}&origem=whatsapp`, customBaseUrl)
+    : getPublicMenuUrl('/?origem=whatsapp', customBaseUrl);
 
   const [customUrl, setCustomUrl] = useState(defaultUrl);
 
@@ -80,8 +80,8 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-start gap-2.5 text-emerald-300">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
-              <strong className="block text-emerald-300 font-bold">Link 100% Público e Ativo</strong>
-              Qualquer cliente consegue abrir este link no celular, computador ou WhatsApp sem precisar fazer login.
+              <strong className="block text-emerald-300 font-bold">Link 100% Público com Ícone do Gestor Oculto</strong>
+              Qualquer cliente consegue abrir este link no celular ou WhatsApp sem login. O ícone de acesso e opções do gestor ficam 100% ocultos para os clientes!
             </div>
           </div>
 

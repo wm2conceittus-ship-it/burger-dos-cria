@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Lock, X, Delete, KeyRound, AlertCircle, ChefHat } from 'lucide-react';
+import { ShieldCheck, Lock, X, Delete, AlertCircle, ChefHat } from 'lucide-react';
 
 interface ManagerPinModalProps {
   correctPin?: string;
@@ -164,14 +164,6 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
           >
             <Delete className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Default Pin Hint */}
-        <div className="mt-5 pt-3 border-t border-[#353535]/60 text-center">
-          <p className="text-[11px] text-[#8e8e8e] flex items-center justify-center gap-1">
-            <KeyRound className="w-3.5 h-3.5 text-[#ff8a65]" />
-            <span>PIN padrão inicial: <strong className="text-white">123456</strong> (altere nas Configurações)</span>
-          </p>
         </div>
       </div>
     </div>
