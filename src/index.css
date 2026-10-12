@@ -12,16 +12,31 @@
   }
 }
 
+:root {
+  --manager-bg: #0F0F0F;
+  --manager-header: #141414;
+  --manager-card: #1C1B1B;
+  --manager-card-hover: #262626;
+  --manager-inner: #141414;
+  --manager-border: #353535;
+  --manager-border-light: #4A4A4A;
+  --manager-accent: #FF5722;
+  --manager-accent-hover: #FF3D00;
+  --manager-caramel: #F59E0B;
+  --manager-cream: #FFFFFF;
+  --manager-cream-muted: #B4B5B5;
+}
+
 .flame-glow {
-  box-shadow: 0 0 22px rgba(255, 87, 34, 0.35);
+  box-shadow: 0 0 22px rgba(255, 87, 34, 0.4);
 }
 
 .flame-glow-sm {
-  box-shadow: 0 0 12px rgba(255, 87, 34, 0.25);
+  box-shadow: 0 0 12px rgba(255, 87, 34, 0.28);
 }
 
 .flame-glow-lg {
-  box-shadow: 0 0 35px rgba(255, 87, 34, 0.45);
+  box-shadow: 0 0 35px rgba(255, 87, 34, 0.55);
 }
 
 .inner-glow {
@@ -29,8 +44,25 @@
 }
 
 .btn-flame {
-  background: linear-gradient(135deg, #ff5722 0%, #ff8a65 100%);
+  background: linear-gradient(135deg, #FF5722 0%, #FF3D00 100%);
   box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.btn-coffee-primary {
+  background: linear-gradient(135deg, #FF5722 0%, #FF3D00 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(255, 87, 34, 0.35);
+}
+
+.btn-coffee-primary:hover {
+  background: linear-gradient(135deg, #FF7043 0%, #FF5722 100%);
+  box-shadow: 0 6px 18px rgba(255, 87, 34, 0.45);
+}
+
+.coffee-card {
+  background-color: #1C1B1B;
+  border-color: #353535;
+  color: #FFFFFF;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -48,6 +80,152 @@
 
 .animate-flame-pulse {
   animation: flame-pulse 2s infinite ease-in-out;
+}
+
+/* =========================================================================
+   GESTOR COM FUNDO BRANCO (.manager-light-mode)
+   Design limpo, moderno e de alto contraste para o painel de gestão
+   ========================================================================= */
+.manager-light-mode {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+.manager-light-mode header {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Painéis e cards principais que se tornam brancos */
+.manager-light-mode .bg-\[\#141414\],
+.manager-light-mode .bg-\[\#181818\],
+.manager-light-mode .bg-\[\#1c1b1b\],
+.manager-light-mode .bg-\[\#20201f\],
+.manager-light-mode .bg-\[\#181716\],
+.manager-light-mode .bg-\[\#121212\],
+.manager-light-mode .bg-\[\#0F0F0F\],
+.manager-light-mode .bg-\[\#1a1a1a\],
+.manager-light-mode .bg-\[\#241c19\],
+.manager-light-mode .bg-\[\#101010\],
+.manager-light-mode .bg-\[\#0e0e0e\] {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+/* Superfícies secundárias, chips e inputs neutros */
+.manager-light-mode .bg-\[\#252525\],
+.manager-light-mode .bg-\[\#2a2a2a\],
+.manager-light-mode .bg-\[\#282828\],
+.manager-light-mode .bg-\[\#2e2e2e\],
+.manager-light-mode .bg-\[\#333\],
+.manager-light-mode .bg-\[\#353535\] {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #1E293B !important;
+}
+
+/* Bordas em cinza claro com alto contraste e acabamento fino */
+.manager-light-mode .border-\[\#353535\],
+.manager-light-mode .border-\[\#383838\],
+.manager-light-mode .border-\[\#404040\],
+.manager-light-mode .border-\[\#444\],
+.manager-light-mode .border-\[\#4d4d4d\],
+.manager-light-mode .border-\[\#353535\]\/40,
+.manager-light-mode .border-\[\#353535\]\/50,
+.manager-light-mode .border-\[\#353535\]\/60,
+.manager-light-mode .border-\[\#353535\]\/70 {
+  border-color: #E2E8F0 !important;
+}
+
+/* Textos principais escuros para máxima legibilidade */
+.manager-light-mode .text-white {
+  color: #0F172A !important;
+}
+
+.manager-light-mode .text-\[\#F7EFE8\],
+.manager-light-mode .text-\[\#f5f5f5\],
+.manager-light-mode .text-\[\#e5e2e1\],
+.manager-light-mode .text-zinc-100 {
+  color: #1E293B !important;
+}
+
+/* Textos secundários e legendas em slate legível */
+.manager-light-mode .text-\[\#b4b5b5\],
+.manager-light-mode .text-\[\#8e8f8f\],
+.manager-light-mode .text-zinc-400 {
+  color: #64748B !important;
+}
+
+/* EXCEÇÕES CRÍTICAS: Elementos com cor de fundo forte que DEVEM manter texto branco */
+.manager-light-mode .btn-flame,
+.manager-light-mode .btn-flame *,
+.manager-light-mode .btn-coffee-primary,
+.manager-light-mode .btn-coffee-primary *,
+.manager-light-mode .bg-\[\#ff5722\],
+.manager-light-mode .bg-\[\#ff5722\] *,
+.manager-light-mode .bg-emerald-600,
+.manager-light-mode .bg-emerald-600 *,
+.manager-light-mode .bg-emerald-500,
+.manager-light-mode .bg-emerald-500 *,
+.manager-light-mode .bg-red-600,
+.manager-light-mode .bg-red-600 *,
+.manager-light-mode .bg-red-500,
+.manager-light-mode .bg-red-500 *,
+.manager-light-mode .bg-blue-600,
+.manager-light-mode .bg-blue-600 *,
+.manager-light-mode .bg-slate-700,
+.manager-light-mode .bg-slate-700 *,
+.manager-light-mode .bg-black,
+.manager-light-mode .bg-black * {
+  color: #FFFFFF !important;
+}
+
+/* Inputs e caixas de texto com fundo branco e borda nítida */
+.manager-light-mode input:not([type="checkbox"]):not([type="radio"]),
+.manager-light-mode select,
+.manager-light-mode textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+.manager-light-mode input::placeholder,
+.manager-light-mode textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Colunas do KDS e Kanban no modo claro */
+.manager-light-mode [data-drop-column] {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Cards de Pedidos */
+.manager-light-mode .group\/card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04) !important;
+}
+
+.manager-light-mode .group\/card:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Badges e tags menores */
+.manager-light-mode .bg-black\/40 {
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #1E293B !important;
+}
+
+.manager-light-mode .shadow-xl,
+.manager-light-mode .shadow-2xl,
+.manager-light-mode .shadow-lg {
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.03) !important;
 }
 
 @media print {

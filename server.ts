@@ -432,6 +432,13 @@ async function setupApp() {
   });
 }
 
+process.on('uncaughtException', err => {
+  console.error('Unhandled process exception (kept alive):', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled promise rejection (kept alive) at:', promise, 'reason:', reason);
+});
+
 setupApp().catch(err => {
   console.error('Failed to start server:', err);
 });

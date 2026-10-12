@@ -85,6 +85,8 @@ import {
   Mail,
   Image as ImageIcon,
   Link2,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -192,6 +194,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+
+  // Theme state for the manager screen: 'light' (fundo branco) | 'dark' (fundo escuro)
+  const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('burger_manager_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {}
+    return 'light'; // Default: FUNDO BRANCO conforme solicitado!
+  });
 
   // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
   const [ordersLayoutMode, setOrdersLayoutMode] = useState<'carousel' | 'kanban' | 'grid'>(() => {
@@ -978,11 +989,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         title: 'Novos',
         subtitle: 'Aguardando aceite',
         icon: Flame,
-        colorText: 'text-[#ff8a65]',
-        topBar: 'bg-[#ff5722]',
-        headerBg: 'bg-gradient-to-r from-[#ff5722]/20 to-[#ff5722]/5',
-        borderColor: 'border-[#ff5722]/40',
-        activeRing: 'ring-2 ring-[#ff5722] bg-[#ff5722]/10 border-[#ff5722]',
+        colorText: 'text-[#ff5722]',
+        topBar: 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00]',
+        headerBg: 'bg-gradient-to-r from-[#ff5722]/25 to-[#ff5722]/5',
+        borderColor: 'border-[#ff5722]/50',
+        activeRing: 'ring-2 ring-[#ff5722] bg-[#ff5722]/15 border-[#ff5722]',
         badgeBg: 'bg-[#ff5722]/20 text-[#ff8a65] border-[#ff5722]/40',
         orders: kanbanNovosOrders,
       },
@@ -1368,27 +1379,35 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   });
 
   return (
-    <div className="bg-[#131313] text-[#e5e2e1] min-h-screen pb-32">
+    <div className={`min-h-screen pb-32 transition-colors duration-150 ${
+      managerTheme === 'light'
+        ? 'manager-light-mode bg-white text-slate-900'
+        : 'bg-[#0F0F0F] text-zinc-100'
+    }`}>
       {/* Top Header */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-[#131313] border-b border-[#353535]/40 h-16 px-4 md:px-6">
+      <header className={`fixed top-0 left-0 w-full z-50 backdrop-blur-md border-b h-16 px-4 md:px-6 shadow-md transition-colors duration-150 ${
+        managerTheme === 'light'
+          ? 'bg-white/95 border-slate-200 text-slate-800 shadow-sm'
+          : 'bg-[#141414]/95 border-[#353535] text-white'
+      }`}>
         <div className="max-w-7xl mx-auto w-full h-full flex justify-between items-center">
           <div className="flex items-center gap-3">
             <button
               onClick={onNavigateToMenu}
               className="flex items-center gap-2 group active:scale-95 transition-transform"
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/40 shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/60 shadow-sm flex-shrink-0">
                 <img
                   src={APP_IMAGES.logo}
-                  alt="Burgue dos Crias Logo"
+                  alt="Burguer dos Crias Logo"
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="hidden sm:flex flex-col text-left">
-                <span className="font-['Montserrat'] font-bold text-sm text-white">
+                <span className={`font-['Montserrat'] font-bold text-sm ${managerTheme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                   Burguer dos Crias
                 </span>
-                <span className="text-[10px] text-[#ff8a65] font-medium">
+                <span className="text-[10px] text-[#ff5722] font-semibold tracking-wide">
                   PAINEL DE GESTÃO GERAL
                 </span>
               </div>
@@ -1396,8 +1415,40 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Botão de Alternar Fundo Branco / Fundo Escuro */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = managerTheme === 'light' ? 'dark' : 'light';
+                setManagerTheme(next);
+                try {
+                  localStorage.setItem('burger_manager_theme', next);
+                } catch {}
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
+                managerTheme === 'light'
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 shadow-sm'
+                  : 'bg-[#252525] hover:bg-[#303030] text-amber-300 border-[#404040]'
+              }`}
+              title={managerTheme === 'light' ? 'Alternar para Fundo Escuro' : 'Alternar para Fundo Branco'}
+            >
+              {managerTheme === 'light' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span className="hidden sm:inline">Fundo Branco</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="hidden sm:inline">Fundo Escuro</span>
+                </>
+              )}
+            </button>
+
             {/* Botão Rápido de Alerta Sonoro / Beep de Novo Pedido & PIX */}
-            <div className="flex items-center gap-1 bg-[#1a1918] p-0.5 rounded-lg border border-[#353535]">
+            <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
+              managerTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-[#1c1b1b] border-[#353535]'
+            }`}>
               <button
                 type="button"
                 onClick={() => {
@@ -1553,7 +1604,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
         {/* Management Module Tabs */}
-        <section className="flex items-center justify-between border-b border-[#353535]/50 pb-2 overflow-x-auto hide-scrollbar">
+        <section className={`flex items-center justify-between border-b pb-2 overflow-x-auto hide-scrollbar ${
+          managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'
+        }`}>
           <div className="flex gap-2">
             {[
               { id: 'pedidos' as const, label: 'Pedidos (KDS)', icon: Receipt, badge: novosOrders.length },
@@ -1573,16 +1626,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
-                      ? 'bg-[#ff5722] text-white shadow-[0_2px_12px_rgba(255,87,34,0.35)]'
-                      : 'bg-[#20201f] text-[#b4b5b5] hover:text-white hover:bg-[#2a2a2a] border border-[#353535]/50'
+                      ? 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00] text-white shadow-[0_2px_12px_rgba(255,87,34,0.35)]'
+                      : managerTheme === 'light'
+                        ? 'bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 shadow-sm'
+                        : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-white text-[#ff5722] text-[10px] flex items-center justify-center font-extrabold">
+                    <span className="w-4 h-4 rounded-full bg-white text-[#ff5722] text-[10px] flex items-center justify-center font-extrabold shadow-sm">
                       {tab.badge}
                     </span>
                   )}
@@ -1597,7 +1652,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 storeSettings.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
               }`}
             />
-            <span className="text-[#b4b5b5] font-semibold">
+            <span className={`${managerTheme === 'light' ? 'text-slate-600' : 'text-[#b4b5b5]'} font-semibold`}>
               {storeSettings.isOpen ? 'Loja Aberta' : 'Loja Fechada'}
             </span>
           </div>
@@ -1607,7 +1662,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         {activeTab === 'pedidos' && (
           <div className="space-y-6">
             {/* Header Summary & Operational Toolbar */}
-            <section className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
+            <section className="bg-[#181818] border border-[#353535] rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
               {/* Linha Superior: Título & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -1632,7 +1687,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               {/* Linha de Baixo: Seletor Pedidos Abertos & Botões de Ação */}
-              <div className="pt-3 border-t border-[#353535]/60 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="pt-3 border-t border-[#353535] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 {/* Segmented View Switch: Abertos vs Agendados */}
                 <div className="inline-flex items-center p-1 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
                   <button
@@ -1672,7 +1727,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
                   <button
                     onClick={() => setShowDailyReportModal(true)}
-                    className="h-9 px-3.5 bg-[#242322] hover:bg-[#2e2d2c] text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Ver e exportar lista detalhada de pedidos do dia"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -1681,7 +1736,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={onOpenManualOrder}
-                    className="h-9 px-3.5 btn-flame text-white border border-[#ff5722]/50 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/30 active:scale-95 transition-all leading-none shrink-0"
+                    className="h-9 px-3.5 btn-flame text-white border border-[#ff5722]/60 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/30 active:scale-95 transition-all leading-none shrink-0"
                     title="Lançar pedido presencial ou telefônico no sistema"
                   >
                     <Plus className="w-4 h-4 shrink-0" />
@@ -1690,10 +1745,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={() => setShowGuideModal(true)}
-                    className="h-9 px-3 bg-[#242322] hover:bg-[#2e2d2c] text-[#ff8a65] border border-[#ff5722]/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
+                    className="h-9 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#ff8a65] border border-[#ff5722]/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
                     title="Como Fazer a Gestão"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#ff8a65] shrink-0" />
                     <span>Guia de Gestão</span>
                   </button>
 
@@ -1706,15 +1761,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     }
                     className={`h-9 px-3.5 rounded-xl text-xs font-['Montserrat'] font-bold border inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm leading-none shrink-0 ${
                       storeSettings.autoAcceptOrders
-                        ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/70'
-                        : 'bg-[#242322] border-[#383838] text-[#8e8f8f] hover:text-white hover:border-[#555]'
+                        ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/80'
+                        : 'bg-[#1c1b1b] border-[#353535] text-[#b4b5b5] hover:text-white hover:border-[#4d4d4d]'
                     }`}
                     title="Clique para alternar o aceite automático de pedidos da cozinha"
                   >
-                    <Zap className={`w-3.5 h-3.5 ${storeSettings.autoAcceptOrders ? 'text-emerald-400 fill-emerald-400' : 'text-[#8e8f8f]'}`} />
+                    <Zap className={`w-3.5 h-3.5 ${storeSettings.autoAcceptOrders ? 'text-emerald-400 fill-emerald-400' : 'text-[#b4b5b5]'}`} />
                     <span>Auto-Aceite:</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-black uppercase ${
-                      storeSettings.autoAcceptOrders ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#2a2a2a] text-[#888]'
+                      storeSettings.autoAcceptOrders ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#141414] text-[#8e8f8f]'
                     }`}>
                       {storeSettings.autoAcceptOrders ? 'ATIVADO' : 'MANUAL'}
                     </span>
@@ -1726,7 +1781,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {/* Barra de Filtros e Seletor de Modo (Carrossel vs Kanban vs Grade) */}
             {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
               /* Toolbar Dedicada do Modo Carrossel & Kanban */
-              <section className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-3 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-md">
+              <section className="bg-[#181818] border border-[#353535] rounded-2xl p-3 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-md">
                 {/* Esquerda: Busca rápida e Filtro por Canal de Atendimento */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
                   {/* Campo de Busca Rápida */}
@@ -1737,7 +1792,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       value={kanbanSearch}
                       onChange={e => setKanbanSearch(e.target.value)}
                       placeholder="Buscar pedido #, cliente, item, mesa..."
-                      className="w-full bg-[#141414] border border-[#353535] focus:border-[#ff5722] text-white text-xs pl-9 pr-8 py-2 rounded-xl focus:outline-none transition-colors placeholder:text-[#6e6e6e]"
+                      className="w-full bg-[#141414] border border-[#353535] focus:border-[#ff5722] text-white text-xs pl-9 pr-8 py-2 rounded-xl focus:outline-none transition-colors placeholder:text-[#8e8f8f]"
                     />
                     {kanbanSearch && (
                       <button
