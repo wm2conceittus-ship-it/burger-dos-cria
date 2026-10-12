@@ -174,3 +174,70 @@ export function stopTabNotificationBlink(): void {
     document.title = originalDocumentTitle;
   }
 }
+
+/**
+ * Toca o Alerta Sonoro Triunfante / Caixa Registradora de PIX CONFIRMADO / PAGO.
+ * Tríade ascendente límpida (C6 -> E6 -> G6 -> C7 com harmônicos brilhantes).
+ */
+export function playPixConfirmedSound(volume = 0.5): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const playChime = () => {
+    const now = ctx.currentTime + 0.05;
+
+    // Acorde ascendente "Ka-Ching / Pix Caiu"
+    const notes = [
+      { freq: 1046.50, offset: 0.00, dur: 0.12 }, // C6
+      { freq: 1318.51, offset: 0.10, dur: 0.12 }, // E6
+      { freq: 1567.98, offset: 0.20, dur: 0.14 }, // G6
+      { freq: 2093.00, offset: 0.32, dur: 0.45 }, // C7
+    ];
+
+    notes.forEach(n => {
+      playTone(ctx, n.freq, now + n.offset, n.dur, volume, 'sine');
+    });
+
+    // Eco harmônico brilhante para sensação de dinheiro na conta
+    playTone(ctx, 2637.02, now + 0.36, 0.40, volume * 0.7, 'triangle');
+  };
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(playChime).catch(() => {});
+  } else {
+    playChime();
+  }
+}
+
+/**
+ * Pisca o título da aba avisando que o PIX foi confirmado pelo banco.
+ */
+export function startPixConfirmedTabNotification(orderNumber: string, amount?: number): void {
+  if (typeof document === 'undefined') return;
+
+  if (!originalDocumentTitle) {
+    originalDocumentTitle = document.title || 'Burger Dash - O Sabor do Fogo';
+  }
+
+  if (titleBlinkInterval) {
+    clearInterval(titleBlinkInterval);
+  }
+
+  let showPix = true;
+  const valorStr = amount ? ` (R$ ${amount.toFixed(2).replace('.', ',')})` : '';
+
+  titleBlinkInterval = window.setInterval(() => {
+    document.title = showPix
+      ? `💰 PIX RECEBIDO PEDIDO #${orderNumber}!${valorStr}`
+      : `✅ PAGAMENTO CONFIRMADO #${orderNumber}`;
+    showPix = !showPix;
+  }, 900);
+
+  const handleFocus = () => {
+    stopTabNotificationBlink();
+    window.removeEventListener('focus', handleFocus);
+    window.removeEventListener('click', handleFocus);
+  };
+  window.addEventListener('focus', handleFocus);
+  window.addEventListener('click', handleFocus);
+}

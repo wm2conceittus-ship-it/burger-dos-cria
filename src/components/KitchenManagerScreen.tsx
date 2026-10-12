@@ -88,7 +88,12 @@ import {
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
-import { playNewOrderSound, unlockAudioContext } from '../utils/audioAlert';
+import {
+  playNewOrderSound,
+  playPixConfirmedSound,
+  startPixConfirmedTabNotification,
+  unlockAudioContext,
+} from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
@@ -452,6 +457,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   });
   const [pixSavedToast, setPixSavedToast] = useState(false);
   const [pixCopiedToast, setPixCopiedToast] = useState(false);
+  const [recentPixConfirmedOrder, setRecentPixConfirmedOrder] = useState<Order | null>(null);
+  const prevPixStatusesRef = useRef<Map<string, string>>(new Map());
+
+  // Monitora pedidos Pix que se tornam aprovados para abrir o banner de confirmação do gestor
+  useEffect(() => {
+    orders.forEach(order => {
+      const isPix = Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('pix'));
+      const prevStatus = prevPixStatusesRef.current.get(order.id);
+      const currStatus = order.paymentStatus;
+
+      if (isPix && currStatus === 'aprovado' && prevStatus && prevStatus !== 'aprovado') {
+        setRecentPixConfirmedOrder(order);
+      }
+
+      if (currStatus) {
+        prevPixStatusesRef.current.set(order.id, currStatus);
+      }
+    });
+  }, [orders]);
 
   // Sync pix states whenever storeSettings updates from Firebase
   useEffect(() => {
@@ -1365,47 +1389,64 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Botão Rápido de Alerta Sonoro / Beep de Novo Pedido */}
-            <button
-              type="button"
-              onClick={() => {
-                const nextState = !storeSettings.soundAlerts;
-                onUpdateStoreSettings({
-                  ...storeSettings,
-                  soundAlerts: nextState,
-                });
-                if (nextState) {
-                  unlockAudioContext();
-                  playNewOrderSound();
-                  setFinancialToast('🔔 Alerta sonoro ativado! (Beep de teste reproduzido)');
-                } else {
-                  setFinancialToast('🔕 Alerta sonoro desativado (silencioso).');
+            {/* Botão Rápido de Alerta Sonoro / Beep de Novo Pedido & PIX */}
+            <div className="flex items-center gap-1 bg-[#1a1918] p-0.5 rounded-lg border border-[#353535]">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextState = !storeSettings.soundAlerts;
+                  onUpdateStoreSettings({
+                    ...storeSettings,
+                    soundAlerts: nextState,
+                  });
+                  if (nextState) {
+                    unlockAudioContext();
+                    playNewOrderSound();
+                    setFinancialToast('🔔 Alerta sonoro ativado! (Beep de teste reproduzido)');
+                  } else {
+                    setFinancialToast('🔕 Alerta sonoro desativado (silencioso).');
+                  }
+                  setTimeout(() => setFinancialToast(null), 3000);
+                }}
+                className={`px-2 py-1.5 rounded-md transition-all flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold active:scale-95 ${
+                  storeSettings.soundAlerts
+                    ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
+                    : 'bg-red-500/15 text-red-400 hover:bg-red-500/25'
+                }`}
+                title={
+                  storeSettings.soundAlerts
+                    ? 'Alerta sonoro ativo para novos pedidos e PIX (Clique para silenciar)'
+                    : 'Alerta sonoro desativado (Clique para ativar o áudio)'
                 }
-                setTimeout(() => setFinancialToast(null), 3000);
-              }}
-              className={`px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold active:scale-95 shadow-sm ${
-                storeSettings.soundAlerts
-                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
-                  : 'bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25'
-              }`}
-              title={
-                storeSettings.soundAlerts
-                  ? 'Alerta sonoro ativo para novos pedidos (Clique para silenciar ou testar)'
-                  : 'Alerta sonoro desativado (Clique para ativar o beep)'
-              }
-            >
-              {storeSettings.soundAlerts ? (
-                <>
-                  <Volume2 className="w-4 h-4 text-emerald-400 animate-pulse" />
-                  <span className="hidden sm:inline text-[11px]">Beep Ativo</span>
-                </>
-              ) : (
-                <>
-                  <VolumeX className="w-4 h-4 text-red-400" />
-                  <span className="hidden sm:inline text-[11px]">Mudo</span>
-                </>
-              )}
-            </button>
+              >
+                {storeSettings.soundAlerts ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                    <span className="hidden sm:inline text-[11px]">Som Ativo</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-red-400" />
+                    <span className="hidden sm:inline text-[11px]">Mudo</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  unlockAudioContext();
+                  playPixConfirmedSound();
+                  setFinancialToast('💰 Teste de Notificação Pix: Som de pagamento recebido reproduzido!');
+                  setTimeout(() => setFinancialToast(null), 3000);
+                }}
+                className="px-2 py-1.5 rounded-md text-[10.5px] font-bold text-emerald-300 hover:text-white hover:bg-emerald-500/20 transition-all flex items-center gap-1 active:scale-95"
+                title="Testar o som triunfante que toca quando o banco confirma o Pix"
+              >
+                <Zap className="w-3 h-3 text-emerald-400" />
+                <span className="hidden md:inline">Testar Som Pix</span>
+              </button>
+            </div>
 
             <button
               onClick={async () => {
@@ -1453,6 +1494,52 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         <div className="fixed top-20 right-6 z-50 bg-emerald-500/20 border border-emerald-500 text-emerald-300 px-4 py-2.5 rounded-lg text-xs font-bold shadow-xl animate-fade-in flex items-center gap-2">
           <ShieldCheck className="w-4 h-4" />
           <span>{pinToast}</span>
+        </div>
+      )}
+
+      {/* Floating Banner: Notificação em tempo real de PIX Aprovado pelo Banco */}
+      {recentPixConfirmedOrder && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-lg bg-emerald-950/95 border-2 border-emerald-400 text-white p-3.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-bounce">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-['Montserrat'] font-black text-sm text-emerald-300">
+                  PIX RECEBIDO DO BANCO!
+                </span>
+                <span className="text-[10px] bg-emerald-500/30 text-white px-1.5 py-0.5 rounded font-mono font-bold">
+                  #{recentPixConfirmedOrder.orderNumber}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100 truncate">
+                {recentPixConfirmedOrder.customerName} • <strong>R$ {Number(recentPixConfirmedOrder.total || 0).toFixed(2).replace('.', ',')}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                onPrintOrder(recentPixConfirmedOrder);
+              }}
+              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Imprimir comanda do pedido pago"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Imprimir</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecentPixConfirmedOrder(null)}
+              className="p-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50"
+              title="Fechar aviso"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

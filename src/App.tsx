@@ -21,7 +21,13 @@ import {
   deleteProductFromFirestore,
   saveAllProductsToFirestore,
 } from './services/firebase';
-import { playNewOrderSound, startTabNotificationBlink, unlockAudioContext } from './utils/audioAlert';
+import {
+  playNewOrderSound,
+  playPixConfirmedSound,
+  startTabNotificationBlink,
+  startPixConfirmedTabNotification,
+  unlockAudioContext,
+} from './utils/audioAlert';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
 import { CartScreen } from './components/CartScreen';
@@ -389,9 +395,10 @@ export default function App() {
     showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${profile.name.split(' ')[0]}! 🔥`);
   };
 
-  // Rastreamento para disparo de alerta sonoro em novos pedidos
+  // Rastreamento para disparo de alerta sonoro em novos pedidos e confirmação de PIX
   const isInitialOrdersLoad = useRef(true);
   const knownOrderIds = useRef<Set<string>>(new Set());
+  const knownPaymentStatuses = useRef<Map<string, string>>(new Map());
 
   // Firebase Real-time Synchronization on Mount
   useEffect(() => {
@@ -408,6 +415,9 @@ export default function App() {
       if (isInitialOrdersLoad.current) {
         isInitialOrdersLoad.current = false;
         knownOrderIds.current = new Set(realOrders.map(o => o.id));
+        realOrders.forEach(o => {
+          knownPaymentStatuses.current.set(o.id, o.paymentStatus || 'pendente');
+        });
       } else {
         // Detecta novos pedidos que entraram no Firebase em tempo real
         const incomingOrders = realOrders.filter(
@@ -421,6 +431,25 @@ export default function App() {
           }
           showToast(`🔔 Novo pedido #${incomingOrders[0].orderNumber} recebido na cozinha!`);
         }
+
+        // Detecta Pix confirmado pelo banco em tempo real (mudança de pendente para aprovado)
+        realOrders.forEach(o => {
+          const isPix = Boolean(o.paymentMethod && o.paymentMethod.toLowerCase().includes('pix'));
+          const prevStatus = knownPaymentStatuses.current.get(o.id);
+          const currentStatus = o.paymentStatus;
+
+          if (isPix && currentStatus === 'aprovado' && prevStatus && prevStatus !== 'aprovado') {
+            if (storeSettings.soundAlerts !== false) {
+              playPixConfirmedSound();
+              startPixConfirmedTabNotification(o.orderNumber, o.total);
+            }
+            showToast(`💰 PIX CONFIRMADO PELO BANCO! Pedido #${o.orderNumber} (R$ ${(o.total || 0).toFixed(2).replace('.', ',')})`);
+          }
+
+          if (currentStatus) {
+            knownPaymentStatuses.current.set(o.id, currentStatus);
+          }
+        });
 
         knownOrderIds.current = new Set(realOrders.map(o => o.id));
       }
@@ -808,12 +837,24 @@ export default function App() {
   };
 
   const handleUpdatePaymentStatus = (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => {
+    const targetOrder = orders.find(o => o.id === orderId);
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, paymentStatus: status } : o))
     );
     setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, paymentStatus: status } : prev));
     updateOrderInFirestore(orderId, { paymentStatus: status });
-    showToast(status === 'aprovado' ? '✓ Pagamento Pix aprovado!' : 'Status de pagamento atualizado.');
+
+    if (status === 'aprovado') {
+      if (storeSettings.soundAlerts !== false) {
+        playPixConfirmedSound();
+        if (targetOrder) {
+          startPixConfirmedTabNotification(targetOrder.orderNumber, targetOrder.total);
+        }
+      }
+      showToast(targetOrder ? `💰 Pix do Pedido #${targetOrder.orderNumber} Confirmado!` : '✓ Pagamento Pix aprovado!');
+    } else {
+      showToast('Status de pagamento atualizado.');
+    }
   };
 
   // Polling automático para pedidos Pix gerados via API Mercado Pago com status pendente
