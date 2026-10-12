@@ -16,8 +16,11 @@ import {
   UtensilsCrossed,
   Zap,
   Sparkles,
+  Phone,
+  Share2,
 } from 'lucide-react';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
+import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
 
 interface OrderTrackingScreenProps {
   order?: Order | null;
@@ -235,6 +238,38 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
             </span>
           </p>
         </section>
+
+        {/* Card de Alerta no WhatsApp do Gestor */}
+        <div className="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-2xl p-3.5 space-y-2.5 shadow-xl">
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-white text-xs block">
+                  Notificação no WhatsApp do Gestor
+                </span>
+                <span className="text-[11px] text-emerald-300 block truncate">
+                  Alerta com a ficha completa enviado para a hamburgueria
+                </span>
+              </div>
+            </div>
+            <span className="text-[9.5px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full shrink-0 border border-emerald-500/40">
+              {storeSettings?.whatsappManagerAlert || storeSettings?.whatsappSupport || '(11) 98765-4321'}
+            </span>
+          </div>
+
+          <a
+            href={getManagerWhatsAppNotificationUrl(order, storeSettings)}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+          >
+            <Phone className="w-3.5 h-3.5" />
+            <span>Reenviar Ficha do Pedido pelo WhatsApp</span>
+          </a>
+        </div>
 
         {/* Banner de Pix Automático em Espera */}
         {isPixPending && (

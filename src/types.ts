@@ -150,6 +150,8 @@ export interface StoreSettings {
   tables?: RestaurantTable[];
   employees?: Employee[];
   whatsappSupport: string;
+  whatsappManagerAlert?: string;
+  autoSendWhatsappAlertToManager?: boolean;
   openingHours: string;
   pixKey?: string;
   pixQrCodeImageUrl?: string;

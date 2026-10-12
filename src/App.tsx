@@ -28,6 +28,7 @@ import {
   startPixConfirmedTabNotification,
   unlockAudioContext,
 } from './utils/audioAlert';
+import { getManagerWhatsAppNotificationUrl } from './utils/whatsappNotification';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
 import { CartScreen } from './components/CartScreen';
@@ -88,6 +89,8 @@ export default function App() {
     tables: INITIAL_RESTAURANT_TABLES,
     employees: INITIAL_EMPLOYEES,
     whatsappSupport: '(11) 98765-4321',
+    whatsappManagerAlert: '(11) 98765-4321',
+    autoSendWhatsappAlertToManager: true,
     openingHours: 'Terça a Domingo, 18h - 00h',
     pixKey: '11987654321',
     pixApprovalMode: 'automatic',
@@ -746,6 +749,20 @@ export default function App() {
     knownOrderIds.current.add(newOrder.id);
     if (storeSettings.soundAlerts !== false) {
       playNewOrderSound();
+    }
+
+    // Alerta automático no WhatsApp do Gestor avisando sobre o novo pedido
+    const shouldSendWhatsappAlert = storeSettings.autoSendWhatsappAlertToManager !== false;
+    if (shouldSendWhatsappAlert) {
+      try {
+        const whatsappUrl = getManagerWhatsAppNotificationUrl(newOrder, storeSettings);
+        // Abre o link do WhatsApp para envio imediato da notificação ao gestor
+        setTimeout(() => {
+          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+        }, 350);
+      } catch (err) {
+        console.warn('Erro ao abrir alerta de WhatsApp para o gestor:', err);
+      }
     }
 
     setActiveTrackingOrder(newOrder);

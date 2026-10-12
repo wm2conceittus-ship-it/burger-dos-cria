@@ -4960,20 +4960,70 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               </div>
 
-              {/* WhatsApp Contact */}
-              <div className="pt-2 border-t border-[#353535]">
-                <label className="block text-[#b4b5b5] mb-1">WhatsApp de Suporte / Atendimento</label>
-                <input
-                  type="text"
-                  value={storeSettings.whatsappSupport}
-                  onChange={e =>
-                    onUpdateStoreSettings({
-                      ...storeSettings,
-                      whatsappSupport: e.target.value,
-                    })
-                  }
-                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
-                />
+              {/* WhatsApp Contact & Manager Order Alerts */}
+              <div className="pt-2 border-t border-[#353535] space-y-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[#b4b5b5] text-xs font-semibold">
+                      WhatsApp do Gestor (Para receber alertas de novos pedidos)
+                    </label>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      🔔 Notificações Ativas
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={storeSettings.whatsappManagerAlert || storeSettings.whatsappSupport}
+                    onChange={e =>
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        whatsappManagerAlert: e.target.value,
+                      })
+                    }
+                    placeholder="Ex: (11) 98765-4321"
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722] text-xs font-mono"
+                  />
+                  <p className="text-[10.5px] text-[#8e8f8f] mt-1 leading-relaxed">
+                    📲 Assim que um cliente enviar um pedido pelo cardápio, um alerta detalhado será disparado para este número de WhatsApp com os itens, endereço, total e forma de pagamento.
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-[#181818] border border-[#303030]">
+                  <div>
+                    <span className="font-semibold text-white text-xs block">
+                      Abertura Automática do WhatsApp ao Concluir Pedido
+                    </span>
+                    <span className="text-[11px] text-[#b4b5b5] block mt-0.5">
+                      Garante o envio imediato da ficha completa do pedido para o WhatsApp do gestor assim que o cliente clica em "Finalizar Pedido".
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={storeSettings.autoSendWhatsappAlertToManager !== false}
+                    onChange={e =>
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        autoSendWhatsappAlertToManager: e.target.checked,
+                      })
+                    }
+                    className="h-5 w-5 accent-[#ff5722] cursor-pointer shrink-0 ml-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#b4b5b5] text-xs mb-1">WhatsApp de Suporte ao Cliente</label>
+                  <input
+                    type="text"
+                    value={storeSettings.whatsappSupport}
+                    onChange={e =>
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        whatsappSupport: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722] text-xs font-mono"
+                  />
+                </div>
               </div>
 
               {/* Link Público Oficial do Cardápio para Clientes */}
