@@ -198,10 +198,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   // Theme state for the manager screen: 'light' (fundo branco) | 'dark' (fundo escuro)
   const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>(() => {
     try {
-      const saved = localStorage.getItem('burger_manager_theme');
+      const saved = localStorage.getItem('burger_manager_theme_v5');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch {}
-    return 'light'; // Default: FUNDO BRANCO conforme solicitado!
+    return 'light'; // Default: FUNDO BRANCO conforme solicitado pelo usuário!
   });
 
   // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
@@ -989,12 +989,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         title: 'Novos',
         subtitle: 'Aguardando aceite',
         icon: Flame,
-        colorText: 'text-[#ff5722]',
-        topBar: 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00]',
-        headerBg: 'bg-gradient-to-r from-[#ff5722]/25 to-[#ff5722]/5',
-        borderColor: 'border-[#ff5722]/50',
-        activeRing: 'ring-2 ring-[#ff5722] bg-[#ff5722]/15 border-[#ff5722]',
-        badgeBg: 'bg-[#ff5722]/20 text-[#ff8a65] border-[#ff5722]/40',
+        colorText: 'text-[#5C3317]',
+        topBar: 'bg-gradient-to-r from-[#5C3317] to-[#3D200C]',
+        headerBg: 'bg-gradient-to-r from-[#5C3317]/25 to-[#5C3317]/5',
+        borderColor: 'border-[#5C3317]/50',
+        activeRing: 'ring-2 ring-[#5C3317] bg-[#5C3317]/15 border-[#5C3317]',
+        badgeBg: 'bg-[#5C3317]/20 text-[#5C3317] border-[#5C3317]/40',
         orders: kanbanNovosOrders,
       },
       {
@@ -1379,7 +1379,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   });
 
   return (
-    <div className={`min-h-screen pb-32 transition-colors duration-150 ${
+    <div className={`manager-view min-h-screen pb-32 transition-colors duration-150 ${
       managerTheme === 'light'
         ? 'manager-light-mode bg-white text-slate-900'
         : 'bg-[#0F0F0F] text-zinc-100'
@@ -1396,7 +1396,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               onClick={onNavigateToMenu}
               className="flex items-center gap-2 group active:scale-95 transition-transform"
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#ff5722]/60 shadow-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[#7A431D]/60 shadow-sm flex-shrink-0">
                 <img
                   src={APP_IMAGES.logo}
                   alt="Burguer dos Crias Logo"
@@ -1407,7 +1407,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <span className={`font-['Montserrat'] font-bold text-sm ${managerTheme === 'light' ? 'text-slate-900' : 'text-white'}`}>
                   Burguer dos Crias
                 </span>
-                <span className="text-[10px] text-[#ff5722] font-semibold tracking-wide">
+                <span className="text-[10px] text-[#5C3317] font-bold tracking-wide">
                   PAINEL DE GESTÃO GERAL
                 </span>
               </div>
@@ -1422,7 +1422,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 const next = managerTheme === 'light' ? 'dark' : 'light';
                 setManagerTheme(next);
                 try {
-                  localStorage.setItem('burger_manager_theme', next);
+                  localStorage.setItem('burger_manager_theme_v5', next);
                 } catch {}
               }}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
@@ -1626,9 +1626,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
-                      ? 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00] text-white shadow-[0_2px_12px_rgba(255,87,34,0.35)]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-[0_2px_12px_rgba(61,32,12,0.4)] border border-[#73401D]'
                       : managerTheme === 'light'
                         ? 'bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 shadow-sm'
                         : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]'
@@ -1637,7 +1637,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-white text-[#ff5722] text-[10px] flex items-center justify-center font-extrabold shadow-sm">
+                    <span className="w-4 h-4 rounded-full bg-white text-[#5C3317] text-[10px] flex items-center justify-center font-extrabold shadow-sm">
                       {tab.badge}
                     </span>
                   )}
@@ -1689,17 +1689,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               {/* Linha de Baixo: Seletor Pedidos Abertos & Botões de Ação */}
               <div className="pt-3 border-t border-[#353535] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 {/* Segmented View Switch: Abertos vs Agendados */}
-                <div className="inline-flex items-center p-1 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
+                <div className="inline-flex items-center p-1 bg-[#141414] rounded-lg border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
                   <button
                     onClick={() => setMainFilter('abertos')}
-                    className={`h-7 px-3.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                    className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'abertos'
-                        ? 'bg-[#ff5722] text-white shadow-md'
+                        ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                         : 'text-[#b4b5b5] hover:text-white'
                     }`}
                   >
                     <span>Pedidos Abertos</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-black ${
                       mainFilter === 'abertos' ? 'bg-white/20 text-white' : 'bg-[#252525] text-[#8e8f8f]'
                     }`}>
                       {abertosOrders.length}
@@ -1708,14 +1708,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={() => setMainFilter('agendados')}
-                    className={`h-7 px-3.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                    className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'agendados'
-                        ? 'bg-[#ff5722] text-white shadow-md'
+                        ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                         : 'text-[#b4b5b5] hover:text-white'
                     }`}
                   >
                     <span>Agendados</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-black ${
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-black ${
                       mainFilter === 'agendados' ? 'bg-white/20 text-white' : 'bg-[#252525] text-[#8e8f8f]'
                     }`}>
                       3
@@ -1727,7 +1727,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
                   <button
                     onClick={() => setShowDailyReportModal(true)}
-                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Ver e exportar lista detalhada de pedidos do dia"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -1736,7 +1736,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={onOpenManualOrder}
-                    className="h-9 px-3.5 btn-flame text-white border border-[#ff5722]/60 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/30 active:scale-95 transition-all leading-none shrink-0"
+                    className="h-9 px-3.5 btn-flame text-white border border-[#73401D] rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#5C3317]/30 active:scale-95 transition-all leading-none shrink-0"
                     title="Lançar pedido presencial ou telefônico no sistema"
                   >
                     <Plus className="w-4 h-4 shrink-0" />
@@ -1745,10 +1745,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     onClick={() => setShowGuideModal(true)}
-                    className="h-9 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#ff8a65] border border-[#ff5722]/40 rounded-xl text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
+                    className="h-9 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#5C3317] border border-[#5C3317]/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
                     title="Como Fazer a Gestão"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#ff8a65] shrink-0" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#5C3317] shrink-0" />
                     <span>Guia de Gestão</span>
                   </button>
 
@@ -1823,9 +1823,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           key={f.id}
                           type="button"
                           onClick={() => setKanbanTypeFilter(f.id as any)}
-                          className={`h-8 px-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border whitespace-nowrap active:scale-95 ${
+                          className={`h-8 px-2.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border whitespace-nowrap active:scale-95 ${
                             isSel
-                              ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm'
+                              ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border-[#73401D] shadow-sm'
                               : 'bg-[#141414] text-[#b4b5b5] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
                           }`}
                         >
@@ -1843,7 +1843,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <button
                     type="button"
                     onClick={handleToggleShowFinishedKanban}
-                    className={`h-8 px-3 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
+                    className={`h-8 px-3 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
                       showFinishedKanban
                         ? 'bg-slate-700/50 text-slate-200 border-slate-500 shadow-sm'
                         : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
@@ -1861,7 +1861,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <button
                     type="button"
                     onClick={handleToggleCardDensity}
-                    className={`h-8 px-2.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
+                    className={`h-8 px-2.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
                       cardDensity === 'compact'
                         ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-sm'
                         : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
@@ -1884,7 +1884,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       onClick={() => handleSelectOrdersLayoutMode('carousel')}
                       className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                         ordersLayoutMode === 'carousel'
-                          ? 'bg-[#ff5722] text-white shadow-md'
+                          ? 'bg-gradient-to-r from-[#7A431D] to-[#522B11] text-white shadow-md border border-[#5C3317]'
                           : 'text-[#b4b5b5] hover:text-white'
                       }`}
                       title="Modo Carrossel focado com navegação por etapas"
@@ -1897,7 +1897,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       onClick={() => handleSelectOrdersLayoutMode('kanban')}
                       className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                         ordersLayoutMode === 'kanban'
-                          ? 'bg-[#ff5722] text-white shadow-md'
+                          ? 'bg-gradient-to-r from-[#7A431D] to-[#522B11] text-white shadow-md border border-[#5C3317]'
                           : 'text-[#b4b5b5] hover:text-white'
                       }`}
                       title="Quadro Kanban com todas as colunas lado a lado"
@@ -2115,10 +2115,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           handleDropOnColumn(kanbanColumns[safeCarouselIndex - 1].key);
                         }
                       }}
-                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-xl text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
+                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
                         safeCarouselIndex === 0
                           ? 'opacity-30 cursor-not-allowed bg-[#141414] text-[#666] border-[#2c2b2a]'
-                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#ff5722] hover:border-[#ff5722] shadow-sm'
+                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#5C3317] hover:border-[#73401D] shadow-sm'
                       }`}
                       title="Etapa anterior no carrossel (ou solte o card aqui)"
                     >
@@ -2154,20 +2154,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               e.preventDefault();
                               handleDropOnColumn(col.key);
                             }}
-                            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl text-xs font-['Montserrat'] font-bold transition-all border shrink-0 active:scale-95 ${
+                            className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all border shrink-0 active:scale-95 ${
                               isColDragOver
-                                ? 'bg-[#ff5722] text-white ring-2 ring-white border-white scale-110 shadow-lg animate-pulse'
+                                ? 'bg-[#5C3317] text-white ring-2 ring-white border-white scale-110 shadow-lg animate-pulse'
                                 : isActive
                                 ? `${col.topBar} text-white shadow-md ring-2 ring-white/20 border-white/30 scale-105`
                                 : draggedOrderId
-                                ? 'bg-[#222] text-white border-dashed border-[#ff5722]/60 hover:bg-[#ff5722]/30'
+                                ? 'bg-[#222] text-white border-dashed border-[#5C3317]/60 hover:bg-[#5C3317]/30'
                                 : 'bg-[#141414] text-[#b4b5b5] border-[#323232] hover:text-white hover:border-[#4d4d4d]'
                             }`}
                             title={`Mudar para etapa ${col.title} (ou solte o card aqui)`}
                           >
                             <Icon className="w-3.5 h-3.5 shrink-0" />
                             <span className="whitespace-nowrap">{idx + 1}. {col.title}</span>
-                            <span className={`px-1.5 py-0.2 rounded-full font-mono text-[10px] ${
+                            <span className={`px-1.5 py-0.2 rounded font-mono text-[10px] ${
                               isActive ? 'bg-black/40 text-white font-black' : 'bg-black/30 text-[#888]'
                             }`}>
                               {col.orders.length}
@@ -2196,10 +2196,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           handleDropOnColumn(kanbanColumns[safeCarouselIndex + 1].key);
                         }
                       }}
-                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-xl text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
+                      className={`flex items-center gap-1 sm:gap-1.5 px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold border transition-all active:scale-95 shrink-0 ${
                         safeCarouselIndex === kanbanColumns.length - 1
                           ? 'opacity-30 cursor-not-allowed bg-[#141414] text-[#666] border-[#2c2b2a]'
-                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#ff5722] hover:border-[#ff5722] shadow-sm'
+                          : 'bg-[#222120] text-white border-[#3e3d3c] hover:bg-[#5C3317] hover:border-[#73401D] shadow-sm'
                       }`}
                       title="Próxima etapa no carrossel (ou solte o card aqui)"
                     >
@@ -4025,7 +4025,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   onClick={() => setCardapioFilter(cat.id)}
                   className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all ${
                     cardapioFilter === cat.id
-                      ? 'bg-[#ff5722] text-white shadow-sm'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-sm border border-[#73401D]'
                       : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border border-[#353535]'
                   }`}
                 >
@@ -4204,13 +4204,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             {/* Sub-abas de Relatórios Financeiros */}
-            <div className="w-full bg-[#1c1b1b] rounded-xl border border-[#353535] p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="w-full bg-[#1c1b1b] rounded-lg border border-[#353535] p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFinancialSubTab('graficos')}
-                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'graficos'
-                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                     : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
@@ -4221,9 +4221,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setFinancialSubTab('dre')}
-                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'dre'
-                    ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                     : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                 }`}
               >
@@ -4637,14 +4637,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             {/* Sub-abas dentro das Configurações - Alinhamento sempre à esquerda (justify-start) para nunca cortar o primeiro botão */}
-            <div className="w-full overflow-hidden bg-[#1c1b1b] rounded-xl border border-[#353535] p-1.5">
+            <div className="w-full overflow-hidden bg-[#1c1b1b] rounded-lg border border-[#353535] p-1.5">
               <div className="flex gap-2 overflow-x-auto justify-start items-center scrollbar-thin pb-1 sm:pb-0 px-0.5">
                 <button
                   type="button"
                   onClick={() => setConfigTab('geral')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'geral'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4655,9 +4655,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('funcionarios')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'funcionarios'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4673,9 +4673,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('area')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'area'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4689,9 +4689,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('entregadores')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'entregadores'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4707,9 +4707,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('formas')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'formas'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4720,9 +4720,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('cupons')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'cupons'
-                      ? 'bg-[#ff5722] text-white shadow-md shadow-[#ff5722]/20 ring-1 ring-[#ff5722]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
                   }`}
                 >
@@ -4738,7 +4738,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setConfigTab('gateway')}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'gateway'
                       ? 'bg-[#009ee3] text-white shadow-lg shadow-[#009ee3]/25 ring-1 ring-[#009ee3]'
                       : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'

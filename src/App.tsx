@@ -1048,7 +1048,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-[#e5e2e1] font-['Be_Vietnam_Pro'] antialiased selection:bg-[#ff5722] selection:text-white">
+    <div className={`min-h-screen ${currentScreen === 'kitchen' ? 'bg-white text-slate-900' : 'bg-[#0F0F0F] text-[#e5e2e1]'} font-['Be_Vietnam_Pro'] antialiased selection:bg-[#5C3317] selection:text-white`}>
       {/* Quick Screen Switcher Banner - Oculto quando o cliente abre o link compartilhado */}
       {(!isClientMode || isManagerAuthenticated) && (
         <ScreenSwitcherBanner
@@ -1246,24 +1246,28 @@ export default function App() {
       )}
 
       {isManualOrderOpen && (
-        <ManualOrderModal
-          products={products}
-          storeSettings={storeSettings}
-          onAddOrder={handleManualOrderAdd}
-          onClose={() => setIsManualOrderOpen(false)}
-        />
+        <div className={currentScreen === 'kitchen' ? 'manager-view manager-light-mode' : ''}>
+          <ManualOrderModal
+            products={products}
+            storeSettings={storeSettings}
+            onAddOrder={handleManualOrderAdd}
+            onClose={() => setIsManualOrderOpen(false)}
+          />
+        </div>
       )}
 
       {isProductModalOpen && (
-        <ProductFormModal
-          initialProduct={editingProduct}
-          onSave={handleSaveProduct}
-          onDelete={handleDeleteProduct}
-          onClose={() => {
-            setIsProductModalOpen(false);
-            setEditingProduct(null);
-          }}
-        />
+        <div className={currentScreen === 'kitchen' ? 'manager-view manager-light-mode' : ''}>
+          <ProductFormModal
+            initialProduct={editingProduct}
+            onSave={handleSaveProduct}
+            onDelete={handleDeleteProduct}
+            onClose={() => {
+              setIsProductModalOpen(false);
+              setEditingProduct(null);
+            }}
+          />
+        </div>
       )}
 
       {printOrder && (
