@@ -9,6 +9,8 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Order, OrderStatus, StoreSettings, CustomerProfile, Product } from '../types';
@@ -151,6 +153,19 @@ export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
   }
 }
 
+export async function clearAllOrdersFromFirestore(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(db, 'orders'));
+    const batch = writeBatch(db);
+    snapshot.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.warn('Erro ao limpar pedidos em lote do Firestore:', error);
+  }
+}
+
 // 2. Store Settings Sync
 export function subscribeToStoreSettings(
   onSettingsUpdate: (settings: StoreSettings) => void
@@ -202,6 +217,28 @@ export async function saveExpenseToFirestore(expense: any): Promise<void> {
     await setDoc(doc(db, 'expenses', expense.id), cleanExpense);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteExpenseFromFirestore(expenseId: string): Promise<void> {
+  const path = `expenses/${expenseId}`;
+  try {
+    await deleteDoc(doc(db, 'expenses', expenseId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
+export async function clearAllExpensesFromFirestore(): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(db, 'expenses'));
+    const batch = writeBatch(db);
+    snapshot.forEach(docSnap => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.warn('Erro ao limpar despesas do Firestore:', error);
   }
 }
 

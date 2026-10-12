@@ -78,7 +78,7 @@ export function getManagerWhatsAppNotificationUrl(order: Order, storeSettings?: 
   const managerPhone =
     storeSettings?.whatsappManagerAlert ||
     storeSettings?.whatsappSupport ||
-    '11987654321';
+    '88992176318';
 
   const cleanPhone = formatPhoneForWhatsApp(managerPhone);
   const message = buildManagerWhatsAppOrderMessage(order, storeSettings);

@@ -13,6 +13,8 @@ import {
   updateOrderStatusInFirestore,
   updateOrderInFirestore,
   deleteOrderFromFirestore,
+  clearAllOrdersFromFirestore,
+  clearAllExpensesFromFirestore,
   subscribeToStoreSettings,
   saveStoreSettingsToFirestore,
   saveCustomerProfileToFirestore,
@@ -88,8 +90,8 @@ export default function App() {
     serviceFeePercentage: 10,
     tables: INITIAL_RESTAURANT_TABLES,
     employees: INITIAL_EMPLOYEES,
-    whatsappSupport: '(11) 98765-4321',
-    whatsappManagerAlert: '(11) 98765-4321',
+    whatsappSupport: '(88) 99217-6318',
+    whatsappManagerAlert: '(88) 99217-6318',
     autoSendWhatsappAlertToManager: true,
     openingHours: 'Terça a Domingo, 18h - 00h',
     pixKey: '11987654321',
@@ -522,6 +524,9 @@ export default function App() {
         setStoreSettings(prev => ({
           ...prev,
           ...remoteSettings,
+          whatsappSupport: remoteSettings.whatsappSupport || prev.whatsappSupport || '(88) 99217-6318',
+          whatsappManagerAlert: remoteSettings.whatsappManagerAlert || remoteSettings.whatsappSupport || prev.whatsappManagerAlert || '(88) 99217-6318',
+          autoSendWhatsappAlertToManager: remoteSettings.autoSendWhatsappAlertToManager !== false,
           managerPin: normalizedPin,
           tables: cleanedTables || prev.tables,
           employees: cleanedEmployees || prev.employees,
@@ -914,11 +919,15 @@ export default function App() {
 
   const handleClearOrders = async () => {
     try {
-      for (const order of orders) {
-        await deleteOrderFromFirestore(order.id);
+      await clearAllOrdersFromFirestore();
+      await clearAllExpensesFromFirestore();
+      try {
+        localStorage.removeItem('burger_manager_expenses');
+      } catch {
+        // ignore
       }
       setOrders([]);
-      showToast('Histórico de pedidos e faturamento zerados com sucesso! 🟢');
+      showToast('Histórico de pedidos e faturamento zerados com sucesso! Começando do zero 🟢');
     } catch (err) {
       console.warn('Erro ao zerar pedidos:', err);
     }

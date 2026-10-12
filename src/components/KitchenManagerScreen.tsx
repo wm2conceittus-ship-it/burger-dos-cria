@@ -103,6 +103,7 @@ import { EmployeeManagementView } from './EmployeeManagementView';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { ShareMenuModal } from './ShareMenuModal';
 import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
+import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -373,10 +374,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
     try {
       // Clear legacy mock expenses so the user starts with 100% clean finances
-      const legacyCleaned = localStorage.getItem('burger_cleaned_legacy_expenses_v5');
+      const legacyCleaned = localStorage.getItem('burger_cleaned_legacy_expenses_v6');
       if (!legacyCleaned) {
         localStorage.removeItem('burger_manager_expenses');
-        localStorage.setItem('burger_cleaned_legacy_expenses_v5', 'true');
+        localStorage.setItem('burger_cleaned_legacy_expenses_v6', 'true');
         return [];
       }
       const saved = localStorage.getItem('burger_manager_expenses');
@@ -417,9 +418,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     if (onClearOrders) {
       onClearOrders();
     }
+    setExpenses([]);
+    try {
+      localStorage.removeItem('burger_manager_expenses');
+    } catch {
+      // ignore
+    }
     setShowClearOrdersConfirm(false);
-    setFinancialToast('Histórico de pedidos e faturamento zerados com sucesso! 🟢');
-    setTimeout(() => setFinancialToast(null), 3000);
+    setFinancialToast('Pedidos, faturamento e finanças zerados com sucesso! Começando do zero 🟢');
+    setTimeout(() => setFinancialToast(null), 3500);
   };
 
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
@@ -3035,6 +3042,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       <SlidersHorizontal className="w-2.5 h-2.5" />
                                       <span className="hidden sm:inline">Mover</span>
                                     </button>
+
+                                    {/* Botão de Alerta no WhatsApp do Gestor */}
+                                    <a
+                                      href={getManagerWhatsAppNotificationUrl(order, storeSettings)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 bg-emerald-950/40 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/40 active:scale-95"
+                                      title="Enviar / Abrir ficha no WhatsApp do Gestor"
+                                    >
+                                      <MessageSquare className="w-2.5 h-2.5" />
+                                      <span className="hidden sm:inline">WhatsApp</span>
+                                    </a>
                                   </div>
                                 </div>
                               );
@@ -4240,14 +4259,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <FileText className="w-4 h-4 text-[#ff5722]" /> DRE Operacional do Turno
                   </h3>
                   <div className="flex items-center gap-2">
-                    {orders.length > 0 && onClearOrders && (
+                    {onClearOrders && (
                       <button
                         type="button"
                         onClick={() => setShowClearOrdersConfirm(true)}
-                        className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
-                        title="Zerar e apagar pedidos de teste para começar faturamento do zero"
+                        className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/25 hover:bg-red-500/20 active:scale-95"
+                        title="Zerar e apagar pedidos e finanças para começar do zero"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> Zerar Faturamento
+                        <Trash2 className="w-3.5 h-3.5" /> Zerar Pedidos & Finanças ({orders.length})
                       </button>
                     )}
                     <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
