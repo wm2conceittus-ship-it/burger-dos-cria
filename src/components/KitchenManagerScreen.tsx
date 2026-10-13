@@ -105,7 +105,11 @@ import { EmployeeManagementView } from './EmployeeManagementView';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { ShareMenuModal } from './ShareMenuModal';
 import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
-import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
+import {
+  getManagerWhatsAppNotificationUrl,
+  getCustomerDispatchWhatsAppUrl,
+  openWhatsAppLink,
+} from '../utils/whatsappNotification';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 
 interface KitchenManagerScreenProps {
@@ -119,7 +123,11 @@ interface KitchenManagerScreenProps {
   onAcceptOrder: (orderId: string) => void;
   onRejectOrder: (orderId: string) => void;
   onAdvanceToReady: (orderId: string) => void;
-  onAdvanceToDelivery: (orderId: string, courier?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string }) => void;
+  onAdvanceToDelivery: (
+    orderId: string,
+    courier?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string },
+    updatedCustomerPhone?: string
+  ) => void;
   onCompleteOrder: (orderId: string) => void;
   onOpenManualOrder: () => void;
   onAddOrder?: (newOrder: Order) => void;
@@ -295,6 +303,112 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     });
   };
 
+  // Dispatch & WhatsApp State
+  const [dispatchOrderTarget, setDispatchOrderTarget] = useState<Order | null>(null);
+  const [openWhatsAppOnDispatch, setOpenWhatsAppOnDispatch] = useState(true);
+  const [notifyCustomerOnDispatch, setNotifyCustomerOnDispatch] = useState(true);
+  const [dispatchCustomerPhoneInput, setDispatchCustomerPhoneInput] = useState('');
+
+  // Sincroniza input de WhatsApp quando abre modal de despacho
+  useEffect(() => {
+    if (dispatchOrderTarget) {
+      setDispatchCustomerPhoneInput(dispatchOrderTarget.customerPhone || '');
+    }
+  }, [dispatchOrderTarget]);
+
+  const buildCourierWhatsAppMsg = (order: Order, courierName?: string) => {
+    const isOnlinePaid = Boolean(order.mercadoPagoPaymentId || order.paymentStatus === 'aprovado');
+    const isNeedMachine = Boolean(
+      order.paymentMethod?.toLowerCase().includes('cart') ||
+      order.paymentMethod?.toLowerCase().includes('crédito') ||
+      order.paymentMethod?.toLowerCase().includes('débito')
+    );
+    const isCash = Boolean(order.paymentMethod?.toLowerCase().includes('dinheiro'));
+
+    return [
+      `*🛵 NOVA ENTREGA - ${storeSettings.storeName || 'BURGUER DOS CRIAS'}*`,
+      courierName ? `*Entregador:* ${courierName}` : '',
+      `*Pedido:* #${order.orderNumber}`,
+      `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
+      `*Endereço:* ${order.address || 'Não informado'}`,
+      order.address ? `*📍 Rota GPS (Google Maps):* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
+      `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
+      isOnlinePaid
+        ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
+        : isNeedMachine
+        ? '💳 *PAGAMENTO:* LEVAR MAQUININHA (COBRAR NA ENTREGA)'
+        : isCash
+        ? `💵 *PAGAMENTO:* DINHEIRO ${order.changeFor ? `(LEVAR TROCO P/ ${order.changeFor})` : '(SEM TROCO)'}`
+        : `💰 *PAGAMENTO:* ${order.paymentMethod || 'Cobrar na entrega'}`,
+      order.notes ? `*Observações:* ${order.notes}` : '',
+      `\n_Por favor, confirme quando retirar a bag na chapa!_`
+    ].filter(Boolean).join('\n');
+  };
+
+  const openCourierWhatsApp = (phone: string, order: Order, courierName?: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone) return;
+    const phoneWith55 = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const msg = buildCourierWhatsAppMsg(order, courierName);
+    openWhatsAppLink(`https://wa.me/${phoneWith55}?text=${encodeURIComponent(msg)}`);
+  };
+
+  const openCustomerDispatchWhatsApp = (
+    order: Order,
+    courierInfo?: { name?: string; phone?: string; vehicle?: string; plate?: string }
+  ) => {
+    const waUrl = getCustomerDispatchWhatsAppUrl(order, courierInfo, storeSettings);
+    if (!waUrl) return false;
+    return openWhatsAppLink(waUrl);
+  };
+
+  const handleDispatchWithNotification = (
+    order: Order,
+    courierInfo?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string },
+    customCustomerPhone?: string
+  ) => {
+    const finalCustomerPhone = customCustomerPhone || order.customerPhone;
+    const targetOrder: Order = {
+      ...order,
+      customerPhone: finalCustomerPhone,
+      courierName: courierInfo?.name || order.courierName,
+      courierVehicle: courierInfo?.vehicle || order.courierVehicle,
+      courierPlate: courierInfo?.plate || order.courierPlate,
+    };
+
+    // 1. Atualiza no estado e no Firestore
+    onAdvanceToDelivery(order.id, courierInfo, finalCustomerPhone);
+
+    // 2. Dispara aviso no WhatsApp do CLIENTE (Avisando que o pedido está a caminho)
+    const shouldNotifyCustomer = notifyCustomerOnDispatch && (storeSettings.autoSendWhatsappOnDispatch !== false);
+    let customerNotified = false;
+
+    if (shouldNotifyCustomer && finalCustomerPhone) {
+      customerNotified = openCustomerDispatchWhatsApp(targetOrder, courierInfo);
+    }
+
+    // 3. Abre WhatsApp do entregador se solicitado
+    if (openWhatsAppOnDispatch && courierInfo?.phone) {
+      if (customerNotified) {
+        setTimeout(() => {
+          openCourierWhatsApp(courierInfo.phone!, targetOrder, courierInfo.name);
+        }, 400);
+      } else {
+        openCourierWhatsApp(courierInfo.phone, targetOrder, courierInfo.name);
+      }
+    }
+
+    // 4. Mensagem Toast de confirmação para o gestor
+    if (customerNotified) {
+      setKdsToast(`🛵 Pedido #${order.orderNumber} despachado! WhatsApp enviado ao cliente (${finalCustomerPhone}) 📲`);
+    } else if (finalCustomerPhone) {
+      setKdsToast(`🛵 Pedido #${order.orderNumber} despachado com sucesso!`);
+    } else {
+      setKdsToast(`🛵 Pedido #${order.orderNumber} despachado! (Cliente sem WhatsApp cadastrado)`);
+    }
+    setTimeout(() => setKdsToast(null), 4000);
+  };
+
   const executeMoveOrder = (
     order: Order,
     targetCol: 'novo' | 'preparando' | 'pronto' | 'em_entrega' | 'concluido'
@@ -341,17 +455,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         setDispatchOrderTarget(order);
       } else if (activeCouriers.length === 1) {
         const c = activeCouriers[0];
-        onAdvanceToDelivery(order.id, {
+        handleDispatchWithNotification(order, {
           name: c.name,
           phone: c.phone,
           avatar: c.avatar,
           vehicle: c.vehicleModel || (c.vehicle ? `Veículo (${c.vehicle})` : undefined),
           plate: c.plate,
         });
-        setKdsToast(`Pedido #${order.orderNumber} despachado com ${c.name}! 🛵`);
       } else {
-        onAdvanceToDelivery(order.id);
-        setKdsToast(`Pedido #${order.orderNumber} despachado para entrega! 🛵`);
+        handleDispatchWithNotification(order);
       }
     } else if (targetCol === 'concluido') {
       onCompleteOrder(order.id);
@@ -559,45 +671,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [editingCourier, setEditingCourier] = useState<Courier | null>(null);
   const [courierSearch, setCourierSearch] = useState('');
   const [courierToast, setCourierToast] = useState<string | null>(null);
-  const [dispatchOrderTarget, setDispatchOrderTarget] = useState<Order | null>(null);
-  const [openWhatsAppOnDispatch, setOpenWhatsAppOnDispatch] = useState(true);
-
-  const buildCourierWhatsAppMsg = (order: Order, courierName?: string) => {
-    const isOnlinePaid = Boolean(order.mercadoPagoPaymentId || order.paymentStatus === 'aprovado');
-    const isNeedMachine = Boolean(
-      order.paymentMethod?.toLowerCase().includes('cart') ||
-      order.paymentMethod?.toLowerCase().includes('crédito') ||
-      order.paymentMethod?.toLowerCase().includes('débito')
-    );
-    const isCash = Boolean(order.paymentMethod?.toLowerCase().includes('dinheiro'));
-
-    return [
-      `*🛵 NOVA ENTREGA - ${storeSettings.storeName || 'BURGUER DOS CRIAS'}*`,
-      courierName ? `*Entregador:* ${courierName}` : '',
-      `*Pedido:* #${order.orderNumber}`,
-      `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
-      `*Endereço:* ${order.address || 'Não informado'}`,
-      order.address ? `*📍 Rota GPS (Google Maps):* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
-      `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
-      isOnlinePaid
-        ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
-        : isNeedMachine
-        ? '💳 *PAGAMENTO:* LEVAR MAQUININHA (COBRAR NA ENTREGA)'
-        : isCash
-        ? `💵 *PAGAMENTO:* DINHEIRO ${order.changeFor ? `(LEVAR TROCO P/ ${order.changeFor})` : '(SEM TROCO)'}`
-        : `💰 *PAGAMENTO:* ${order.paymentMethod || 'Cobrar na entrega'}`,
-      order.notes ? `*Observações:* ${order.notes}` : '',
-      `\n_Por favor, confirme quando retirar a bag na chapa!_`
-    ].filter(Boolean).join('\n');
-  };
-
-  const openCourierWhatsApp = (phone: string, order: Order, courierName?: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (!cleanPhone) return;
-    const phoneWith55 = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    const msg = buildCourierWhatsAppMsg(order, courierName);
-    window.open(`https://wa.me/${phoneWith55}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
 
   // Courier Form State
   const [cFormName, setCFormName] = useState('');
@@ -3470,7 +3543,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     setDispatchOrderTarget(order);
                                   } else if (activeCouriers.length === 1) {
                                     const c = activeCouriers[0];
-                                    onAdvanceToDelivery(order.id, {
+                                    handleDispatchWithNotification(order, {
                                       name: c.name,
                                       phone: c.phone,
                                       avatar: c.avatar,
@@ -3478,7 +3551,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       plate: c.plate,
                                     });
                                   } else {
-                                    onAdvanceToDelivery(order.id);
+                                    handleDispatchWithNotification(order);
                                   }
                                 }}
                                 className="w-full bg-[#019ad8]/20 text-[#86cfff] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#019ad8]/40 hover:bg-[#019ad8]/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
@@ -3525,10 +3598,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
                                       title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                     >
-                                      <Phone className="w-3 h-3" /> WhatsApp
+                                      <Phone className="w-3 h-3" /> Entregador
                                     </button>
                                   )}
                                 </div>
+
+                                {/* Botão para avisar cliente no WhatsApp */}
+                                {order.customerPhone ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
+                                    className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 py-1.5 px-2 rounded-md flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
+                                    title={`Avisar cliente no WhatsApp (${order.customerPhone}) que o pedido está a caminho`}
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>Avisar Cliente no WhatsApp (A caminho)</span>
+                                  </button>
+                                ) : (
+                                  <div className="text-[10px] text-[#8e8f8f] bg-[#141414] border border-[#2a2a2a] rounded py-1 px-2 text-center">
+                                    Cliente sem WhatsApp cadastrado
+                                  </div>
+                                )}
+
                                 <a
                                   href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
                                   target="_blank"
@@ -3824,7 +3915,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 setDispatchOrderTarget(order);
                               } else if (activeCouriers.length === 1) {
                                 const c = activeCouriers[0];
-                                onAdvanceToDelivery(order.id, {
+                                handleDispatchWithNotification(order, {
                                   name: c.name,
                                   phone: c.phone,
                                   avatar: c.avatar,
@@ -3832,7 +3923,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   plate: c.plate,
                                 });
                               } else {
-                                onAdvanceToDelivery(order.id);
+                                handleDispatchWithNotification(order);
                               }
                             }}
                             className="w-full bg-[#019ad8]/20 text-[#86cfff] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#019ad8]/40 hover:bg-[#019ad8]/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
@@ -3881,10 +3972,27 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
                                   title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                 >
-                                  <Phone className="w-3 h-3" /> WhatsApp
+                                  <Phone className="w-3 h-3" /> Entregador
                                 </button>
                               )}
                             </div>
+
+                            {/* Botão para avisar cliente no WhatsApp */}
+                            {order.customerPhone ? (
+                              <button
+                                type="button"
+                                onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
+                                className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 py-1.5 px-2 rounded-md flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
+                                title={`Avisar cliente no WhatsApp (${order.customerPhone}) que o pedido está a caminho`}
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Avisar Cliente no WhatsApp (A caminho)</span>
+                              </button>
+                            ) : (
+                              <div className="text-[10px] text-[#8e8f8f] bg-[#141414] border border-[#2a2a2a] rounded py-1 px-2 text-center">
+                                Cliente sem WhatsApp cadastrado
+                              </div>
+                            )}
 
                             {/* Live Route Link for Manager */}
                             <a
@@ -5078,6 +5186,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       onUpdateStoreSettings({
                         ...storeSettings,
                         autoSendWhatsappAlertToManager: e.target.checked,
+                      })
+                    }
+                    className="h-5 w-5 accent-[#ff5722] cursor-pointer shrink-0 ml-3"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-[#181818] border border-[#303030]">
+                  <div>
+                    <span className="font-semibold text-white text-xs block">
+                      Avisar Cliente no WhatsApp ao Despachar Pedido (A caminho 🛵)
+                    </span>
+                    <span className="text-[11px] text-[#b4b5b5] block mt-0.5">
+                      Abre automaticamente o WhatsApp com mensagem personalizada avisando o cliente que seu pedido está a caminho, com detalhes do entregador, endereço e previsão.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={storeSettings.autoSendWhatsappOnDispatch !== false}
+                    onChange={e =>
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        autoSendWhatsappOnDispatch: e.target.checked,
                       })
                     }
                     className="h-5 w-5 accent-[#ff5722] cursor-pointer shrink-0 ml-3"
@@ -7459,13 +7589,67 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </button>
             </div>
 
-            {/* Opção de Envio Automático para WhatsApp */}
+            {/* Opção 1: Notificação no WhatsApp do CLIENTE ("Seu pedido está a caminho") */}
+            <div className={`p-3 rounded-lg border flex flex-col gap-2 transition-all ${
+              dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone
+                ? 'bg-emerald-950/25 border-emerald-500/40'
+                : 'bg-[#181818] border-[#353535]'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs text-white font-bold block truncate">
+                      Avisar Cliente no WhatsApp (A caminho 🛵)
+                    </span>
+                    <span className="text-[10px] text-[#b4b5b5] block truncate">
+                      {(dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone) ? (
+                        <span className="text-emerald-400 font-medium">
+                          Para: {dispatchOrderTarget.customerName} ({dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone})
+                        </span>
+                      ) : (
+                        <span className="text-amber-400">
+                          Cliente sem WhatsApp cadastrado no pedido
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                  <input
+                    type="checkbox"
+                    checked={notifyCustomerOnDispatch}
+                    onChange={e => setNotifyCustomerOnDispatch(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              {/* Se o cliente não tinha telefone, permite o gestor digitar na hora */}
+              {!dispatchOrderTarget.customerPhone && (
+                <div className="pt-2 border-t border-[#353535]/70 flex items-center gap-2">
+                  <input
+                    type="tel"
+                    placeholder="Digitar WhatsApp do cliente (DDD + número)..."
+                    value={dispatchCustomerPhoneInput}
+                    onChange={e => setDispatchCustomerPhoneInput(e.target.value)}
+                    className="flex-1 bg-[#121212] border border-[#353535] rounded px-2.5 py-1 text-xs text-white placeholder-[#777] focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                  <span className="text-[10px] text-[#8e8f8f] shrink-0">Opcional</span>
+                </div>
+              )}
+            </div>
+
+            {/* Opção 2: Envio para WhatsApp do Entregador com rota GPS */}
             <div className="bg-[#181818] p-2.5 rounded-lg border border-[#353535] flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <div className="min-w-0">
                   <span className="text-[11px] text-white font-medium block truncate">
-                    Abrir WhatsApp com rota e ficha da entrega
+                    Abrir WhatsApp do entregador com rota e ficha
                   </span>
                   <span className="text-[10px] text-[#8e8f8f] block truncate">
                     Envia endereço, GPS Google Maps e pagamento ao selecionar
@@ -7479,7 +7663,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   onChange={e => setOpenWhatsAppOnDispatch(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-8 h-4 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                <div className="w-8 h-4 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
               </label>
             </div>
 
@@ -7491,16 +7675,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     key={c.id}
                     type="button"
                     onClick={() => {
-                      onAdvanceToDelivery(dispatchOrderTarget.id, {
-                        name: c.name,
-                        phone: c.phone,
-                        avatar: c.avatar,
-                        vehicle: c.vehicleModel || (c.vehicle ? `Veículo (${c.vehicle})` : undefined),
-                        plate: c.plate,
-                      });
-                      if (openWhatsAppOnDispatch && c.phone) {
-                        openCourierWhatsApp(c.phone, dispatchOrderTarget, c.name);
-                      }
+                      const finalPhone = dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone;
+                      handleDispatchWithNotification(
+                        dispatchOrderTarget,
+                        {
+                          name: c.name,
+                          phone: c.phone,
+                          avatar: c.avatar,
+                          vehicle: c.vehicleModel || (c.vehicle ? `Veículo (${c.vehicle})` : undefined),
+                          plate: c.plate,
+                        },
+                        finalPhone || undefined
+                      );
                       setDispatchOrderTarget(null);
                     }}
                     className="w-full flex items-center justify-between p-3 bg-[#1c1b1b] hover:bg-[#252525] border border-[#353535] hover:border-[#ff5722] rounded-md text-left transition-all group"
@@ -7544,7 +7730,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onAdvanceToDelivery(dispatchOrderTarget.id);
+                  const finalPhone = dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone;
+                  handleDispatchWithNotification(dispatchOrderTarget, undefined, finalPhone || undefined);
                   setDispatchOrderTarget(null);
                 }}
                 className="text-xs text-[#b4b5b5] hover:text-white py-1.5 px-2 rounded-lg hover:bg-[#252525]"

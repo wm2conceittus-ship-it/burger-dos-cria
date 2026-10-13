@@ -152,6 +152,7 @@ export interface StoreSettings {
   whatsappSupport: string;
   whatsappManagerAlert?: string;
   autoSendWhatsappAlertToManager?: boolean;
+  autoSendWhatsappOnDispatch?: boolean;
   openingHours: string;
   pixKey?: string;
   pixQrCodeImageUrl?: string;

@@ -93,6 +93,7 @@ export default function App() {
     whatsappSupport: '(88) 99217-6318',
     whatsappManagerAlert: '(88) 99217-6318',
     autoSendWhatsappAlertToManager: true,
+    autoSendWhatsappOnDispatch: true,
     openingHours: 'Terça a Domingo, 18h - 00h',
     pixKey: '11987654321',
     pixApprovalMode: 'automatic',
@@ -527,6 +528,7 @@ export default function App() {
           whatsappSupport: remoteSettings.whatsappSupport || prev.whatsappSupport || '(88) 99217-6318',
           whatsappManagerAlert: remoteSettings.whatsappManagerAlert || remoteSettings.whatsappSupport || prev.whatsappManagerAlert || '(88) 99217-6318',
           autoSendWhatsappAlertToManager: remoteSettings.autoSendWhatsappAlertToManager !== false,
+          autoSendWhatsappOnDispatch: remoteSettings.autoSendWhatsappOnDispatch !== false,
           managerPin: normalizedPin,
           tables: cleanedTables || prev.tables,
           employees: cleanedEmployees || prev.employees,
@@ -809,7 +811,8 @@ export default function App() {
 
   const handleKitchenAdvanceToDelivery = (
     orderId: string,
-    courierInfo?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string }
+    courierInfo?: { name: string; phone?: string; avatar?: string; vehicle?: string; plate?: string },
+    updatedCustomerPhone?: string
   ) => {
     setOrders(prev =>
       prev.map(o => {
@@ -817,6 +820,7 @@ export default function App() {
           return {
             ...o,
             status: 'em_entrega',
+            customerPhone: updatedCustomerPhone || o.customerPhone,
             courierName: courierInfo?.name || o.courierName,
             courierPhone: courierInfo?.phone || o.courierPhone,
             courierAvatar: courierInfo?.avatar || o.courierAvatar,
@@ -827,20 +831,20 @@ export default function App() {
         return o;
       })
     );
+    const updatePayload: any = {
+      status: 'em_entrega',
+    };
     if (courierInfo) {
-      updateOrderInFirestore(orderId, {
-        status: 'em_entrega',
-        courierName: courierInfo.name,
-        courierPhone: courierInfo.phone,
-        courierAvatar: courierInfo.avatar,
-        courierVehicle: courierInfo.vehicle,
-        courierPlate: courierInfo.plate,
-      });
-      showToast(`Pedido despachado com ${courierInfo.name}! 🛵`);
-    } else {
-      updateOrderStatusInFirestore(orderId, 'em_entrega');
-      showToast('Pedido despachado para entrega!');
+      updatePayload.courierName = courierInfo.name;
+      updatePayload.courierPhone = courierInfo.phone;
+      updatePayload.courierAvatar = courierInfo.avatar;
+      updatePayload.courierVehicle = courierInfo.vehicle;
+      updatePayload.courierPlate = courierInfo.plate;
     }
+    if (updatedCustomerPhone) {
+      updatePayload.customerPhone = updatedCustomerPhone;
+    }
+    updateOrderInFirestore(orderId, updatePayload);
   };
 
   const handleKitchenCompleteOrder = (orderId: string) => {
