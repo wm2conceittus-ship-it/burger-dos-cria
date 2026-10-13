@@ -1473,10 +1473,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       }`}>
         <div className="max-w-7xl mx-auto w-full h-full flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onNavigateToMenu}
-              className="flex items-center gap-2 group active:scale-95 transition-transform"
-            >
+            <button onClick={onNavigateToMenu} className="flex items-center gap-2 group active:scale-95 transition-transform" >
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#7A431D]/60 shadow-sm flex-shrink-0">
                 <img
                   src={APP_IMAGES.logo}
@@ -1497,9 +1494,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
           <div className="flex items-center gap-2 md:gap-3">
             {/* Botão de Conferência Pix & Resgate de Pedidos */}
-            <button
-              type="button"
-              onClick={() => setShowPixRecoveryModal(true)}
+            <button type="button" onClick={() => setShowPixRecoveryModal(true)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
                 pendingPixOrdersCount > 0
                   ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400 shadow-sm animate-pulse'
@@ -1512,16 +1507,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <Zap className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
               <span className="hidden sm:inline">Conferência Pix</span>
               {pendingPixOrdersCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-extrabold shadow-sm">
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-extrabold">
                   {pendingPixOrdersCount}
                 </span>
               )}
             </button>
 
             {/* Botão de Alternar Fundo Branco / Fundo Escuro */}
-            <button
-              type="button"
-              onClick={() => {
+            <button type="button" onClick={() => {
                 const next = managerTheme === 'light' ? 'dark' : 'light';
                 setManagerTheme(next);
                 try {
@@ -1552,9 +1545,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
               managerTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-[#1c1b1b] border-[#353535]'
             }`}>
-              <button
-                type="button"
-                onClick={() => {
+              <button type="button" onClick={() => {
                   const nextState = !storeSettings.soundAlerts;
                   onUpdateStoreSettings({
                     ...storeSettings,
@@ -1593,9 +1584,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 )}
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
+              <button type="button" onClick={() => {
                   unlockAudioContext();
                   playPixConfirmedSound();
                   setFinancialToast('💰 Teste de Notificação Pix: Som de pagamento recebido reproduzido!');
@@ -1609,8 +1598,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </button>
             </div>
 
-            <button
-              onClick={async () => {
+            <button onClick={async () => {
                 const url = getPublicMenuUrl();
                 await copyToClipboard(url);
                 setLinkCopiedToast(true);
@@ -1623,20 +1611,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <Share2 className="w-5 h-5" />
             </button>
 
-            <button
-              onClick={onOpenChat}
-              className="text-[#b4b5b5] hover:text-[#ffb5a0] p-1.5 transition-colors"
-              title="WhatsApp Suporte"
-            >
+            <button onClick={onOpenChat} className="text-[#b4b5b5] hover:text-[#ffb5a0] p-1.5 transition-colors" title="WhatsApp Suporte" >
               <MessageSquare className="w-5 h-5" />
             </button>
 
             {onLockManager && (
-              <button
-                onClick={onLockManager}
-                className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
-                title="Bloquear Painel do Gestor (Exigir PIN novamente)"
-              >
+              <button onClick={onLockManager} className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" title="Bloquear Painel do Gestor (Exigir PIN novamente)" >
                 <Lock className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Bloquear Gestor</span>
                 <span className="sm:hidden">Sair</span>
@@ -1681,9 +1661,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
+            <button type="button" onClick={() => {
                 onPrintOrder(recentPixConfirmedOrder);
               }}
               className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
@@ -1692,9 +1670,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Imprimir</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setRecentPixConfirmedOrder(null)}
+            <button type="button" onClick={() => setRecentPixConfirmedOrder(null)}
               className="p-1 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50"
               title="Fechar aviso"
             >
@@ -1726,9 +1702,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-[0_2px_12px_rgba(61,32,12,0.4)] border border-[#73401D]'
@@ -1740,7 +1714,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-white text-[#5C3317] text-[10px] flex items-center justify-center font-extrabold shadow-sm">
+                    <span className="w-4 h-4 rounded-full bg-white text-[#5C3317] text-[10px] flex items-center justify-center font-extrabold">
                       {tab.badge}
                     </span>
                   )}
@@ -1793,8 +1767,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <div className="pt-3 border-t border-[#353535] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 {/* Segmented View Switch: Abertos vs Agendados */}
                 <div className="inline-flex items-center p-1 bg-[#141414] rounded-lg border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
-                  <button
-                    onClick={() => setMainFilter('abertos')}
+                  <button onClick={() => setMainFilter('abertos')}
                     className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'abertos'
                         ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -1809,8 +1782,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </span>
                   </button>
 
-                  <button
-                    onClick={() => setMainFilter('agendados')}
+                  <button onClick={() => setMainFilter('agendados')}
                     className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'agendados'
                         ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -1828,8 +1800,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Botões de Ação na mesma sequência */}
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
-                  <button
-                    onClick={() => setShowDailyReportModal(true)}
+                  <button onClick={() => setShowDailyReportModal(true)}
                     className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Ver e exportar lista detalhada de pedidos do dia"
                   >
@@ -1837,17 +1808,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span>Relatório do Dia</span>
                   </button>
 
-                  <button
-                    onClick={onOpenManualOrder}
-                    className="h-9 px-3.5 btn-flame text-white border border-[#73401D] rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#5C3317]/30 active:scale-95 transition-all leading-none shrink-0"
-                    title="Lançar pedido presencial ou telefônico no sistema"
-                  >
+                  <button onClick={onOpenManualOrder} className="h-9 px-3.5 btn-flame text-white border border-[#73401D] rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all leading-none shrink-0" title="Lançar pedido presencial ou telefônico no sistema" >
                     <Plus className="w-4 h-4 shrink-0" />
                     <span>Pedido Balcão</span>
                   </button>
 
-                  <button
-                    onClick={() => setShowGuideModal(true)}
+                  <button onClick={() => setShowGuideModal(true)}
                     className="h-9 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#5C3317] border border-[#5C3317]/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
                     title="Como Fazer a Gestão"
                   >
@@ -1855,8 +1821,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span>Guia de Gestão</span>
                   </button>
 
-                  <button
-                    onClick={() =>
+                  <button onClick={() =>
                       onUpdateStoreSettings({
                         ...storeSettings,
                         autoAcceptOrders: !storeSettings.autoAcceptOrders,
@@ -1898,9 +1863,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       className="w-full bg-[#141414] border border-[#353535] focus:border-[#ff5722] text-white text-xs pl-9 pr-8 py-2 rounded-xl focus:outline-none transition-colors placeholder:text-[#8e8f8f]"
                     />
                     {kanbanSearch && (
-                      <button
-                        type="button"
-                        onClick={() => setKanbanSearch('')}
+                      <button type="button" onClick={() => setKanbanSearch('')}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8e8f8f] hover:text-white p-0.5"
                         title="Limpar busca"
                       >
@@ -1922,10 +1885,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       const Icon = 'icon' in f ? f.icon : null;
                       const isSel = kanbanTypeFilter === f.id;
                       return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setKanbanTypeFilter(f.id as any)}
+                        <button key={f.id} type="button" onClick={() => setKanbanTypeFilter(f.id as any)}
                           className={`h-8 px-2.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border whitespace-nowrap active:scale-95 ${
                             isSel
                               ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border-[#73401D] shadow-sm'
@@ -1943,16 +1903,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {/* Direita: Toggle Finalizados + Seletor de Modo (Carrossel / Kanban / Grade) */}
                 <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 flex-wrap sm:flex-nowrap border-t lg:border-t-0 pt-2 lg:pt-0 border-[#353535]/50">
                   {/* Toggle Coluna Finalizados */}
-                  <button
-                    type="button"
-                    onClick={handleToggleShowFinishedKanban}
-                    className={`h-8 px-3 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
-                      showFinishedKanban
-                        ? 'bg-slate-700/50 text-slate-200 border-slate-500 shadow-sm'
-                        : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
-                    }`}
-                    title={showFinishedKanban ? 'Ocultar coluna de finalizados' : 'Exibir coluna de pedidos finalizados'}
-                  >
+                  <button type="button" onClick={handleToggleShowFinishedKanban} className={`h-8 px-3 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${ showFinishedKanban ? 'bg-slate-700/50 text-slate-200 border-slate-500 ' : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'}`} title={showFinishedKanban ? 'Ocultar coluna de finalizados' : 'Exibir coluna de pedidos finalizados'} >
                     {showFinishedKanban ? <Eye className="w-3.5 h-3.5 text-slate-300" /> : <EyeOff className="w-3.5 h-3.5 text-[#8e8f8f]" />}
                     <span>Finalizados</span>
                     <span className="px-1.5 py-0.2 rounded font-mono text-[10px] bg-black/40 text-slate-300 border border-white/10">
@@ -1961,16 +1912,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </button>
 
                   {/* Toggle Tamanho do Card (Pequenos / Médios) */}
-                  <button
-                    type="button"
-                    onClick={handleToggleCardDensity}
-                    className={`h-8 px-2.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${
-                      cardDensity === 'compact'
-                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-sm'
-                        : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'
-                    }`}
-                    title={cardDensity === 'compact' ? 'Cards em tamanho reduzido (clique para tamanho padrão)' : 'Cards em tamanho padrão (clique para diminuir tamanho)'}
-                  >
+                  <button type="button" onClick={handleToggleCardDensity} className={`h-8 px-2.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 border active:scale-95 ${ cardDensity === 'compact' ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 ' : 'bg-[#141414] text-[#8e8f8f] border-[#353535] hover:text-white hover:border-[#4d4d4d]'}`} title={cardDensity === 'compact' ? 'Cards em tamanho reduzido (clique para tamanho padrão)' : 'Cards em tamanho padrão (clique para diminuir tamanho)'} >
                     {cardDensity === 'compact' ? (
                       <Minimize2 className="w-3.5 h-3.5 text-amber-300" />
                     ) : (
@@ -1982,9 +1924,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Seletor de Modo (Carrossel vs Kanban vs Grade) */}
                   <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectOrdersLayoutMode('carousel')}
+                    <button type="button" onClick={() => handleSelectOrdersLayoutMode('carousel')}
                       className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                         ordersLayoutMode === 'carousel'
                           ? 'bg-gradient-to-r from-[#7A431D] to-[#522B11] text-white shadow-md border border-[#5C3317]'
@@ -1995,9 +1935,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       <GalleryHorizontal className="w-3.5 h-3.5" />
                       <span>Carrossel</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectOrdersLayoutMode('kanban')}
+                    <button type="button" onClick={() => handleSelectOrdersLayoutMode('kanban')}
                       className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                         ordersLayoutMode === 'kanban'
                           ? 'bg-gradient-to-r from-[#7A431D] to-[#522B11] text-white shadow-md border border-[#5C3317]'
@@ -2008,9 +1946,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       <Kanban className="w-3.5 h-3.5" />
                       <span>Kanban</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectOrdersLayoutMode('grid')}
+                    <button type="button" onClick={() => handleSelectOrdersLayoutMode('grid')}
                       className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
                       title="Modo Grade tradicional"
                     >
@@ -2028,8 +1964,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     Filtrar:
                   </span>
 
-                  <button
-                    onClick={() => setStatusFilter('todos')}
+                  <button onClick={() => setStatusFilter('todos')}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       statusFilter === 'todos'
                         ? 'bg-[#ff5722] text-white shadow-sm font-bold'
@@ -2040,8 +1975,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-[10px] opacity-80 font-mono">({orders.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setStatusFilter('novos')}
+                  <button onClick={() => setStatusFilter('novos')}
                     className={`flex-shrink-0 flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                       statusFilter === 'novos'
                         ? 'border-[#ff5722] bg-[#ff5722]/20 text-[#ff8a65] shadow-sm ring-1 ring-[#ff5722]/40'
@@ -2053,8 +1987,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-[10px] font-mono text-[#ff8a65] font-black">({novosOrders.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setStatusFilter('preparando')}
+                  <button onClick={() => setStatusFilter('preparando')}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                       statusFilter === 'preparando'
                         ? 'border-amber-500/60 bg-amber-500/20 text-amber-300 font-bold'
@@ -2066,8 +1999,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-[10px] font-mono opacity-80">({preparandoOrders.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setStatusFilter('prontos')}
+                  <button onClick={() => setStatusFilter('prontos')}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                       statusFilter === 'prontos'
                         ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 font-bold'
@@ -2079,8 +2011,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-[10px] font-mono opacity-80">({prontosOrders.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setStatusFilter('em_entrega')}
+                  <button onClick={() => setStatusFilter('em_entrega')}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                       statusFilter === 'em_entrega'
                         ? 'border-blue-500/60 bg-blue-500/20 text-blue-300 font-bold'
@@ -2092,8 +2023,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-[10px] font-mono opacity-80">({emEntregaOrders.length})</span>
                   </button>
 
-                  <button
-                    onClick={() => setStatusFilter('historico')}
+                  <button onClick={() => setStatusFilter('historico')}
                     className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                       statusFilter === 'historico'
                         ? 'border-[#ff5722]/50 bg-[#ff5722]/15 text-[#ff8a65] font-bold'
@@ -2106,27 +2036,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectOrdersLayoutMode('carousel')}
+                  <button type="button" onClick={() => handleSelectOrdersLayoutMode('carousel')}
                     className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
                     title="Modo Carrossel"
                   >
                     <GalleryHorizontal className="w-3.5 h-3.5" />
                     <span>Carrossel</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectOrdersLayoutMode('kanban')}
+                  <button type="button" onClick={() => handleSelectOrdersLayoutMode('kanban')}
                     className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
                     title="Quadro Kanban"
                   >
                     <Kanban className="w-3.5 h-3.5" />
                     <span>Kanban</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectOrdersLayoutMode('grid')}
+                  <button type="button" onClick={() => handleSelectOrdersLayoutMode('grid')}
                     className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 bg-[#ff5722] text-white shadow-md"
                     title="Modo Grade"
                   >
@@ -2157,9 +2081,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPixRecoveryModal(true)}
+                    <button type="button" onClick={() => setShowPixRecoveryModal(true)}
                       className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-auto shrink-0"
                     >
                       <Zap className="w-3.5 h-3.5" />
@@ -2211,12 +2133,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Ação Rápida: Aceitar todos os novos em lote se houver múltiplos */}
                   {kanbanNovosOrders.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={handleAcceptAllNewOrders}
-                      className="btn-flame text-white text-xs font-['Montserrat'] font-bold px-3 py-1.5 rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 shrink-0 self-start md:self-auto"
-                      title="Aceitar todos os pedidos novos pendentes de uma vez"
-                    >
+                    <button type="button" onClick={handleAcceptAllNewOrders} className="btn-flame text-white text-xs font-['Montserrat'] font-bold px-3 py-1.5 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 shrink-0 self-start md:self-auto" title="Aceitar todos os pedidos novos pendentes de uma vez" >
                       <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
                       <span>Aceitar Todos ({kanbanNovosOrders.length})</span>
                     </button>
@@ -2227,9 +2144,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {ordersLayoutMode === 'carousel' && (
                   <div className="bg-[#181716] border border-[#353535] rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-inner">
                     {/* Botão Anterior */}
-                    <button
-                      type="button"
-                      data-drop-column={safeCarouselIndex > 0 ? kanbanColumns[safeCarouselIndex - 1].key : undefined}
+                    <button type="button" data-drop-column={safeCarouselIndex > 0 ? kanbanColumns[safeCarouselIndex - 1].key : undefined}
                       disabled={safeCarouselIndex === 0}
                       onClick={() => scrollToCarouselIndex(safeCarouselIndex - 1)}
                       onDragOver={e => {
@@ -2263,11 +2178,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         const isColDragOver = dragOverColumn === col.key;
                         const Icon = col.icon;
                         return (
-                          <button
-                            key={col.key}
-                            type="button"
-                            data-drop-column={col.key}
-                            onClick={() => scrollToCarouselIndex(idx)}
+                          <button key={col.key} type="button" data-drop-column={col.key} onClick={() => scrollToCarouselIndex(idx)}
                             onDragOver={e => {
                               e.preventDefault();
                               e.dataTransfer.dropEffect = 'move';
@@ -2308,11 +2219,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
 
                     {/* Botão Próximo */}
-                    <button
-                      type="button"
-                      data-drop-column={safeCarouselIndex < kanbanColumns.length - 1 ? kanbanColumns[safeCarouselIndex + 1].key : undefined}
-                      disabled={safeCarouselIndex === kanbanColumns.length - 1}
-                      onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
+                    <button type="button" data-drop-column={safeCarouselIndex < kanbanColumns.length - 1 ? kanbanColumns[safeCarouselIndex + 1].key : undefined} disabled={safeCarouselIndex === kanbanColumns.length - 1} onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
                       onDragOver={e => {
                         e.preventDefault();
                         if (safeCarouselIndex < kanbanColumns.length - 1) {
@@ -2343,10 +2250,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <div className="relative">
                   {/* Botão Flutuante Esquerdo (Desktop Carrossel) */}
                   {ordersLayoutMode === 'carousel' && safeCarouselIndex > 0 && (
-                    <button
-                      type="button"
-                      data-drop-column={kanbanColumns[safeCarouselIndex - 1].key}
-                      onClick={() => scrollToCarouselIndex(safeCarouselIndex - 1)}
+                    <button type="button" data-drop-column={kanbanColumns[safeCarouselIndex - 1].key} onClick={() => scrollToCarouselIndex(safeCarouselIndex - 1)}
                       onDragOver={e => {
                         e.preventDefault();
                         const prevKey = kanbanColumns[safeCarouselIndex - 1].key;
@@ -2365,10 +2269,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Botão Flutuante Direito (Desktop Carrossel) */}
                   {ordersLayoutMode === 'carousel' && safeCarouselIndex < kanbanColumns.length - 1 && (
-                    <button
-                      type="button"
-                      data-drop-column={kanbanColumns[safeCarouselIndex + 1].key}
-                      onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
+                    <button type="button" data-drop-column={kanbanColumns[safeCarouselIndex + 1].key} onClick={() => scrollToCarouselIndex(safeCarouselIndex + 1)}
                       onDragOver={e => {
                         e.preventDefault();
                         const nextKey = kanbanColumns[safeCarouselIndex + 1].key;
@@ -2394,9 +2295,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           Arrastando com o dedo/mouse: Solte em qualquer aba do topo, coluna ou na barra de etapas abaixo!
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
+                      <button type="button" onClick={() => {
                           setDraggedOrderId(null);
                           setTouchDrag(null);
                           setDragOverColumn(null);
@@ -2465,9 +2364,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           <span className="w-2 h-2 rounded-full bg-[#ff5722] animate-ping" />
                           Solte o dedo na etapa desejada:
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             setDraggedOrderId(null);
                             setTouchDrag(null);
                             setDragOverColumn(null);
@@ -2613,19 +2510,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             {/* No modo carrossel, pequenas setas para mudar de etapa rapidamente */}
                             {ordersLayoutMode === 'carousel' && (
                               <div className="flex items-center gap-0.5 border-l border-white/10 pl-1.5">
-                                <button
-                                  type="button"
-                                  disabled={idx === 0}
-                                  onClick={() => scrollToCarouselIndex(idx - 1)}
+                                <button type="button" disabled={idx === 0} onClick={() => scrollToCarouselIndex(idx - 1)}
                                   className="w-5 h-5 rounded-md bg-black/30 hover:bg-black/60 text-[#b4b5b5] hover:text-white flex items-center justify-center disabled:opacity-20 disabled:hover:bg-black/30 transition-colors"
                                   title="Etapa anterior"
                                 >
                                   <ChevronLeft className="w-3 h-3" />
                                 </button>
-                                <button
-                                  type="button"
-                                  disabled={idx === kanbanColumns.length - 1}
-                                  onClick={() => scrollToCarouselIndex(idx + 1)}
+                                <button type="button" disabled={idx === kanbanColumns.length - 1} onClick={() => scrollToCarouselIndex(idx + 1)}
                                   className="w-5 h-5 rounded-md bg-black/30 hover:bg-black/60 text-[#b4b5b5] hover:text-white flex items-center justify-center disabled:opacity-20 disabled:hover:bg-black/30 transition-colors"
                                   title="Próxima etapa"
                                 >
@@ -2755,9 +2646,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           <MessageSquare className="w-3 h-3" />
                                         </a>
                                       )}
-                                      <button
-                                        type="button"
-                                        onClick={e => {
+                                      <button type="button" onClick={e => {
                                           e.stopPropagation();
                                           onPrintOrder(order);
                                         }}
@@ -2955,9 +2844,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         </div>
 
                                         {order.mercadoPagoPaymentId && (
-                                          <button
-                                            type="button"
-                                            onClick={async e => {
+                                          <button type="button" onClick={async e => {
                                               e.stopPropagation();
                                               await mercadoPagoApi.simulateApproval(order.mercadoPagoPaymentId!);
                                               onUpdatePaymentStatus?.(order.id, 'aprovado');
@@ -2970,9 +2857,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         )}
 
                                         {order.pixReceiptUrl && (
-                                          <button
-                                            type="button"
-                                            onClick={e => {
+                                          <button type="button" onClick={e => {
                                               e.stopPropagation();
                                               setViewingReceiptOrder(order);
                                             }}
@@ -2984,9 +2869,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         )}
 
                                         <div className="flex items-center gap-1">
-                                          <button
-                                            type="button"
-                                            onClick={e => {
+                                          <button type="button" onClick={e => {
                                               e.stopPropagation();
                                               onUpdatePaymentStatus?.(order.id, 'aprovado');
                                             }}
@@ -3049,45 +2932,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     <div className="bg-[#151515] border border-[#444] rounded-xl p-2 space-y-1 shadow-2xl animate-in fade-in duration-150 z-20">
                                       <div className="text-[10px] uppercase font-bold text-[#8e8f8f] px-1 pb-1 border-b border-[#333] flex justify-between items-center">
                                         <span>Mover pedido para:</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => setQuickMoveOrderId(null)}
+                                        <button type="button" onClick={() => setQuickMoveOrderId(null)}
                                           className="text-[#888] hover:text-white"
                                         >
                                           ✕
                                         </button>
                                       </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'novo')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'novo')}
                                         className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-[#ff8a65] flex items-center gap-1.5"
                                       >
                                         <Flame className="w-3 h-3" /> 1. Novos
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'preparando')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'preparando')}
                                         className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-amber-300 flex items-center gap-1.5"
                                       >
                                         <Soup className="w-3 h-3" /> 2. Em Preparo
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'pronto')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'pronto')}
                                         className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-emerald-300 flex items-center gap-1.5"
                                       >
                                         <Package className="w-3 h-3" /> 3. Pronto
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'em_entrega')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'em_entrega')}
                                         className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-sky-300 flex items-center gap-1.5"
                                       >
                                         <Bike className="w-3 h-3" /> 4. Em Rota
                                       </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'concluido')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'concluido')}
                                         className="w-full text-left px-2 py-1 text-xs rounded hover:bg-[#252525] text-slate-300 flex items-center gap-1.5"
                                       >
                                         <CheckCircle2 className="w-3 h-3" /> 5. Finalizado
@@ -3099,9 +2970,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   <div className="pt-1.5 border-t border-[#353535]/60 flex items-center gap-1">
                                     {/* Seta Voltar Etapa (se não for Novo) */}
                                     {col.key !== 'novo' && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
+                                      <button type="button" onClick={() => {
                                           const prevCol =
                                             col.key === 'preparando'
                                               ? 'novo'
@@ -3122,17 +2991,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     {/* Ação Primária da Etapa Atual */}
                                     {col.key === 'novo' ? (
                                       <div className="flex-1 flex gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => setRejectOrderTarget(order)}
+                                        <button type="button" onClick={() => setRejectOrderTarget(order)}
                                           className="px-2 py-1 rounded-lg bg-[#2f2020] hover:bg-[#452525] text-red-300 border border-red-500/30 text-[10px] font-semibold transition-colors active:scale-95"
                                           title="Recusar pedido"
                                         >
                                           Recusar
                                         </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => executeMoveOrder(order, 'preparando')}
+                                        <button type="button" onClick={() => executeMoveOrder(order, 'preparando')}
                                           className="flex-1 btn-flame text-white py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] shadow transition-all active:scale-95 flex items-center justify-center gap-1"
                                         >
                                           <span>Aceitar</span>
@@ -3140,9 +3005,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         </button>
                                       </div>
                                     ) : col.key === 'preparando' ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'pronto')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'pronto')}
                                         className="flex-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                       >
                                         <Package className="w-3 h-3" />
@@ -3152,9 +3015,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     ) : col.key === 'pronto' ? (
                                       <div className="flex-1 space-y-0.5">
                                         {order.type === 'Delivery' ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => executeMoveOrder(order, 'em_entrega')}
+                                          <button type="button" onClick={() => executeMoveOrder(order, 'em_entrega')}
                                             className="w-full bg-[#019ad8]/20 text-[#86cfff] hover:bg-[#019ad8]/30 border border-[#019ad8]/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                           >
                                             <Bike className="w-3 h-3" />
@@ -3162,9 +3023,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                             <ArrowRight className="w-2.5 h-2.5" />
                                           </button>
                                         ) : (
-                                          <button
-                                            type="button"
-                                            onClick={() => executeMoveOrder(order, 'concluido')}
+                                          <button type="button" onClick={() => executeMoveOrder(order, 'concluido')}
                                             className="w-full bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                           >
                                             <CheckCircle className="w-3 h-3" />
@@ -3172,9 +3031,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           </button>
                                         )}
                                         {order.type === 'Delivery' && (storeSettings.couriers || []).filter(c => c.active).length > 1 && (
-                                          <button
-                                            type="button"
-                                            onClick={() => setDispatchOrderTarget(order)}
+                                          <button type="button" onClick={() => setDispatchOrderTarget(order)}
                                             className="w-full text-[8.5px] text-[#86cfff]/80 hover:text-white text-center underline"
                                           >
                                             Escolher motoboy
@@ -3182,9 +3039,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         )}
                                       </div>
                                     ) : col.key === 'em_entrega' ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => executeMoveOrder(order, 'concluido')}
+                                      <button type="button" onClick={() => executeMoveOrder(order, 'concluido')}
                                         className="flex-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
                                       >
                                         <CheckCircle className="w-3 h-3" />
@@ -3193,18 +3048,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     ) : (
                                       /* Coluna Finalizados */
                                       <div className="flex-1 flex gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => executeMoveOrder(order, 'pronto')}
+                                        <button type="button" onClick={() => executeMoveOrder(order, 'pronto')}
                                           className="flex-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] py-1 rounded-lg text-[9.5px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1"
                                           title="Reabrir pedido caso tenha sido concluído por engano"
                                         >
                                           <RotateCcw className="w-2.5 h-2.5" />
                                           <span>Reabrir</span>
                                         </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => onPrintOrder(order)}
+                                        <button type="button" onClick={() => onPrintOrder(order)}
                                           className="px-1.5 py-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] rounded-lg text-[9.5px] font-bold transition-all"
                                           title="Imprimir segunda via"
                                         >
@@ -3214,9 +3065,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     )}
 
                                     {/* Botão de Menu Rápido Mover */}
-                                    <button
-                                      type="button"
-                                      onClick={() => setQuickMoveOrderId(isQuickMoveOpen ? null : order.id)}
+                                    <button type="button" onClick={() => setQuickMoveOrderId(isQuickMoveOpen ? null : order.id)}
                                       className={`h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 ${
                                         isQuickMoveOpen
                                           ? 'bg-[#ff5722] text-white border-[#ff5722]'
@@ -3254,10 +3103,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {ordersLayoutMode === 'carousel' && (
                   <div className="flex items-center justify-center gap-2 pt-1 pb-2">
                     {kanbanColumns.map((col, idx) => (
-                      <button
-                        key={col.key}
-                        type="button"
-                        onClick={() => scrollToCarouselIndex(idx)}
+                      <button key={col.key} type="button" onClick={() => scrollToCarouselIndex(idx)}
                         className={`transition-all rounded-full ${
                           safeCarouselIndex === idx
                             ? `w-8 h-2.5 ${col.topBar} shadow-md`
@@ -3300,10 +3146,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={onOpenManualOrder}
-                    className="bg-[#1c1b1b] hover:bg-[#252525] border-2 border-dashed border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 shadow-sm group"
-                  >
+                  <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] hover:bg-[#252525] border-2 border-dashed border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 group" >
                     <div className="w-8 h-8 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Plus className="w-4 h-4 text-[#ff5722]" />
                     </div>
@@ -3427,8 +3270,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => onPrintOrder(order)}
+                              <button onClick={() => onPrintOrder(order)}
                                 className="flex items-center gap-1 px-2.5 py-1 bg-[#282828] hover:bg-[#ff5722] text-[#ffdad6] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#404040] transition-all active:scale-95 shadow-sm"
                                 title="Imprimir comanda térmica (58mm/80mm)"
                               >
@@ -3482,9 +3324,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 </div>
 
                                 {order.pixReceiptUrl && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewingReceiptOrder(order)}
+                                  <button type="button" onClick={() => setViewingReceiptOrder(order)}
                                     className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-colors"
                                   >
                                     <Eye className="w-3.5 h-3.5 text-amber-400" />
@@ -3493,9 +3333,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 )}
 
                                 <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
+                                  <button type="button" onClick={() => {
                                       onUpdatePaymentStatus?.(order.id, 'aprovado');
                                       if (order.status === 'novo' || order.status === 'recebido') {
                                         onAcceptOrder(order.id);
@@ -3576,30 +3414,26 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <div className="pt-2 border-t border-[#353535]/50 flex gap-2">
                           {isNovo ? (
                             <>
-                              <button
-                                onClick={() => onRejectOrder(order.id)}
+                              <button onClick={() => onRejectOrder(order.id)}
                                 className="flex-1 bg-[#353535] hover:bg-[#454747] text-white py-2.5 rounded-md text-xs font-semibold font-['Montserrat'] transition-colors"
                               >
                                 Recusar
                               </button>
-                              <button
-                                onClick={() => onAcceptOrder(order.id)}
+                              <button onClick={() => onAcceptOrder(order.id)}
                                 className="flex-1 btn-flame text-white py-2.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all active:scale-95 shadow-md"
                               >
                                 Aceitar Agora
                               </button>
                             </>
                           ) : isPreparando ? (
-                            <button
-                              onClick={() => onAdvanceToReady(order.id)}
+                            <button onClick={() => onAdvanceToReady(order.id)}
                               className="w-full bg-[#2a2a2a] text-[#ff8a65] border border-[#ff5722]/30 hover:bg-[#ff5722]/10 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all"
                             >
                               Mudar para Pronto
                             </button>
                           ) : isPronto ? (
                             <div className="w-full space-y-1.5">
-                              <button
-                                onClick={() => {
+                              <button onClick={() => {
                                   const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
                                   if (activeCouriers.length > 1) {
                                     setDispatchOrderTarget(order);
@@ -3621,9 +3455,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 <Bike className="w-4 h-4" /> Despachar Entrega Urgente
                               </button>
                               {(storeSettings.couriers || []).filter(c => c.active).length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => setDispatchOrderTarget(order)}
+                                <button type="button" onClick={() => setDispatchOrderTarget(order)}
                                   className="w-full text-[10px] text-[#86cfff]/80 hover:text-white text-center py-0.5 underline transition-colors"
                                 >
                                   Escolher entregador
@@ -3654,9 +3486,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     </div>
                                   </div>
                                   {order.courierPhone && (
-                                    <button
-                                      type="button"
-                                      onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
+                                    <button type="button" onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
                                       className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
                                       title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                     >
@@ -3667,9 +3497,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                                 {/* Botão para avisar cliente no WhatsApp */}
                                 {order.customerPhone ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
+                                  <button type="button" onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
                                     className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 py-1.5 px-2 rounded-md flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
                                     title={`Avisar cliente no WhatsApp (${order.customerPhone}) que o pedido está a caminho`}
                                   >
@@ -3693,8 +3521,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
                                 </a>
                               </div>
-                              <button
-                                onClick={() => onCompleteOrder(order.id)}
+                              <button onClick={() => onCompleteOrder(order.id)}
                                 className="w-full bg-emerald-500/20 text-emerald-400 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-emerald-500/40 hover:bg-emerald-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                               >
                                 <CheckCircle className="w-4 h-4" /> Finalizar como Entregue
@@ -3791,8 +3618,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => onPrintOrder(order)}
+                        <button onClick={() => onPrintOrder(order)}
                           className="ml-auto flex items-center gap-1 px-2.5 py-1 bg-[#252525] hover:bg-[#ff5722] text-[#b4b5b5] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#383838] transition-all active:scale-95 shadow-sm shrink-0"
                           title="Imprimir comanda térmica (58mm/80mm)"
                         >
@@ -3854,9 +3680,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
 
                             {order.pixReceiptUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setViewingReceiptOrder(order)}
+                              <button type="button" onClick={() => setViewingReceiptOrder(order)}
                                 className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-colors"
                               >
                                 <Eye className="w-3.5 h-3.5 text-amber-400" />
@@ -3865,9 +3689,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             )}
 
                             <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
+                              <button type="button" onClick={() => {
                                   onUpdatePaymentStatus?.(order.id, 'aprovado');
                                   if (order.status === 'novo' || order.status === 'recebido') {
                                     onAcceptOrder(order.id);
@@ -3949,14 +3771,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <div className="pt-3 border-t border-[#353535]/50 flex gap-2">
                       {isNovo && (
                         <>
-                          <button
-                            onClick={() => onRejectOrder(order.id)}
+                          <button onClick={() => onRejectOrder(order.id)}
                             className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-[#e5e2e1] py-2.5 rounded-md text-xs font-medium font-['Montserrat'] transition-colors"
                           >
                             Recusar
                           </button>
-                          <button
-                            onClick={() => onAcceptOrder(order.id)}
+                          <button onClick={() => onAcceptOrder(order.id)}
                             className="flex-1 btn-flame text-white py-2.5 rounded-md text-xs font-bold font-['Montserrat'] shadow-md hover:opacity-95 transition-all active:scale-95"
                           >
                             Aceitar
@@ -3965,8 +3785,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       )}
 
                       {isPreparando && (
-                        <button
-                          onClick={() => onAdvanceToReady(order.id)}
+                        <button onClick={() => onAdvanceToReady(order.id)}
                           className="w-full bg-[#2a2a2a] text-[#ff8a65] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#ff5722]/20 hover:bg-[#ff5722]/10 transition-all active:scale-95"
                         >
                           Mudar para Pronto
@@ -3975,8 +3794,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                       {isPronto && (
                         <div className="space-y-1.5">
-                          <button
-                            onClick={() => {
+                          <button onClick={() => {
                               const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
                               if (activeCouriers.length > 1) {
                                 setDispatchOrderTarget(order);
@@ -3998,9 +3816,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             <Bike className="w-4 h-4" /> Despachar Entrega
                           </button>
                           {(storeSettings.couriers || []).filter(c => c.active).length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setDispatchOrderTarget(order)}
+                            <button type="button" onClick={() => setDispatchOrderTarget(order)}
                               className="w-full text-[10px] text-[#86cfff]/80 hover:text-white text-center py-0.5 underline transition-colors"
                             >
                               Escolher entregador
@@ -4033,9 +3849,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 </div>
                               </div>
                               {order.courierPhone && (
-                                <button
-                                  type="button"
-                                  onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
+                                <button type="button" onClick={() => openCourierWhatsApp(order.courierPhone!, order, order.courierName)}
                                   className="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] flex items-center gap-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30 shrink-0"
                                   title="Enviar ficha com rota GPS no WhatsApp do entregador"
                                 >
@@ -4046,9 +3860,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                             {/* Botão para avisar cliente no WhatsApp */}
                             {order.customerPhone ? (
-                              <button
-                                type="button"
-                                onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
+                              <button type="button" onClick={() => openCustomerDispatchWhatsApp(order, { name: order.courierName, vehicle: order.courierVehicle, plate: order.courierPlate })}
                                 className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 py-1.5 px-2 rounded-md flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
                                 title={`Avisar cliente no WhatsApp (${order.customerPhone}) que o pedido está a caminho`}
                               >
@@ -4073,8 +3885,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               <ExternalLink className="w-3 h-3 ml-auto opacity-70" />
                             </a>
                           </div>
-                          <button
-                            onClick={() => onCompleteOrder(order.id)}
+                          <button onClick={() => onCompleteOrder(order.id)}
                             className="w-full bg-emerald-500/20 text-emerald-400 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-emerald-500/40 hover:bg-emerald-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                           >
                             <CheckCircle className="w-4 h-4" /> Finalizar como Entregue
@@ -4133,10 +3944,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               {/* Criar Pedido Manual Card */}
-              <button
-                onClick={onOpenManualOrder}
-                className="bg-[#1c1b1b] rounded-lg p-6 border-2 border-dashed border-[#353535] hover:border-[#ff5722] flex flex-col items-center justify-center text-center group cursor-pointer transition-all active:scale-98 min-h-[160px]"
-              >
+              <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] rounded-lg p-6 border-2 border-dashed border-[#353535] hover:border-[#ff5722] flex flex-col items-center justify-center text-center group cursor-pointer transition-all active:scale-98 min-h-[160px]" >
                 <div className="w-11 h-11 rounded-full border-2 border-dashed border-[#353535] group-hover:border-[#ff5722] group-hover:bg-[#ff5722]/10 flex items-center justify-center mb-2.5 transition-colors">
                   <Plus className="w-5 h-5 text-[#b4b5b5] group-hover:text-[#ff5722]" />
                 </div>
@@ -4176,10 +3984,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={onOpenAddProduct}
-                  className="btn-flame text-white px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-                >
+                <button onClick={onOpenAddProduct} className="btn-flame text-white px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" >
                   <Plus className="w-4 h-4" /> Novo Item no Cardápio
                 </button>
               </div>
@@ -4195,9 +4000,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 { id: 'sucos' as const, label: 'Sucos Natural' },
                 { id: 'bebidas' as const, label: 'Bebidas' },
               ].map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCardapioFilter(cat.id)}
+                <button key={cat.id} onClick={() => setCardapioFilter(cat.id)}
                   className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all ${
                     cardapioFilter === cat.id
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-sm border border-[#73401D]'
@@ -4224,11 +4027,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={onOpenAddProduct}
-                className="px-3.5 py-2 rounded-md btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5722]/20 shrink-0 w-full sm:w-auto"
-              >
+              <button type="button" onClick={onOpenAddProduct} className="px-3.5 py-2 rounded-md btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto" >
                 <Plus className="w-3.5 h-3.5" /> Adicionar Produto
               </button>
             </div>
@@ -4285,8 +4084,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-[#353535]/40">
                         {/* Toggle Available */}
-                        <button
-                          onClick={() => onToggleProductAvailability(product.id)}
+                        <button onClick={() => onToggleProductAvailability(product.id)}
                           className={`text-[10px] font-['Montserrat'] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 transition-all ${
                             isAvailable
                               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
@@ -4298,16 +4096,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </button>
 
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => onOpenEditProduct(product)}
+                          <button onClick={() => onOpenEditProduct(product)}
                             className="text-[#b4b5b5] hover:text-[#ff8a65] text-[11px] flex items-center gap-1 font-semibold transition-colors"
                           >
                             <Edit2 className="w-3.5 h-3.5" /> Editar
                           </button>
 
                           {onDeleteProduct && (
-                            <button
-                              onClick={() => setProductToDelete(product)}
+                            <button onClick={() => setProductToDelete(product)}
                               className="text-[#8e8f8f] hover:text-red-400 hover:bg-red-500/15 text-[11px] px-2 py-1 rounded flex items-center gap-1 font-semibold transition-colors border border-transparent hover:border-red-500/30"
                               title="Excluir item permanentemente do cardápio"
                             >
@@ -4340,25 +4136,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() => setShowFinancialGuide(true)}
+                <button onClick={() => setShowFinancialGuide(true)}
                   className="bg-[#20201f] border border-[#ff5722]/40 hover:border-[#ff5722] text-[#ff8a65] px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
                 >
                   <BookOpen className="w-4 h-4 text-[#ff5722]" />
                   <span>Guia do Dono: Finanças</span>
                 </button>
 
-                <button
-                  onClick={() => setShowAddExpenseModal(true)}
+                <button onClick={() => setShowAddExpenseModal(true)}
                   className="btn-flame text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4" /> Lançar Despesa / Saída
                 </button>
 
                 {expenses.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowClearExpensesConfirm(true)}
+                  <button type="button" onClick={() => setShowClearExpensesConfirm(true)}
                     className="bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-500/40 px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
                     title="Zerar e apagar todas as despesas lançadas"
                   >
@@ -4367,8 +4159,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </button>
                 )}
 
-                <button
-                  onClick={() => setShowFinancialPdfModal(true)}
+                <button onClick={() => setShowFinancialPdfModal(true)}
                   className="bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
                   title="Visualizar e exportar relatório financeiro em PDF"
                 >
@@ -4380,9 +4171,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
             {/* Sub-abas de Relatórios Financeiros */}
             <div className="w-full bg-[#1c1b1b] rounded-lg border border-[#353535] p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setFinancialSubTab('graficos')}
+              <button type="button" onClick={() => setFinancialSubTab('graficos')}
                 className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'graficos'
                     ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4393,9 +4182,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <span>📊 Painel de Gráficos (Diário, Semanal & Mensal)</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setFinancialSubTab('dre')}
+              <button type="button" onClick={() => setFinancialSubTab('dre')}
                 className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'dre'
                     ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4490,9 +4277,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </h3>
                   <div className="flex items-center gap-2">
                     {onClearOrders && (
-                      <button
-                        type="button"
-                        onClick={() => setShowClearOrdersConfirm(true)}
+                      <button type="button" onClick={() => setShowClearOrdersConfirm(true)}
                         className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/25 hover:bg-red-500/20 active:scale-95"
                         title="Zerar e apagar pedidos e finanças para começar do zero"
                       >
@@ -4588,17 +4373,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       {expenses.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowClearExpensesConfirm(true)}
+                        <button type="button" onClick={() => setShowClearExpensesConfirm(true)}
                           className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition-colors"
                           title="Zerar e limpar todas as despesas"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Zerar Tudo
                         </button>
                       )}
-                      <button
-                        onClick={() => setShowAddExpenseModal(true)}
+                      <button onClick={() => setShowAddExpenseModal(true)}
                         className="text-xs text-[#ff8a65] hover:text-white font-bold flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Adicionar
@@ -4667,8 +4449,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             <span className="font-bold text-red-400 font-mono">
                               - R$ {expense.amount.toFixed(2).replace('.', ',')}
                             </span>
-                            <button
-                              onClick={() => handleDeleteExpense(expense.id)}
+                            <button onClick={() => handleDeleteExpense(expense.id)}
                               className="text-[#8e8f8f] hover:text-red-400 p-1 transition-colors"
                               title="Excluir lançamento"
                             >
@@ -4814,9 +4595,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {/* Sub-abas dentro das Configurações - Alinhamento sempre à esquerda (justify-start) para nunca cortar o primeiro botão */}
             <div className="w-full overflow-hidden bg-[#1c1b1b] rounded-lg border border-[#353535] p-1.5">
               <div className="flex gap-2 overflow-x-auto justify-start items-center scrollbar-thin pb-1 sm:pb-0 px-0.5">
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('geral')}
+                <button type="button" onClick={() => setConfigTab('geral')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'geral'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4827,9 +4606,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <span>Geral & Operação</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('funcionarios')}
+                <button type="button" onClick={() => setConfigTab('funcionarios')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'funcionarios'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4845,9 +4622,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('area')}
+                <button type="button" onClick={() => setConfigTab('area')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'area'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4861,9 +4636,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('entregadores')}
+                <button type="button" onClick={() => setConfigTab('entregadores')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'entregadores'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4879,9 +4652,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('formas')}
+                <button type="button" onClick={() => setConfigTab('formas')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'formas'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4892,9 +4663,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <span>Formas de Pagamento Locais</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('cupons')}
+                <button type="button" onClick={() => setConfigTab('cupons')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'cupons'
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
@@ -4910,9 +4679,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setConfigTab('gateway')}
+                <button type="button" onClick={() => setConfigTab('gateway')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'gateway'
                       ? 'bg-[#009ee3] text-white shadow-lg shadow-[#009ee3]/25 ring-1 ring-[#009ee3]'
@@ -4977,8 +4744,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       : 'A loja está FECHADA para novos pedidos.'}
                   </p>
                 </div>
-                <button
-                  onClick={() =>
+                <button onClick={() =>
                     onUpdateStoreSettings({ ...storeSettings, isOpen: !storeSettings.isOpen })
                   }
                   className={`px-4 py-2 rounded-md font-['Montserrat'] font-bold text-xs flex items-center gap-1.5 transition-all ${
@@ -5180,9 +4946,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
+                    <button type="button" onClick={() => {
                         unlockAudioContext();
                         playNewOrderSound();
                         setFinancialToast('🔔 Beep de teste reproduzido com sucesso!');
@@ -5319,9 +5083,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     className="bg-transparent text-[#ff8a65] font-mono text-xs w-full focus:outline-none select-all truncate"
                     onClick={e => (e.target as HTMLInputElement).select()}
                   />
-                  <button
-                    type="button"
-                    onClick={async () => {
+                  <button type="button" onClick={async () => {
                       const url = getPublicMenuUrl('', storeSettings.customMenuUrl);
                       await copyToClipboard(url);
                       setFinancialToast('Link do cliente copiado! Ícone do gestor ficará oculto. 🔗');
@@ -5365,9 +5127,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       className="bg-transparent text-amber-300 font-mono text-xs w-full focus:outline-none select-all truncate"
                       onClick={e => (e.target as HTMLInputElement).select()}
                     />
-                    <button
-                      type="button"
-                      onClick={async () => {
+                    <button type="button" onClick={async () => {
                         const url = getManagerMenuUrl('', storeSettings.customMenuUrl);
                         await copyToClipboard(url);
                         setFinancialToast('Link do Gestor copiado com sucesso! 🔑');
@@ -5466,9 +5226,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {/* Card Opção 2: 100% Automático */}
-                      <button
-                        type="button"
-                        onClick={() =>
+                      <button type="button" onClick={() =>
                           onUpdateStoreSettings({
                             ...storeSettings,
                             pixApprovalMode: 'automatic',
@@ -5495,9 +5253,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </button>
 
                       {/* Card Opção 1: Manual */}
-                      <button
-                        type="button"
-                        onClick={() =>
+                      <button type="button" onClick={() =>
                           onUpdateStoreSettings({
                             ...storeSettings,
                             pixApprovalMode: 'manual',
@@ -5530,9 +5286,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span>Status do Gateway: <strong>Ativo</strong> ({storeSettings.mercadoPago?.environment === 'production' ? 'Produção' : 'Modo Sandbox / Teste'})</span>
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setConfigTab('gateway')}
+                        <button type="button" onClick={() => setConfigTab('gateway')}
                           className="text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 px-2 py-1 rounded font-bold border border-emerald-500/40 transition-colors"
                         >
                           Configurar Credenciais MP →
@@ -5557,10 +5311,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         const Icon = type.icon;
                         const isSelected = pixKeyType === type.id;
                         return (
-                          <button
-                            key={type.id}
-                            type="button"
-                            onClick={() => setPixKeyType(type.id as any)}
+                          <button key={type.id} type="button" onClick={() => setPixKeyType(type.id as any)}
                             className={`p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border transition-all ${
                               isSelected
                                 ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm font-bold'
@@ -5582,9 +5333,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         2. Digite ou Cole a sua Chave Pix (Para gerar o Código Copia e Cola):
                       </label>
                       {pixKeyInput && (
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             setPixKeyInput('');
                             handleSavePixSettings('');
                           }}
@@ -5623,9 +5372,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                       {/* Botão Salvar dentro do input */}
                       <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleSavePixSettings()}
+                        <button type="button" onClick={() => handleSavePixSettings()}
                           className="btn-flame text-white px-3 py-1.5 rounded-md text-xs font-bold font-['Montserrat'] flex items-center gap-1 shadow-sm active:scale-95 transition-all"
                         >
                           <Check className="w-3.5 h-3.5" /> Salvar
@@ -5764,9 +5511,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             setPixQrCodeImageUrlInput('');
                             handleSavePixSettings(undefined, '');
                           }}
@@ -5836,9 +5581,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                       {/* Botões de Ação do Gestor */}
                       <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <button type="button" onClick={() => {
                             const payload = generatePixPayload({
                               pixKey: pixKeyInput || storeSettings.pixKey || '11987654321',
                               merchantName: storeSettings.storeName || 'BURGER DOS CRIAS',
@@ -5864,9 +5607,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           )}
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleSavePixSettings()}
+                        <button type="button" onClick={() => handleSavePixSettings()}
                           className="btn-flame text-white px-4 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
                         >
                           <CheckCircle2 className="w-4 h-4" />
@@ -5894,9 +5635,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
                         <span className="text-xs font-medium text-white">{method}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
+                      <button type="button" onClick={() => {
                           const current = storeSettings.acceptedPaymentMethods || [
                             'Pix',
                             'Cartão de Crédito',
@@ -5935,21 +5674,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       }}
                       className="flex-grow bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
                     />
-                    <button
-                      type="button"
-                      onClick={handleAddMethodFromManager}
-                      className="btn-flame text-white px-3.5 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 active:scale-95 transition-all shadow-sm"
-                    >
+                    <button type="button" onClick={handleAddMethodFromManager} className="btn-flame text-white px-3.5 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 active:scale-95 transition-all" >
                       <Plus className="w-3.5 h-3.5" /> Adicionar
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {['Pix', 'Vale Refeição (VR)', 'Ticket Restaurante', 'Alelo', 'Sodexo / Pluxee', 'PicPay', 'Caju / Flash'].map(
                       sug => (
-                        <button
-                          key={sug}
-                          type="button"
-                          onClick={() => {
+                        <button key={sug} type="button" onClick={() => {
                             const current = storeSettings.acceptedPaymentMethods || [
                               'Pix',
                               'Cartão de Crédito',
@@ -5998,9 +5730,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setShowAddCouponModal(true)}
+                    <button type="button" onClick={() => setShowAddCouponModal(true)}
                       className="btn-flame text-white px-4 py-2.5 rounded-xl font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0 self-start sm:self-auto"
                     >
                       <Plus className="w-4 h-4" />
@@ -6053,9 +5783,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           Cadastrar Novo Cupom de Desconto
                         </h4>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddCouponModal(false)}
+                      <button type="button" onClick={() => setShowAddCouponModal(false)}
                         className="text-[#8e8f8f] hover:text-white p-1 rounded-lg"
                       >
                         <X className="w-4 h-4" />
@@ -6158,17 +5886,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2 border-t border-[#353535]/50">
-                      <button
-                        type="button"
-                        onClick={() => setShowAddCouponModal(false)}
+                      <button type="button" onClick={() => setShowAddCouponModal(false)}
                         className="px-4 py-2 rounded-xl text-xs font-bold text-[#b4b5b5] hover:text-white bg-[#1c1b1b] border border-[#353535]"
                       >
                         Cancelar
                       </button>
-                      <button
-                        type="submit"
-                        className="btn-flame text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all flex items-center gap-1.5"
-                      >
+                      <button type="submit" className="btn-flame text-white px-5 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5" >
                         <Check className="w-4 h-4" />
                         <span>Salvar e Ativar Cupom</span>
                       </button>
@@ -6223,9 +5946,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </p>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleToggleCoupon(coupon.id)}
+                            <button type="button" onClick={() => handleToggleCoupon(coupon.id)}
                               className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${
                                 coupon.active
                                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
@@ -6252,9 +5973,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
 
                             <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
+                              <button type="button" onClick={() => {
                                   navigator.clipboard.writeText(coupon.code);
                                   setCouponToast(`Código "${coupon.code}" copiado!`);
                                   setTimeout(() => setCouponToast(null), 2500);
@@ -6265,9 +5984,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 <Copy className="w-3.5 h-3.5" />
                               </button>
 
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCoupon(coupon.id, coupon.code)}
+                              <button type="button" onClick={() => handleDeleteCoupon(coupon.id, coupon.code)}
                                 className="p-1.5 bg-[#181818] hover:bg-red-500/20 text-[#8e8f8f] hover:text-red-400 rounded-lg border border-[#353535] transition-colors"
                                 title="Excluir cupom"
                               >
@@ -6304,11 +6021,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleOpenAddCourier}
-                      className="btn-flame text-white px-4 py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all self-start sm:self-auto"
-                    >
+                    <button type="button" onClick={handleOpenAddCourier} className="btn-flame text-white px-4 py-2 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center gap-2 active:scale-95 transition-all self-start sm:self-auto" >
                       <Plus className="w-4 h-4" />
                       <span>Cadastrar Entregador</span>
                     </button>
@@ -6355,9 +6068,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {courierToast && (
                   <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-semibold flex items-center justify-between animate-fade-in">
                     <span>{courierToast}</span>
-                    <button
-                      type="button"
-                      onClick={() => setCourierToast(null)}
+                    <button type="button" onClick={() => setCourierToast(null)}
                       className="text-emerald-400 hover:text-white"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -6377,11 +6088,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <p className="text-xs text-[#b4b5b5] max-w-sm mx-auto">
                       Cadastre os motoboys e entregadores que realizam as entregas da sua hamburgueria para acompanhar corridas e repasses.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleOpenAddCourier}
-                      className="btn-flame text-white px-5 py-2 rounded-lg font-['Montserrat'] font-bold text-xs inline-flex items-center gap-2 shadow-md"
-                    >
+                    <button type="button" onClick={handleOpenAddCourier} className="btn-flame text-white px-5 py-2 rounded-lg font-['Montserrat'] font-bold text-xs inline-flex items-center gap-2" >
                       <Plus className="w-4 h-4" /> Cadastrar Primeiro Entregador
                     </button>
                   </div>
@@ -6459,9 +6166,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
 
                             {/* Active Toggle Switch */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleCourierActive(courier.id)}
+                            <button type="button" onClick={() => handleToggleCourierActive(courier.id)}
                               className={`px-2.5 py-1 rounded-md text-[10px] font-bold font-['Montserrat'] flex items-center gap-1 transition-all ${
                                 courier.active
                                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30'
@@ -6534,9 +6239,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     {courier.pixKey}
                                   </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => {
+                                <button type="button" onClick={() => {
                                     navigator.clipboard.writeText(courier.pixKey || '');
                                     setCourierToast(`Chave Pix de ${courier.name} copiada!`);
                                     setTimeout(() => setCourierToast(null), 2500);
@@ -6571,16 +6274,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               Entregas feitas: <strong className="text-white">{courier.totalDeliveries || 0}</strong>
                             </span>
                             <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditCourier(courier)}
+                              <button type="button" onClick={() => handleOpenEditCourier(courier)}
                                 className="px-2.5 py-1 rounded-md bg-[#252525] hover:bg-[#353535] text-white text-xs font-semibold flex items-center gap-1 transition-colors"
                               >
                                 <Edit2 className="w-3 h-3" /> Editar
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCourier(courier.id, courier.name)}
+                              <button type="button" onClick={() => handleDeleteCourier(courier.id, courier.name)}
                                 className="p-1 text-[#b4b5b5] hover:text-red-400 rounded-md hover:bg-[#252525] transition-colors"
                                 title="Excluir entregador"
                               >
@@ -6661,9 +6360,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       Ambiente de Operação
                     </label>
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={() =>
+                      <button type="button" onClick={() =>
                           onUpdateStoreSettings({
                             ...storeSettings,
                             mercadoPago: {
@@ -6687,9 +6384,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       >
                         🧪 Modo Teste (Sandbox)
                       </button>
-                      <button
-                        type="button"
-                        onClick={() =>
+                      <button type="button" onClick={() =>
                           onUpdateStoreSettings({
                             ...storeSettings,
                             mercadoPago: {
@@ -6874,12 +6569,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Test Connection Button & Result */}
                   <div className="pt-1 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      disabled={isTestingMp}
-                      onClick={handleTestMercadoPago}
-                      className="bg-[#009ee3] hover:bg-[#0086c3] text-white py-2.5 px-4 rounded-md font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md"
-                    >
+                    <button type="button" disabled={isTestingMp} onClick={handleTestMercadoPago} className="bg-[#009ee3] hover:bg-[#0086c3] text-white py-2.5 px-4 rounded-md font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98" >
                       {isTestingMp ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -6916,11 +6606,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           ? `${window.location.origin}/api/mercadopago/webhook`
                           : 'https://.../api/mercadopago/webhook'}
                       </code>
-                      <button
-                        type="button"
-                        onClick={handleCopyWebhook}
-                        className="bg-[#009ee3] hover:bg-[#0086c3] text-white px-3 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1 active:scale-95 transition-all shadow-sm flex-shrink-0"
-                      >
+                      <button type="button" onClick={handleCopyWebhook} className="bg-[#009ee3] hover:bg-[#0086c3] text-white px-3 py-1.5 rounded-lg font-bold text-[11px] flex items-center gap-1 active:scale-95 transition-all flex-shrink-0" >
                         {copiedWebhook ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedWebhook ? 'Copiado!' : 'Copiar URL'}</span>
                       </button>
@@ -6983,9 +6669,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       placeholder="••••••"
                       className="w-36 bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-center tracking-widest text-lg font-bold focus:border-[#ff5722] focus:outline-none"
                     />
-                    <button
-                      type="button"
-                      onClick={() => {
+                    <button type="button" onClick={() => {
                         if (managerPinInput.length !== 6) {
                           alert('O novo PIN deve conter exatamente 6 dígitos numéricos.');
                           return;
@@ -7052,18 +6736,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
             <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#353535]">
-              <button
-                type="button"
-                onClick={() => setShowClearExpensesConfirm(false)}
+              <button type="button" onClick={() => setShowClearExpensesConfirm(false)}
                 className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white hover:bg-[#2a2a2a] transition-all"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={handleClearAllExpenses}
-                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
-              >
+              <button type="button" onClick={handleClearAllExpenses} className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white transition-all flex items-center gap-1.5 active:scale-95" >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Sim, Zerar Tudo</span>
               </button>
@@ -7090,18 +6768,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
             <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#353535]">
-              <button
-                type="button"
-                onClick={() => setShowClearOrdersConfirm(false)}
+              <button type="button" onClick={() => setShowClearOrdersConfirm(false)}
                 className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white hover:bg-[#2a2a2a] transition-all"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={handleConfirmClearOrders}
-                className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
-              >
+              <button type="button" onClick={handleConfirmClearOrders} className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] bg-red-600 hover:bg-red-500 text-white transition-all flex items-center gap-1.5 active:scale-95" >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Sim, Zerar Pedidos</span>
               </button>
@@ -7179,17 +6851,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-[#353535]">
-                <button
-                  type="button"
-                  onClick={() => setShowAddExpenseModal(false)}
+                <button type="button" onClick={() => setShowAddExpenseModal(false)}
                   className="px-4 py-2 rounded-md text-white bg-[#353535] hover:bg-[#404040] transition-colors"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="btn-flame text-white px-5 py-2 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-                >
+                <button type="submit" className="btn-flame text-white px-5 py-2 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" >
                   <Plus className="w-4 h-4" /> Salvar Saída
                 </button>
               </div>
@@ -7336,8 +7003,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <span className="text-[11px] text-[#b4b5b5]">
                 Você pode exportar a planilha de fechamento clicando em "Exportar CSV".
               </span>
-              <button
-                onClick={() => setShowFinancialGuide(false)}
+              <button onClick={() => setShowFinancialGuide(false)}
                 className="btn-flame text-white px-5 py-2 rounded-md text-xs font-['Montserrat'] font-bold shadow-md"
               >
                 Entendi, Fechar
@@ -7390,9 +7056,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowCourierModal(false)}
+              <button type="button" onClick={() => setShowCourierModal(false)}
                 className="text-[#b4b5b5] hover:text-white p-1 rounded-full hover:bg-[#353535]"
               >
                 <X className="w-5 h-5" />
@@ -7440,10 +7104,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     { id: 'carro', label: 'Carro', icon: '🚗' },
                     { id: 'a_pe', label: 'A pé', icon: '🚶' },
                   ].map(v => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setCFormVehicle(v.id as any)}
+                    <button key={v.id} type="button" onClick={() => setCFormVehicle(v.id as any)}
                       className={`p-2 rounded-md border text-center transition-all flex flex-col items-center gap-1 ${
                         cFormVehicle === v.id
                           ? 'bg-[#ff5722]/15 border-[#ff5722] text-white shadow-sm'
@@ -7548,10 +7209,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
                 <div className="flex items-center gap-2 mb-2">
                   {COURIER_AVATAR_PRESETS.map((preset, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setCFormAvatar(preset.url)}
+                    <button key={i} type="button" onClick={() => setCFormAvatar(preset.url)}
                       className={`relative w-9 h-9 rounded-md overflow-hidden border-2 transition-all ${
                         cFormAvatar === preset.url
                           ? 'border-[#ff5722] ring-2 ring-[#ff5722]/50 scale-105'
@@ -7594,9 +7252,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     Permite atribuir pedidos da cozinha para este entregador hoje.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCFormActive(!cFormActive)}
+                <button type="button" onClick={() => setCFormActive(!cFormActive)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     cFormActive
                       ? 'bg-emerald-500 text-white shadow-sm'
@@ -7609,17 +7265,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
               {/* Botões do Modal */}
               <div className="pt-2 flex justify-end gap-2 border-t border-[#353535]">
-                <button
-                  type="button"
-                  onClick={() => setShowCourierModal(false)}
+                <button type="button" onClick={() => setShowCourierModal(false)}
                   className="px-4 py-2.5 rounded-md text-white bg-[#353535] hover:bg-[#404040] transition-colors"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="btn-flame text-white px-5 py-2.5 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-                >
+                <button type="submit" className="btn-flame text-white px-5 py-2.5 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" >
                   <Check className="w-4 h-4" />
                   <span>{editingCourier ? 'Salvar Alterações' : 'Concluir Cadastro'}</span>
                 </button>
@@ -7647,9 +7298,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setDispatchOrderTarget(null)}
+              <button type="button" onClick={() => setDispatchOrderTarget(null)}
                 className="p-1.5 text-[#b4b5b5] hover:text-white rounded-full hover:bg-[#353535]"
               >
                 <X className="w-4 h-4" />
@@ -7738,10 +7387,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               {(storeSettings.couriers || [])
                 .filter(c => c.active)
                 .map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
+                  <button key={c.id} type="button" onClick={() => {
                       const finalPhone = dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone;
                       handleDispatchWithNotification(
                         dispatchOrderTarget,
@@ -7794,9 +7440,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             <div className="pt-2 flex justify-between items-center gap-2 border-t border-[#353535]">
-              <button
-                type="button"
-                onClick={() => {
+              <button type="button" onClick={() => {
                   const finalPhone = dispatchCustomerPhoneInput.trim() || dispatchOrderTarget.customerPhone;
                   handleDispatchWithNotification(dispatchOrderTarget, undefined, finalPhone || undefined);
                   setDispatchOrderTarget(null);
@@ -7805,9 +7449,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               >
                 Despachar sem atribuir
               </button>
-              <button
-                type="button"
-                onClick={() => setDispatchOrderTarget(null)}
+              <button type="button" onClick={() => setDispatchOrderTarget(null)}
                 className="text-xs text-white bg-[#353535] hover:bg-[#444] px-4 py-2 rounded-md font-bold font-['Montserrat']"
               >
                 Cancelar
@@ -7848,16 +7490,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#353535]">
-              <button
-                type="button"
-                onClick={() => setRejectOrderTarget(null)}
+              <button type="button" onClick={() => setRejectOrderTarget(null)}
                 className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white bg-[#2a2a2a] hover:bg-[#333] transition-colors"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={() => {
+              <button type="button" onClick={() => {
                   onRejectOrder(rejectOrderTarget.id);
                   setRejectOrderTarget(null);
                   setKdsToast(`Pedido #${rejectOrderTarget.orderNumber} cancelado.`);
@@ -7955,16 +7593,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setProductToDelete(null)}
+              <button type="button" onClick={() => setProductToDelete(null)}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-['Montserrat'] font-semibold transition-colors"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={() => {
+              <button type="button" onClick={() => {
                   const id = productToDelete.id;
                   setProductToDelete(null);
                   if (onDeleteProduct) {
@@ -7998,18 +7632,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setCourierToDelete(null)}
+              <button type="button" onClick={() => setCourierToDelete(null)}
                 className="flex-1 px-3 py-2 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-semibold"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={confirmDeleteCourier}
-                className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30"
-              >
+              <button type="button" onClick={confirmDeleteCourier} className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5" >
                 <Trash2 className="w-3.5 h-3.5" /> Remover
               </button>
             </div>
@@ -8035,18 +7663,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => setCouponToDelete(null)}
+              <button type="button" onClick={() => setCouponToDelete(null)}
                 className="flex-1 px-3 py-2 rounded-xl bg-[#2a2a2a] hover:bg-[#353535] text-white text-xs font-semibold"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={confirmDeleteCoupon}
-                className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-red-600/30"
-              >
+              <button type="button" onClick={confirmDeleteCoupon} className="flex-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5" >
                 <Trash2 className="w-3.5 h-3.5" /> Excluir
               </button>
             </div>
@@ -8072,9 +7694,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setViewingReceiptOrder(null)}
+              <button type="button" onClick={() => setViewingReceiptOrder(null)}
                 className="w-8 h-8 rounded-lg bg-[#282828] hover:bg-[#333] text-[#b4b5b5] hover:text-white flex items-center justify-center"
               >
                 ✕
@@ -8103,17 +7723,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </span>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => setViewingReceiptOrder(null)}
+                <button type="button" onClick={() => setViewingReceiptOrder(null)}
                   className="px-3 py-2 rounded-lg bg-[#282828] hover:bg-[#353535] text-white text-xs font-semibold"
                 >
                   Fechar
                 </button>
                 {viewingReceiptOrder.paymentStatus !== 'aprovado' && (
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <button type="button" onClick={() => {
                       onUpdatePaymentStatus?.(viewingReceiptOrder.id, 'aprovado');
                       setViewingReceiptOrder(null);
                     }}

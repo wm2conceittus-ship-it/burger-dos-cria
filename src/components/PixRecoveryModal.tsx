@@ -265,7 +265,7 @@ export const PixRecoveryModal: React.FC<PixRecoveryModalProps> = ({
                       onClick={() => setFilterType(f)}
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold capitalize transition-all ${
                         filterType === f
-                          ? 'bg-emerald-500 text-white shadow-sm'
+                          ? 'bg-emerald-500 text-white'
                           : 'bg-[#252525] text-[#b4b5b5] hover:text-white'
                       }`}
                     >
@@ -375,7 +375,7 @@ export const PixRecoveryModal: React.FC<PixRecoveryModalProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleApprovePix(order.id, order.orderNumber)}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 transition-all active:scale-95"
                                 title="Marcar Pix como pago e enviar para a chapa"
                               >
                                 <Check className="w-3.5 h-3.5" />
@@ -532,7 +532,7 @@ export const PixRecoveryModal: React.FC<PixRecoveryModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold text-white bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  className="px-5 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold text-white bg-emerald-600 hover:bg-emerald-500 flex items-center gap-1.5 active:scale-95 transition-all"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   <span>Lançar Comanda Direto na Chapa (Já Pago)</span>
