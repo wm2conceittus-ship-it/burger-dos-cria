@@ -1133,7 +1133,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed right-4 sm:right-5.5 bottom-29 sm:bottom-32 w-8 h-8 rounded-full bg-[#20201f]/95 hover:bg-[#ff5722] text-[#ff8a65] hover:text-white border border-[#ff5722]/40 backdrop-blur-md flex items-center justify-center shadow-md shadow-black/60 z-40 active:scale-90 transition-all duration-200 animate-in fade-in zoom-in-75 group"
+          className="fixed right-4.5 sm:right-7 bottom-33 sm:bottom-36 w-8 h-8 rounded-full bg-[#20201f]/95 hover:bg-[#ff5722] text-[#ff8a65] hover:text-white border border-[#ff5722]/40 backdrop-blur-md flex items-center justify-center shadow-md shadow-black/60 z-40 active:scale-90 transition-all duration-200 animate-in fade-in zoom-in-75 group"
           title="Voltar ao Topo"
           aria-label="Voltar ao Topo"
         >
@@ -1141,15 +1141,20 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
         </button>
       )}
 
-      {/* Floating Action Cart Button */}
+      {/* Floating Action Cart Button - Redondo e Compacto */}
       <button
         onClick={onOpenCart}
-        className="fixed right-3.5 sm:right-5 bottom-18 sm:bottom-20 w-9 h-9 rounded-full btn-flame flex items-center justify-center text-white shadow-sm shadow-[#ff5722]/30 z-40 active:scale-95 transition-all hover:scale-105"
+        className="fixed right-4 sm:right-6 bottom-20 sm:bottom-22 w-9 h-9 sm:w-10 sm:h-10 !rounded-full rounded-full cart-round-button btn-flame flex items-center justify-center text-white shadow-md shadow-[#ff5722]/35 z-40 active:scale-90 transition-all hover:scale-105 border border-white/20"
+        style={{ borderRadius: '9999px' }}
         title="Ver Carrinho"
+        aria-label="Ver Carrinho"
       >
-        <ShoppingCart className="w-4 h-4" />
+        <ShoppingCart className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-[8.5px] w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-sm">
+          <span
+            className="absolute -top-1 -right-1 bg-white text-[#ff5722] font-['Montserrat'] font-black text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 !rounded-full rounded-full flex items-center justify-center shadow-md border border-[#1c1b1b]"
+            style={{ borderRadius: '9999px' }}
+          >
             {cartCount}
           </span>
         )}

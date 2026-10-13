@@ -45,14 +45,25 @@
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
-/* Diminui um pouco o arredondado dos botões (6px sutil e refinado) */
-button:not([class*="rounded-full"]) {
+/* Diminui um pouco o arredondado dos botões padrão (6px sutil e refinado), preservando botões redondos */
+button:not([class*="rounded-full"]):not([class*="rounded-circle"]) {
   border-radius: 6px !important;
+}
+
+.rounded-full,
+[class*="rounded-full"],
+button[class*="rounded-full"],
+.btn-round,
+.cart-round-button {
+  border-radius: 9999px !important;
 }
 
 .btn-flame {
   background: linear-gradient(135deg, #FF5722 0%, #FF3D00 100%);
   box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.btn-flame:not([class*="rounded-full"]):not([class*="rounded-circle"]) {
   border-radius: 6px !important;
 }
 

@@ -2201,7 +2201,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 : isActive
                                 ? `${col.topBar} text-white shadow-md ring-2 ring-white/20 border-white/30 scale-105`
                                 : draggedOrderId
-                                ? 'bg-[#222] text-white border-dashed border-[#5C3317]/60 hover:bg-[#5C3317]/30'
+                                ? 'bg-[#222] text-white border border-[#5C3317]/60 hover:bg-[#5C3317]/30'
                                 : 'bg-[#141414] text-[#b4b5b5] border-[#323232] hover:text-white hover:border-[#4d4d4d]'
                             }`}
                             title={`Mudar para etapa ${col.title} (ou solte o card aqui)`}
@@ -2531,13 +2531,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <div className="p-2 sm:p-2.5 space-y-2 min-h-[380px] max-h-[calc(100vh-270px)] overflow-y-auto hide-scrollbar flex flex-col">
                           {/* Placeholder quando arrastando por cima */}
                           {draggedOrderId && isDragOver && (
-                            <div className="border-2 border-dashed border-white/60 bg-white/5 rounded-xl p-2.5 text-center text-xs font-bold text-white animate-pulse">
+                            <div className="border border-white/60 bg-white/5 rounded-xl p-2.5 text-center text-xs font-bold text-white animate-pulse">
                               ⬇ Solte para mover para {col.title}
                             </div>
                           )}
 
                           {col.orders.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center p-5 text-center border-2 border-dashed border-[#2f2e2d] rounded-xl text-[#7a7a7a] text-xs m-1">
+                            <div className="flex-1 flex flex-col items-center justify-center p-5 text-center border border-[#2f2e2d] bg-[#1a1918]/40 rounded-xl text-[#7a7a7a] text-xs m-1">
                               <col.icon className="w-7 h-7 mb-1.5 opacity-30" />
                               <span className="font-medium text-white/60 text-[11px]">
                                 {kanbanSearch || kanbanTypeFilter !== 'todos'
@@ -2602,7 +2602,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       : 'p-3 gap-2'
                                   } ${
                                     draggedOrderId === order.id || touchDrag?.order.id === order.id
-                                      ? 'opacity-40 scale-95 border-dashed border-[#ff5722]'
+                                      ? 'opacity-40 scale-95 border-[#ff5722]'
                                       : order.isUrgent || (isOverdue && col.key !== 'concluido')
                                       ? 'border-[#ff5722]/70 bg-[#241c19] ring-1 ring-[#ff5722]/30 shadow-[#ff5722]/10'
                                       : 'border-[#353535] hover:border-[#4d4d4d]'
@@ -3146,7 +3146,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] hover:bg-[#252525] border-2 border-dashed border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 group" >
+                  <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] hover:bg-[#252525] border border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 group" >
                     <div className="w-8 h-8 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Plus className="w-4 h-4 text-[#ff5722]" />
                     </div>
@@ -3944,8 +3944,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               {/* Criar Pedido Manual Card */}
-              <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] rounded-lg p-6 border-2 border-dashed border-[#353535] hover:border-[#ff5722] flex flex-col items-center justify-center text-center group cursor-pointer transition-all active:scale-98 min-h-[160px]" >
-                <div className="w-11 h-11 rounded-full border-2 border-dashed border-[#353535] group-hover:border-[#ff5722] group-hover:bg-[#ff5722]/10 flex items-center justify-center mb-2.5 transition-colors">
+              <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] rounded-lg p-6 border border-[#353535] hover:border-[#ff5722] flex flex-col items-center justify-center text-center group cursor-pointer transition-all active:scale-98 min-h-[160px]" >
+                <div className="w-11 h-11 rounded-full border border-[#353535] group-hover:border-[#ff5722] group-hover:bg-[#ff5722]/10 flex items-center justify-center mb-2.5 transition-colors">
                   <Plus className="w-5 h-5 text-[#b4b5b5] group-hover:text-[#ff5722]" />
                 </div>
                 <p className="font-['Montserrat'] font-bold text-xs text-white group-hover:text-[#ff5722]">

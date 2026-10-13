@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, CartItem, PizzaSize, JuiceSize } from '../types';
-import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users, Citrus, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Heart, Minus, Plus, Star, Pizza, Users, Citrus, Edit2, Trash2, ShoppingBag } from 'lucide-react';
 import { PIZZA_SIZES, JUICE_SIZES } from '../data/mockData';
 
 interface ProductDetailScreenProps {
@@ -135,19 +135,32 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
               </div>
             )}
 
-            <button
-              onClick={() => setIsFavorite(!isFavorite)}
-              className={`pointer-events-auto bg-black/70 backdrop-blur-md p-3 rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group ${
-                isFavorite ? 'hover:bg-black/90' : 'hover:bg-[#252525]'
-              }`}
-              title={isFavorite ? 'Descurtir' : 'Curtir / Favoritar'}
-            >
-              <Heart
-                className={`w-5 h-5 transition-transform group-hover:scale-110 ${
-                  isFavorite ? 'fill-[#ff5722] text-[#ff5722]' : 'text-white'
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button
+                onClick={onOpenCart}
+                className="bg-black/70 hover:bg-[#ff5722] text-white backdrop-blur-md p-3 !rounded-full rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group"
+                style={{ borderRadius: '9999px' }}
+                title="Ver Carrinho"
+                aria-label="Ver Carrinho"
+              >
+                <ShoppingBag className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+              </button>
+
+              <button
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={`bg-black/70 backdrop-blur-md p-3 !rounded-full rounded-full border border-white/20 shadow-2xl active:scale-90 transition-all flex items-center justify-center group ${
+                  isFavorite ? 'hover:bg-black/90' : 'hover:bg-[#252525]'
                 }`}
-              />
-            </button>
+                style={{ borderRadius: '9999px' }}
+                title={isFavorite ? 'Descurtir' : 'Curtir / Favoritar'}
+              >
+                <Heart
+                  className={`w-5 h-5 transition-transform group-hover:scale-110 ${
+                    isFavorite ? 'fill-[#ff5722] text-[#ff5722]' : 'text-white'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
 

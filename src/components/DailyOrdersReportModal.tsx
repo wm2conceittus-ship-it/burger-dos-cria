@@ -259,9 +259,9 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
         img.onload = () => resolve();
         img.onerror = () => reject(new Error('Falha ao renderizar imagem'));
       });
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210;
-      const pageHeight = 297;
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = 297; // Orientação Horizontal (Landscape)
+      const pageHeight = 210;
       const imgWidth = pageWidth;
       const imgHeight = (img.height * imgWidth) / img.width;
       let heightLeft = imgHeight;
@@ -272,7 +272,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
       while (heightLeft > 0) {
         position = position - pageHeight;
-        pdf.addPage();
+        pdf.addPage('a4', 'l');
         pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
@@ -375,7 +375,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
             <button
               onClick={handleExportCSV}
-              className="bg-[#262626] hover:bg-[#333333] text-emerald-400 border border-emerald-500/40 hover:border-emerald-500 px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+              className="bg-[#262626] hover:bg-[#333333] text-emerald-400 border border-emerald-500/40 hover:border-emerald-500 px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
               title="Baixar planilha compatível com Excel (.CSV)"
             >
               <Download className="w-3.5 h-3.5" />
@@ -384,7 +384,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
             <button
               onClick={handleCopyWhatsAppSummary}
-              className="bg-[#262626] hover:bg-[#333333] text-[#ff8a65] border border-[#ff5722]/40 hover:border-[#ff5722] px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 whitespace-nowrap"
+              className="bg-[#262626] hover:bg-[#333333] text-[#ff8a65] border border-[#ff5722]/40 hover:border-[#ff5722] px-3 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap"
               title="Copiar resumo completo formatado para WhatsApp do dono/equipe"
             >
               {copiedText ? (
@@ -403,8 +403,8 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               disabled={isGeneratingPdf}
-              className="bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-50 text-white px-3 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer shadow-sm"
-              title="Baixar arquivo PDF de pedidos"
+              className="bg-[#ff5722] hover:bg-[#f4511e] disabled:opacity-50 text-white px-3 py-2 rounded-md text-xs font-['Montserrat'] font-semibold flex items-center gap-1.5 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+              title="Baixar arquivo PDF de pedidos (em orientação horizontal / paisagem)"
             >
               {isGeneratingPdf ? (
                 <>
@@ -979,7 +979,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportCSV}
-              className="bg-[#ff5722] hover:bg-[#ff7043] text-white px-4 py-2 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+              className="bg-[#ff5722] hover:bg-[#ff7043] text-white px-4 py-2 rounded-md font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Baixar Relatório (.CSV)</span>

@@ -34,16 +34,29 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
         <button
           onClick={() => onNavigate('cart')}
-          className={`flex flex-col items-center justify-center px-3 py-1 rounded-md transition-all duration-150 active:scale-90 relative ${
+          className={`flex flex-col items-center justify-center px-2 py-0.5 !rounded-full rounded-full transition-all duration-150 active:scale-90 relative ${
             currentScreen === 'cart'
-              ? 'text-[#ff5722] bg-[#ff5722]/10 font-bold'
+              ? 'text-[#ff5722] font-bold'
               : 'text-[#b4b5b5] hover:text-[#ffb5a0]'
           }`}
+          style={{ borderRadius: '9999px' }}
         >
-          <ShoppingBag className="w-5 h-5 mb-0.5" />
-          <span className="text-[11px] font-['Montserrat']">Carrinho</span>
+          <div
+            className={`w-7.5 h-7.5 !rounded-full rounded-full flex items-center justify-center transition-all ${
+              currentScreen === 'cart'
+                ? 'bg-[#ff5722] text-white shadow-md'
+                : 'bg-[#2a2a29] text-[#ff8a65] border border-[#ff5722]/25'
+            }`}
+            style={{ borderRadius: '9999px' }}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-[10px] font-['Montserrat'] mt-0.5">Carrinho</span>
           {cartCount > 0 && (
-            <span className="absolute 0 top-0.5 right-2 bg-[#ff5722] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full font-['Montserrat'] shadow-sm">
+            <span
+              className="absolute top-0 right-1 bg-[#ff5722] text-white text-[9px] font-black w-4 h-4 flex items-center justify-center !rounded-full rounded-full font-['Montserrat'] shadow-sm border border-[#20201f]"
+              style={{ borderRadius: '9999px' }}
+            >
               {cartCount}
             </span>
           )}
