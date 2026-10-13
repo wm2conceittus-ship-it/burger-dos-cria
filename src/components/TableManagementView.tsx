@@ -1409,7 +1409,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                         : 'bg-[#252525] text-[#b4b5b5] hover:text-white'
                     }`}
                   >
-                    {cat === 'all' ? 'Todos' : cat === 'burgues_industrial' ? 'Burguês Ind.' : cat}
+                    {cat === 'all' ? 'Todos' : cat === 'burgues_industrial' ? 'Burguês Ind.' : cat === 'burgers' ? 'Burgers Artesanal' : cat}
                   </button>
                 ))}
               </div>

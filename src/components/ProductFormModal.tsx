@@ -296,7 +296,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               onChange={e => setCategory(e.target.value as any)}
               className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
             >
-              <option value="burgers">Burgers Artesanais</option>
+              <option value="burgers">Burgers Artesanal</option>
               <option value="burgues_industrial">Burguês Industrial</option>
               <option value="pizzas">Pizzas</option>
               <option value="combos">Combos</option>

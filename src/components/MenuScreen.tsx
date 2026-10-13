@@ -425,7 +425,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                     selectedCategory === 'burgers' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
                   }`}
                 >
-                  <Utensils className="w-4 h-4" /> Burgers Artesanais
+                  <Utensils className="w-4 h-4" /> Burgers Artesanal
                 </button>
                 <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('burgues_industrial'); }}
@@ -647,7 +647,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             >
               {[
                 { id: 'todos' as const, label: 'Todos', icon: Flame },
-                { id: 'burgers' as const, label: 'Burgers', icon: Utensils },
+                { id: 'burgers' as const, label: 'Burgers Artesanal', icon: Utensils },
                 { id: 'burgues_industrial' as const, label: 'Burguês Industrial', icon: Beef },
                 { id: 'combos' as const, label: 'Combos', icon: Layers },
                 { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza },
@@ -758,15 +758,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   <p className="text-xs sm:text-sm text-[#e4beb4]/90 mb-3 line-clamp-2 font-light">
                     {dailySpecial.description}
                   </p>
-                  <div className="flex items-baseline gap-2 shrink-0 whitespace-nowrap">
+                  <div className="shrink-0 whitespace-nowrap">
                     <span className="text-[#ff5722] font-['Montserrat'] font-extrabold text-xl sm:text-2xl whitespace-nowrap">
-                      R$&nbsp;{dailySpecial.price.toFixed(0)}
+                      R$&nbsp;{dailySpecial.price.toFixed(2).replace('.', ',')}
                     </span>
-                    {dailySpecial.originalPrice && (
-                      <span className="text-[#b4b5b5]/70 line-through text-xs sm:text-sm font-['Montserrat'] whitespace-nowrap">
-                        R$&nbsp;{dailySpecial.originalPrice.toFixed(0)}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -886,15 +881,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                         <h4 className="font-['Montserrat'] font-bold text-base text-white flex-1 min-w-0 leading-snug">
                           {combo.name}
                         </h4>
-                        <div className="flex items-baseline gap-1.5 shrink-0 whitespace-nowrap pl-1 text-right">
+                        <div className="shrink-0 whitespace-nowrap pl-1 text-right">
                           <span className="font-['Montserrat'] font-extrabold text-base text-[#ff5722] whitespace-nowrap">
                             R$&nbsp;{combo.price.toFixed(2).replace('.', ',')}
                           </span>
-                          {combo.originalPrice && (
-                            <span className="text-xs text-[#b4b5b5] line-through whitespace-nowrap">
-                              R$&nbsp;{combo.originalPrice.toFixed(0)}
-                            </span>
-                          )}
                         </div>
                       </div>
                       <p className="text-xs text-[#b4b5b5] line-clamp-3 font-light mb-4 leading-relaxed">

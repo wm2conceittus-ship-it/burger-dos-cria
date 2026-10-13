@@ -3994,7 +3994,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <div className="flex gap-2 overflow-x-auto hide-scrollbar">
               {[
                 { id: 'all' as const, label: 'Todos os Itens' },
-                { id: 'burgers' as const, label: 'Burgers' },
+                { id: 'burgers' as const, label: 'Burgers Artesanal' },
                 { id: 'pizzas' as const, label: 'Pizzas' },
                 { id: 'salgados' as const, label: 'Salgados' },
                 { id: 'sucos' as const, label: 'Sucos Natural' },
@@ -4003,7 +4003,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <button key={cat.id} onClick={() => setCardapioFilter(cat.id)}
                   className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all ${
                     cardapioFilter === cat.id
-                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-sm border border-[#73401D]'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border border-[#73401D]'
                       : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border border-[#353535]'
                   }`}
                 >
