@@ -1381,7 +1381,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   return (
     <div className={`manager-view min-h-screen pb-32 transition-colors duration-150 ${
       managerTheme === 'light'
-        ? 'manager-light-mode bg-white text-slate-900'
+        ? 'manager-light-mode bg-[#F4F6F9] text-slate-900'
         : 'bg-[#0F0F0F] text-zinc-100'
     }`}>
       {/* Top Header */}

@@ -36,7 +36,7 @@ export const ScreenSwitcherBanner: React.FC<ScreenSwitcherBannerProps> = ({
               <button
                 key={s.id}
                 onClick={() => onNavigate(s.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap transition-all font-semibold text-xs active:scale-95 shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md whitespace-nowrap transition-all font-semibold text-xs active:scale-95 shrink-0 ${
                   isActive
                     ? 'bg-gradient-to-r from-[#ff5722] to-[#ff3d00] text-white shadow-[0_2px_10px_rgba(255,87,34,0.35)] ring-1 ring-[#ff5722]'
                     : 'bg-[#181818] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]/70'

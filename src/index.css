@@ -13,7 +13,7 @@
 }
 
 :root {
-  --manager-bg: #FFFFFF;
+  --manager-bg: #F4F6F9; /* Fundo Branco Gelo */
   --manager-header: #FFFFFF;
   --manager-card: #FFFFFF;
   --manager-card-hover: #F8FAFC;
@@ -45,10 +45,15 @@
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
+/* Diminui um pouco o arredondado dos botões (6px sutil e refinado) */
+button:not([class*="rounded-full"]) {
+  border-radius: 6px !important;
+}
+
 .btn-flame {
   background: linear-gradient(135deg, #FF5722 0%, #FF3D00 100%);
   box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 6px !important;
 }
 
 .btn-bronze {
@@ -56,7 +61,7 @@
   color: #FFFFFF !important;
   border: 1px solid #73401D;
   box-shadow: 0 4px 14px rgba(61, 32, 12, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
+  border-radius: 6px !important;
 }
 
 .btn-bronze:hover {
@@ -68,7 +73,7 @@
   background: linear-gradient(135deg, #5C3317 0%, #3D200C 100%);
   color: #FFFFFF;
   box-shadow: 0 4px 14px rgba(61, 32, 12, 0.38);
-  border-radius: 6px;
+  border-radius: 6px !important;
 }
 
 .btn-coffee-primary:hover {
@@ -100,12 +105,17 @@
 }
 
 /* =========================================================================
-   GESTOR COM FUNDO BRANCO (.manager-light-mode)
-   Design limpo, moderno e de alto contraste para o painel de gestão
+   GESTOR COM FUNDO BRANCO GELO (.manager-light-mode)
+   Design límpido, elegante e de alto contraste em tom Branco Gelo (#F4F6F9)
    ========================================================================= */
 .manager-light-mode {
-  background-color: #FFFFFF !important;
+  background-color: #F4F6F9 !important; /* Branco Gelo */
   color: #0F172A !important;
+}
+
+.manager-light-mode.manager-view,
+.manager-light-mode .bg-\[\#0F0F0F\] {
+  background-color: #F4F6F9 !important; /* Branco Gelo */
 }
 
 .manager-light-mode header {
@@ -114,14 +124,13 @@
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.04) !important;
 }
 
-/* Painéis, seções, modais e cards principais que se tornam brancos */
+/* Painéis, seções, modais e cards principais que se tornam brancos sobre o fundo branco gelo */
 .manager-light-mode .bg-\[\#141414\],
 .manager-light-mode .bg-\[\#181818\],
 .manager-light-mode .bg-\[\#1c1b1b\],
 .manager-light-mode .bg-\[\#20201f\],
 .manager-light-mode .bg-\[\#181716\],
 .manager-light-mode .bg-\[\#121212\],
-.manager-light-mode .bg-\[\#0F0F0F\],
 .manager-light-mode .bg-\[\#1a1a1a\],
 .manager-light-mode .bg-\[\#241c19\],
 .manager-light-mode .bg-\[\#101010\],

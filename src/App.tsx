@@ -1048,7 +1048,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${currentScreen === 'kitchen' ? 'bg-white text-slate-900' : 'bg-[#0F0F0F] text-[#e5e2e1]'} font-['Be_Vietnam_Pro'] antialiased selection:bg-[#5C3317] selection:text-white`}>
+    <div className={`min-h-screen ${currentScreen === 'kitchen' ? 'bg-[#F4F6F9] text-slate-900' : 'bg-[#0F0F0F] text-[#e5e2e1]'} font-['Be_Vietnam_Pro'] antialiased selection:bg-[#5C3317] selection:text-white`}>
       {/* Quick Screen Switcher Banner - Oculto quando o cliente abre o link compartilhado */}
       {(!isClientMode || isManagerAuthenticated) && (
         <ScreenSwitcherBanner
