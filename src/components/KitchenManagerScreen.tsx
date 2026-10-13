@@ -98,6 +98,7 @@ import {
 } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
+import { PixRecoveryModal } from './PixRecoveryModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
 import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
@@ -202,14 +203,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+  const [showPixRecoveryModal, setShowPixRecoveryModal] = useState(false);
 
-  // Theme state for the manager screen: 'light' (fundo branco) | 'dark' (fundo escuro)
+  // Theme state for the manager screen: 'light' (fundo branco gelo) | 'dark' (fundo escuro)
   const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>(() => {
     try {
-      const saved = localStorage.getItem('burger_manager_theme_v5');
+      const saved = localStorage.getItem('burger_manager_theme_v7');
       if (saved === 'dark' || saved === 'light') return saved;
     } catch {}
-    return 'light'; // Default: FUNDO BRANCO conforme solicitado pelo usuário!
+    return 'light'; // Default: FUNDO BRANCO GELO (#F4F6F9) conforme solicitado pelo usuário!
   });
 
   // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
@@ -1003,6 +1005,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const historicoOrders = orders.filter(o => o.status === 'entregue' || o.status === 'recusado');
   const abertosOrders = orders.filter(o => o.status !== 'entregue' && o.status !== 'recusado');
 
+  const pendingPixOrders = useMemo(
+    () => orders.filter(o => o.paymentMethod?.toLowerCase().includes('pix') && o.paymentStatus !== 'aprovado' && o.status !== 'recusado'),
+    [orders]
+  );
+  const pendingPixOrdersCount = pendingPixOrders.length;
+
   // Filtered orders specifically for the Kanban board
   const filteredKanbanOrders = useMemo(() => {
     return orders.filter(order => {
@@ -1488,6 +1496,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Botão de Conferência Pix & Resgate de Pedidos */}
+            <button
+              type="button"
+              onClick={() => setShowPixRecoveryModal(true)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
+                pendingPixOrdersCount > 0
+                  ? 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-400 shadow-sm animate-pulse'
+                  : managerTheme === 'light'
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 shadow-sm'
+                  : 'bg-emerald-950/40 hover:bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+              }`}
+              title="Central de Conferência Pix & Resgate de Pedidos Pagos no Banco"
+            >
+              <Zap className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
+              <span className="hidden sm:inline">Conferência Pix</span>
+              {pendingPixOrdersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-extrabold shadow-sm">
+                  {pendingPixOrdersCount}
+                </span>
+              )}
+            </button>
+
             {/* Botão de Alternar Fundo Branco / Fundo Escuro */}
             <button
               type="button"
@@ -1495,7 +1525,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 const next = managerTheme === 'light' ? 'dark' : 'light';
                 setManagerTheme(next);
                 try {
-                  localStorage.setItem('burger_manager_theme_v5', next);
+                  localStorage.setItem('burger_manager_theme_v7', next);
                 } catch {}
               }}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
@@ -1503,12 +1533,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 shadow-sm'
                   : 'bg-[#252525] hover:bg-[#303030] text-amber-300 border-[#404040]'
               }`}
-              title={managerTheme === 'light' ? 'Alternar para Fundo Escuro' : 'Alternar para Fundo Branco'}
+              title={managerTheme === 'light' ? 'Alternar para Fundo Escuro' : 'Alternar para Fundo Branco Gelo'}
             >
               {managerTheme === 'light' ? (
                 <>
                   <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span className="hidden sm:inline">Fundo Branco</span>
+                  <span className="hidden sm:inline">Branco Gelo</span>
                 </>
               ) : (
                 <>
@@ -2111,6 +2141,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
               /* ================= MODO CARROSSEL & KANBAN COMPLETO ================= */
               <div className="space-y-3.5">
+                {/* Banner de Alerta para Pedidos Pix Pendentes de Conferência */}
+                {pendingPixOrdersCount > 0 && (
+                  <div className="bg-amber-500/10 border-2 border-amber-500/40 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <strong className="text-xs font-['Montserrat'] font-black text-amber-800 dark:text-amber-300 block">
+                          ⚠️ Atenção: Há {pendingPixOrdersCount} pedido(s) Pix aguardando confirmação bancária!
+                        </strong>
+                        <span className="text-[11px] text-slate-600 dark:text-zinc-400">
+                          O cliente fez o Pix no banco? Abra a conferência ou aprove diretamente para colocar na chapa.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPixRecoveryModal(true)}
+                      className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 self-start sm:self-auto shrink-0"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Conferir & Aprovar ({pendingPixOrdersCount})</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Banner Informativo & Resumo Operacional */}
                 <div className="bg-[#1b1a19] border border-[#353535] px-4 py-3 rounded-2xl shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
@@ -3438,7 +3495,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => onUpdatePaymentStatus?.(order.id, 'aprovado')}
+                                    onClick={() => {
+                                      onUpdatePaymentStatus?.(order.id, 'aprovado');
+                                      if (order.status === 'novo' || order.status === 'recebido') {
+                                        onAcceptOrder(order.id);
+                                      }
+                                    }}
                                     className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs shadow-sm transition-all active:scale-95"
                                   >
                                     <Check className="w-3.5 h-3.5" />
@@ -3805,7 +3867,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => onUpdatePaymentStatus?.(order.id, 'aprovado')}
+                                onClick={() => {
+                                  onUpdatePaymentStatus?.(order.id, 'aprovado');
+                                  if (order.status === 'novo' || order.status === 'recebido') {
+                                    onAcceptOrder(order.id);
+                                  }
+                                }}
                                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 text-xs shadow-sm transition-all active:scale-95"
                               >
                                 <Check className="w-3.5 h-3.5" />
@@ -7813,6 +7880,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           orders={orders}
           storeSettings={storeSettings}
           onPrintOrder={onPrintOrder}
+        />
+      )}
+
+      {/* Central de Conferência Pix & Resgate de Pedidos */}
+      {showPixRecoveryModal && (
+        <PixRecoveryModal
+          isOpen={showPixRecoveryModal}
+          onClose={() => setShowPixRecoveryModal(false)}
+          orders={orders}
+          products={products}
+          storeSettings={storeSettings}
+          onUpdatePaymentStatus={onUpdatePaymentStatus}
+          onUpdateOrderStatus={onUpdateOrderStatus}
+          onAddOrder={onAddOrder}
+          onOpenOrderDetails={order => onPrintOrder(order)}
         />
       )}
 

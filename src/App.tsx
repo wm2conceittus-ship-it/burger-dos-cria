@@ -425,9 +425,9 @@ export default function App() {
           knownPaymentStatuses.current.set(o.id, o.paymentStatus || 'pendente');
         });
       } else {
-        // Detecta novos pedidos que entraram no Firebase em tempo real
+        // Detecta novos pedidos que entraram no Firebase em tempo real (inclusive se auto-aceito para 'preparando')
         const incomingOrders = realOrders.filter(
-          o => !knownOrderIds.current.has(o.id) && (o.status === 'novo' || o.status === 'recebido')
+          o => !knownOrderIds.current.has(o.id) && (o.status === 'novo' || o.status === 'recebido' || o.status === 'preparando')
         );
 
         if (incomingOrders.length > 0) {
@@ -675,6 +675,54 @@ export default function App() {
     const isAutoAccept = Boolean(storeSettings.autoAcceptOrders);
     const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
     const assignedCourier = !isTableOrder && !isPickupOrder && activeCouriers.length > 0 ? activeCouriers[0] : undefined;
+
+    // Se já existir um pedido pendente com este paymentId ou criado nos últimos minutos para este cliente via Pix, atualiza
+    const existingOrder = orders.find(
+      o => (mercadoPagoPaymentId && o.mercadoPagoPaymentId === mercadoPagoPaymentId) ||
+           (o.customerPhone === customerProfile.phone && o.paymentStatus === 'pendente' && o.paymentMethod?.toLowerCase().includes('pix'))
+    );
+
+    if (existingOrder) {
+      const finalPaymentStatus =
+        customPaymentStatus ||
+        (mercadoPagoPaymentId ? 'aprovado' : existingOrder.paymentStatus || 'pendente');
+
+      const updatedOrder: Order = {
+        ...existingOrder,
+        paymentStatus: finalPaymentStatus,
+        paymentMethod: paymentMethod || existingOrder.paymentMethod,
+        changeFor: changeFor || existingOrder.changeFor,
+        mercadoPagoPaymentId: mercadoPagoPaymentId || existingOrder.mercadoPagoPaymentId,
+        pixReceiptUrl: pixReceiptUrl || existingOrder.pixReceiptUrl,
+        status:
+          finalPaymentStatus === 'aprovado' && existingOrder.status === 'novo' && isAutoAccept
+            ? 'preparando'
+            : existingOrder.status,
+      };
+
+      setOrders(prev => prev.map(o => (o.id === existingOrder.id ? updatedOrder : o)));
+      updateOrderInFirestore(existingOrder.id, {
+        paymentStatus: finalPaymentStatus,
+        paymentMethod: updatedOrder.paymentMethod,
+        mercadoPagoPaymentId: updatedOrder.mercadoPagoPaymentId,
+        pixReceiptUrl: updatedOrder.pixReceiptUrl,
+        status: updatedOrder.status,
+      });
+
+      if (finalPaymentStatus === 'aprovado') {
+        if (storeSettings.soundAlerts !== false) {
+          playPixConfirmedSound();
+          startPixConfirmedTabNotification(updatedOrder.orderNumber, updatedOrder.total);
+        }
+        showToast(`💰 Pix do Pedido #${updatedOrder.orderNumber} Confirmado!`);
+      }
+
+      setActiveTrackingOrder(updatedOrder);
+      if (finalPaymentStatus === 'aprovado') {
+        setCartItems([]);
+      }
+      return;
+    }
 
     const effectiveAddress = isTableOrder
       ? `Consumo no Local • Mesa ${tableNumber || 1}`
@@ -1052,7 +1100,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${currentScreen === 'kitchen' ? 'bg-[#F4F6F9] text-slate-900' : 'bg-[#0F0F0F] text-[#e5e2e1]'} font-['Be_Vietnam_Pro'] antialiased selection:bg-[#5C3317] selection:text-white`}>
+    <div className={`min-h-screen ${currentScreen === 'kitchen' ? 'manager-light-mode bg-[#F4F6F9] text-slate-900' : 'bg-[#0F0F0F] text-[#e5e2e1]'} font-['Be_Vietnam_Pro'] antialiased selection:bg-[#5C3317] selection:text-white`}>
       {/* Quick Screen Switcher Banner - Oculto quando o cliente abre o link compartilhado */}
       {(!isClientMode || isManagerAuthenticated) && (
         <ScreenSwitcherBanner

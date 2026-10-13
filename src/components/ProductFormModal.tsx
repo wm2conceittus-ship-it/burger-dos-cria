@@ -20,6 +20,11 @@ const CATEGORY_IMAGE_PRESETS: Record<string, { label: string; url: string }[]> =
     { label: 'Duplo Bacon', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCuSdj4JSzyVbcLchz_WoYBrQfv59DaME1EY3-Dqh9rRiCe3a1JHscojj5Zh6I0bHYIgOaT0yKz9TTdPewC3VaX-QMaySphQYTIa1BWoirXnEspLqzHUTHwIceGngxmsuXyavLYslayAPuIk3g-6sYaAAuCvisE_p10YXn2qH2yV0T4CsnMT2lnHWoTL1DAMExaZ2grmSg_gutXjZA3H0bzhgTrSDPucEiFJmj9L7_YKK0fVL17tMdPxxaayZpSaf30xMZliEfwWy0X' },
     { label: 'Truffled Smash', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBksqjRCHKyH0Wklex97IsdV-IyLaYHuJvgIycYRCZ2-E0J0xdM2CLo7bI5WUr3EG2mT-k_VrxUXGu-wdCH6nDTbeFBMDqV2DVcmbhq9jaqCGW8ZECBOnLt5A6qeIa4LxZajs4NxSzxa1FiwrjdmsKmQzrY_dKXd1hXoAcCpDCCHOilYfzwNg_J8nFyR381Xegf0FNxlECpJYtRqXEtxYc5DIpx9YGEe4dBlZbmher37PdXtE6S3whyIPD7wb4gkkBchuYLdxFX1mb6' },
   ],
+  burgues_industrial: [
+    { label: 'Industrial Clássico', url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Industrial Duplo Bacon', url: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Industrial Egg', url: 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=80' },
+  ],
   pizzas: [
     { label: 'Calabresa', url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80' },
     { label: 'Margherita', url: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=800&q=80' },
@@ -291,7 +296,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               onChange={e => setCategory(e.target.value as any)}
               className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
             >
-              <option value="burgers">Burgers</option>
+              <option value="burgers">Burgers Artesanais</option>
+              <option value="burgues_industrial">Burguês Industrial</option>
               <option value="pizzas">Pizzas</option>
               <option value="combos">Combos</option>
               <option value="salgados">Salgados & Porções</option>

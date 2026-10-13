@@ -1399,7 +1399,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               </div>
 
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                {['all', 'burgers', 'combos', 'salgados', 'pizzas', 'sucos', 'bebidas'].map(cat => (
+                {['all', 'burgers', 'burgues_industrial', 'combos', 'salgados', 'pizzas', 'sucos', 'bebidas'].map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -1409,7 +1409,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                         : 'bg-[#252525] text-[#b4b5b5] hover:text-white'
                     }`}
                   >
-                    {cat === 'all' ? 'Todos' : cat}
+                    {cat === 'all' ? 'Todos' : cat === 'burgues_industrial' ? 'Burguês Ind.' : cat}
                   </button>
                 ))}
               </div>

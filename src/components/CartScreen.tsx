@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CartItem, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
@@ -349,6 +349,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   const [pixTxId] = useState(() => 'P' + Math.floor(100000 + Math.random() * 900000));
+  const hasPreRegisteredPixRef = useRef<string | null>(null);
 
   const pixPayload = useMemo(() => {
     return generatePixPayload({
@@ -361,6 +362,38 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   }, [storeSettings?.pixKey, storeSettings?.storeName, total, pixTxId]);
 
   const pixQrCodeUrl = useMemo(() => getPixQrCodeUrl(pixPayload, 260), [pixPayload]);
+
+  // Pré-cadastra pedido pendente para Pix Manual ao abrir a tela de pagamento
+  useEffect(() => {
+    if (!showPaymentModal || !paymentMethod.toLowerCase().includes('pix') || isAutoPixMode) {
+      return;
+    }
+    const key = `manual-${pixTxId}`;
+    if (hasPreRegisteredPixRef.current !== key) {
+      hasPreRegisteredPixRef.current = key;
+      onCheckout(
+        paymentMethod,
+        discountAmount,
+        changeFor,
+        undefined,
+        orderType,
+        orderType === 'Mesa' ? tableNumber : undefined,
+        customerPixReceipt || undefined,
+        'pendente'
+      );
+    }
+  }, [
+    showPaymentModal,
+    paymentMethod,
+    isAutoPixMode,
+    pixTxId,
+    discountAmount,
+    changeFor,
+    orderType,
+    tableNumber,
+    customerPixReceipt,
+    onCheckout,
+  ]);
 
   // Inicializar chamada de criação do Pix dinâmico quando a modal abrir com Pix em Modo Automático
   useEffect(() => {
@@ -386,6 +419,22 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         if (isMounted) {
           setAutoPixData(response);
           setIsAutoPixApproved(false);
+
+          // Pré-cadastra o pedido pendente no gestor imediatamente!
+          // Garante que se o cliente pagar no app do banco e fechar a aba, o pedido JÁ ESTÁ NO GESTOR!
+          if (response?.id && hasPreRegisteredPixRef.current !== String(response.id)) {
+            hasPreRegisteredPixRef.current = String(response.id);
+            onCheckout(
+              'Pix (Aguardando Confirmação Bancária)',
+              discountAmount,
+              changeFor,
+              String(response.id),
+              orderType,
+              orderType === 'Mesa' ? tableNumber : undefined,
+              undefined,
+              'pendente'
+            );
+          }
         }
       } catch (err: any) {
         console.warn('Erro ao criar Pix automático Mercado Pago:', err);
@@ -407,6 +456,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     storeSettings?.mercadoPago?.accessToken,
     customerProfile?.email,
     customerProfile?.name,
+    discountAmount,
+    changeFor,
+    orderType,
+    tableNumber,
+    onCheckout,
   ]);
 
   // Polling em tempo real para detecção automática da aprovação bancária
@@ -448,7 +502,42 @@ export const CartScreen: React.FC<CartScreenProps> = ({
       }
     }, 2500);
 
-    return () => clearInterval(interval);
+    // Quando o cliente volta do app do banco para o navegador, checa na hora
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && autoPixData?.id && !isAutoPixApproved) {
+        try {
+          const res = await mercadoPagoApi.checkPaymentStatus(
+            autoPixData.id,
+            storeSettings?.mercadoPago?.accessToken
+          );
+          if (res.approved) {
+            setIsAutoPixApproved(true);
+            setTimeout(() => {
+              setShowPaymentModal(false);
+              onCheckout(
+                'Pix (Aprovação Automática)',
+                discountAmount,
+                changeFor,
+                String(autoPixData.id),
+                orderType,
+                orderType === 'Mesa' ? tableNumber : undefined,
+                undefined,
+                'aprovado'
+              );
+            }, 1000);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [
     showPaymentModal,
     paymentMethod,
@@ -1378,6 +1467,16 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     )}
                   </button>
 
+                  {/* Botão de Confirmação Rápida: Já fiz o Pix no Banco */}
+                  <button
+                    type="button"
+                    onClick={handleConfirmPayment}
+                    className="w-full bg-[#181818] hover:bg-[#222] border-2 border-emerald-500/60 hover:border-emerald-400 text-emerald-300 py-3.5 px-4 rounded-xl font-['Montserrat'] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all ring-1 ring-emerald-500/30"
+                  >
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <span>Já fiz o Pix no meu banco • Concluir Pedido Agora</span>
+                  </button>
+
                   {/* Botão de Demonstração / Teste no Modo Sandbox */}
                   {isAutoPixMode &&
                     (!storeSettings?.mercadoPago?.environment || storeSettings?.mercadoPago?.environment === 'sandbox') &&
@@ -1399,11 +1498,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     <div className="bg-[#161616] p-3.5 rounded-xl border border-emerald-500/30 text-[#b4b5b5] space-y-2 text-[11px] leading-relaxed">
                       <span className="font-bold text-white flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                        Como funciona a Aprovação 100% Automática:
+                        Como funciona o Pagamento via Pix:
                       </span>
-                      <p>1. Aponte a câmera do seu banco para o <strong>QR Code</strong> acima ou toque em <strong>Copiar Código</strong>.</p>
-                      <p>2. Confirme o pagamento de <strong>R$ {total.toFixed(2).replace('.', ',')}</strong> no app do seu banco.</p>
-                      <p>3. <strong>Pronto!</strong> Não precisa enviar comprovante: o sistema identifica a transferência na hora e envia seu pedido direto para a chapa.</p>
+                      <p>1. Toque em <strong>Copiar Código</strong> acima ou aponte a câmera para o <strong>QR Code</strong>.</p>
+                      <p>2. Abra o aplicativo do seu banco (Nubank, Inter, Caixa, Itaú...) e confirme o pagamento de <strong>R$ {total.toFixed(2).replace('.', ',')}</strong>.</p>
+                      <p>3. <strong>Após transferir:</strong> Toque no botão verde <strong>"Já fiz o Pix no meu banco"</strong> ou aguarde a detecção para enviar seu pedido direto à cozinha!</p>
                     </div>
                   ) : (
                     /* Comprovante do Pix & WhatsApp (Modo Manual) */

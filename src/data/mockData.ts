@@ -202,6 +202,59 @@ export const PRODUCTS: Product[] = [
       ]
     }
   },
+  // BURGUÊS INDUSTRIAL
+  {
+    id: 'burgues-industrial-classico',
+    name: 'Burguês Industrial Clássico',
+    category: 'burgues_industrial',
+    price: 15.00,
+    costPrice: 5.50,
+    rating: 4.8,
+    tag: 'Mais Vendido',
+    description: 'Pão tradicional selado na manteiga, hambúrguer bovino industrial 90g grelhado, queijo cheddar fatiado derretido, maionese especial da casa, alface americana e rodelas de tomate fresco.',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+    options: {
+      additionals: [
+        { id: 'bacon-extra', name: 'Bacon crocante', subtitle: '+ Fatias crocantes', price: 4.50 },
+        { id: 'ovo-chapa', name: 'Ovo frito na chapa', subtitle: '+ Ovo com gema perfeita', price: 3.00 },
+        { id: 'queijo-duplo', name: 'Cheddar duplo', subtitle: '+ Fatia extra', price: 3.50 },
+      ]
+    }
+  },
+  {
+    id: 'burgues-industrial-duplo-bacon',
+    name: 'Burguês Industrial Duplo Bacon',
+    category: 'burgues_industrial',
+    price: 21.00,
+    costPrice: 8.00,
+    rating: 4.9,
+    tag: 'Mais Pedido',
+    description: 'Pão tradicional macio, 2x hambúrgueres industriais saborosos, queijo prato duplo derretido, fatias generosas de bacon crocante e molho barbecue rústico.',
+    image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+    options: {
+      additionals: [
+        { id: 'cebola-crispy', name: 'Cebola crispy', subtitle: '+ Crocância extra', price: 3.50 },
+        { id: 'cheddar-cremoso', name: 'Cheddar cremoso', subtitle: '+ Dose generosa', price: 4.00 },
+      ]
+    }
+  },
+  {
+    id: 'burgues-industrial-egg-cheddar',
+    name: 'Burguês Industrial Egg Cheddar',
+    category: 'burgues_industrial',
+    price: 18.00,
+    costPrice: 6.50,
+    rating: 4.7,
+    tag: 'Clássico da Chapa',
+    description: 'Pão macio, hambúrguer industrial suculento, ovo frito na chapa com tempero especial, queijo cheddar cremoso derretido e maionese verde temperada.',
+    image: 'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=80',
+    options: {
+      additionals: [
+        { id: 'bacon', name: 'Bacon extra', subtitle: '+ Duas fatias crocantes', price: 4.50 },
+        { id: 'batata-palha', name: 'Batata palha', subtitle: '+ Crocante', price: 2.50 },
+      ]
+    }
+  },
   // COMBOS
   {
     id: 'combo-familia-crias',

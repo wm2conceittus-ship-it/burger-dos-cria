@@ -35,6 +35,7 @@ import {
   ArrowUp,
   Edit2,
   Trash2,
+  Beef,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -61,6 +62,7 @@ interface MenuScreenProps {
 export type CategoryFilter =
   | 'todos'
   | 'burgers'
+  | 'burgues_industrial'
   | 'combos'
   | 'pizzas'
   | 'salgados'
@@ -192,6 +194,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
   // Group products by category
   const burgers = products.filter(p => p.category === 'burgers');
+  const burguesIndustrial = products.filter(p => p.category === 'burgues_industrial');
   const pizzas = products.filter(p => p.category === 'pizzas');
   const combos = products.filter(p => p.category === 'combos');
   const salgados = products.filter(p => p.category === 'salgados');
@@ -425,6 +428,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                   <Utensils className="w-4 h-4" /> Burgers Artesanais
                 </button>
                 <button
+                  onClick={() => { setDrawerOpen(false); setSelectedCategory('burgues_industrial'); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
+                    selectedCategory === 'burgues_industrial' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
+                  }`}
+                >
+                  <Beef className="w-4 h-4" /> Burguês Industrial
+                </button>
+                <button
                   onClick={() => { setDrawerOpen(false); setSelectedCategory('combos'); }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors ${
                     selectedCategory === 'combos' ? 'bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30' : 'text-[#e5e2e1] hover:bg-[#252525]'
@@ -637,6 +648,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               {[
                 { id: 'todos' as const, label: 'Todos', icon: Flame },
                 { id: 'burgers' as const, label: 'Burgers', icon: Utensils },
+                { id: 'burgues_industrial' as const, label: 'Burguês Industrial', icon: Beef },
                 { id: 'combos' as const, label: 'Combos', icon: Layers },
                 { id: 'pizzas' as const, label: 'Pizzas', icon: Pizza },
                 { id: 'salgados' as const, label: 'Porções & Salgados', icon: Croissant },
@@ -790,6 +802,47 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ================= CATEGORIA: BURGUÊS INDUSTRIAL ================= */}
+        {!searchQuery.trim() && (selectedCategory === 'burgues_industrial' || selectedCategory === 'todos') && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-['Montserrat'] text-xl font-bold text-white flex items-center gap-2">
+                  <Beef className="w-5 h-5 text-[#ff5722]" /> Burguês Industrial
+                </h3>
+                <p className="text-xs text-[#b4b5b5] mt-0.5">
+                  Linha de hambúrgueres clássicos industriais saborosos e rápidos para matar sua fome
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-[#ffb5a0] bg-[#20201f] px-3 py-1 rounded-full border border-[#353535]">
+                {burguesIndustrial.length} opções
+              </span>
+            </div>
+
+            {burguesIndustrial.length === 0 ? (
+              <div className="bg-[#20201f] rounded-lg p-6 text-center border border-[#353535] text-[#b4b5b5] text-xs">
+                Nenhum hambúrguer industrial disponível no momento.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {burguesIndustrial.map(prod => (
+                  <ProductGridCard
+                    key={prod.id}
+                    product={prod}
+                    isFavorite={favorites.includes(prod.id)}
+                    onToggleFavorite={e => toggleFavorite(prod.id, e)}
+                    onSelect={() => onSelectProduct(prod)}
+                    onQuickAdd={() => onQuickAdd(prod)}
+                    isManager={isManager}
+                    onEdit={() => onOpenEditProduct?.(prod)}
+                    onDelete={() => setProductToDelete(prod)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
