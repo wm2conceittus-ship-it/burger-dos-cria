@@ -2537,14 +2537,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           )}
 
                           {col.orders.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center p-5 text-center border border-[#2f2e2d] bg-[#1a1918]/40 rounded-xl text-[#7a7a7a] text-xs m-1">
-                              <col.icon className="w-7 h-7 mb-1.5 opacity-30" />
-                              <span className="font-medium text-white/60 text-[11px]">
+                            <div className="flex-1 flex flex-col items-center justify-center p-5 text-center border border-gray-200 bg-white shadow-sm rounded-xl text-gray-500 text-xs m-1">
+                              <col.icon className="w-7 h-7 mb-1.5 text-gray-400" />
+                              <span className="font-semibold text-gray-800 text-[11px]">
                                 {kanbanSearch || kanbanTypeFilter !== 'todos'
                                   ? 'Nenhum pedido filtrado'
                                   : `Nenhum pedido em ${col.title}`}
                               </span>
-                              <span className="text-[10px] text-[#8e8f8f] mt-0.5">
+                              <span className="text-[10px] text-gray-500 mt-0.5">
                                 {draggedOrderId ? 'Solte o card aqui para mover' : 'Entrará aqui automaticamente'}
                               </span>
                             </div>
