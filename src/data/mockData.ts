@@ -1,4 +1,4 @@
-import { Product, Order, PizzaSize, JuiceSize, RestaurantTable, Employee } from '../types';
+import { Product, Order, PizzaSize, JuiceSize, RestaurantTable, Employee, DeliveryZone } from '../types';
 
 export interface PizzaSizeConfig {
   id: PizzaSize;
@@ -834,4 +834,17 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     registeredAt: '01/10/2025',
     notes: 'Abertura/fechamento de caixa, compras de insumos e DRE.',
   },
+];
+
+export const INITIAL_DELIVERY_ZONES: DeliveryZone[] = [
+  { id: 'zone-1', name: 'Centro Histórico', fee: 5.00, distanceKm: 1.5, estimatedTime: '20-30 min', active: true },
+  { id: 'zone-2', name: 'Consolação', fee: 5.00, distanceKm: 2.0, estimatedTime: '20-30 min', active: true },
+  { id: 'zone-3', name: 'Bela Vista / Bixiga', fee: 6.00, distanceKm: 2.5, estimatedTime: '25-35 min', active: true },
+  { id: 'zone-4', name: 'Higienópolis', fee: 7.00, distanceKm: 3.0, estimatedTime: '25-35 min', active: true },
+  { id: 'zone-5', name: 'Jardins / Cerqueira César', fee: 8.00, distanceKm: 4.0, estimatedTime: '30-40 min', active: true },
+  { id: 'zone-6', name: 'Perdizes', fee: 8.50, distanceKm: 4.8, estimatedTime: '30-45 min', active: true },
+  { id: 'zone-7', name: 'Pinheiros', fee: 9.00, distanceKm: 5.5, estimatedTime: '35-45 min', active: true },
+  { id: 'zone-8', name: 'Vila Madalena', fee: 10.00, distanceKm: 6.5, estimatedTime: '40-50 min', active: true },
+  { id: 'zone-9', name: 'Santana', fee: 12.00, distanceKm: 8.0, estimatedTime: '45-55 min', active: true },
+  { id: 'zone-10', name: 'Itaim Bibi', fee: 13.00, distanceKm: 9.0, estimatedTime: '45-60 min', active: true },
 ];

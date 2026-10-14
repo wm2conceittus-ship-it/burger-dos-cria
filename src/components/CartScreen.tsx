@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { compressImageFile } from '../utils/imageUpload';
 import { mercadoPagoApi, PixResponse } from '../services/mercadoPagoService';
+import { getDeliveryFeeForNeighborhood } from '../utils/deliveryFee';
 
 interface CartScreenProps {
   items: CartItem[];
@@ -64,7 +65,9 @@ interface CartScreenProps {
     orderType?: 'Delivery' | 'Retirada' | 'Mesa',
     tableNumber?: number,
     pixReceiptUrl?: string,
-    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado'
+    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado',
+    customDeliveryFee?: number,
+    chosenNeighborhood?: string
   ) => void;
 }
 
@@ -183,6 +186,78 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     return 'Cartão';
   };
 
+  // Bairro selecionado para cobrança de taxa de entrega
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>(() => {
+    if (customerProfile?.neighborhood) return customerProfile.neighborhood;
+    const zones = storeSettings?.deliveryArea?.zones || [];
+    const addr = (deliveryAddress || '').toLowerCase();
+    const matched = zones.find(z => z.active && addr.includes(z.name.toLowerCase()));
+    return matched ? matched.name : '';
+  });
+
+  useEffect(() => {
+    if (customerProfile?.neighborhood) {
+      setSelectedNeighborhood(customerProfile.neighborhood);
+    }
+  }, [customerProfile?.neighborhood]);
+
+  const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0);
+
+  // Dynamic delivery fee calculation based on neighborhood / bairro
+  const addrLower = (deliveryAddress || '').toLowerCase();
+  const neighborhoodCalc = useMemo(() => {
+    return getDeliveryFeeForNeighborhood(
+      selectedNeighborhood || customerProfile?.neighborhood || deliveryAddress,
+      storeSettings
+    );
+  }, [selectedNeighborhood, customerProfile?.neighborhood, deliveryAddress, storeSettings]);
+
+  const matchedZone = neighborhoodCalc.zone;
+  const radiusLimit = storeSettings?.deliveryArea?.radiusKm || 7;
+  const isOutsideRadius = Boolean(
+    matchedZone && matchedZone.distanceKm && matchedZone.distanceKm > radiusLimit
+  );
+
+  const baseDeliveryFee = neighborhoodCalc.fee;
+
+  const isFreeDelivery = Boolean(
+    storeSettings?.deliveryArea?.freeDeliveryThreshold &&
+    storeSettings.deliveryArea.freeDeliveryThreshold > 0 &&
+    subtotal >= storeSettings.deliveryArea.freeDeliveryThreshold
+  );
+
+  const isPickup = orderType === 'Retirada' || addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
+  const isTable = orderType === 'Mesa';
+  const rawDeliveryFee = items.length > 0 && !isPickup && !isTable ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
+  const deliveryFee = isFreeShippingCoupon ? 0.00 : rawDeliveryFee;
+  const discountAmount = (subtotal * discountPercent) + fixedDiscount;
+  const total = Math.max(0, subtotal + deliveryFee - discountAmount);
+
+  // Helper centralizado para disparar checkout com a taxa e bairro calculados
+  const triggerCheckout = (
+    method: string,
+    discAmount: number,
+    change?: string,
+    mpPaymentId?: string,
+    oType: 'Delivery' | 'Retirada' | 'Mesa' = orderType,
+    tblNum?: number,
+    receiptUrl?: string,
+    pStatus?: 'pendente' | 'aprovado' | 'recusado'
+  ) => {
+    onCheckout(
+      method,
+      discAmount,
+      change,
+      mpPaymentId,
+      oType,
+      tblNum,
+      receiptUrl,
+      pStatus,
+      deliveryFee,
+      selectedNeighborhood || neighborhoodCalc.zoneName
+    );
+  };
+
   const handleConfirmPayment = () => {
     const isCard =
       paymentMethod.toLowerCase().includes('cartão') ||
@@ -212,19 +287,19 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         const brand = getCardBrand(cleanNumber);
         const finalMethod = `${paymentMethod} Online (${brand} •••• ${last4}${installments !== '1' ? `, ${installments}x` : ''})`;
         setShowPaymentModal(false);
-        onCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
+        triggerCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
         return;
       } else {
         const finalMethod = `${paymentMethod} (Maquininha na Entrega)`;
         setShowPaymentModal(false);
-        onCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
+        triggerCheckout(finalMethod, discountAmount, changeFor, undefined, orderType, orderType === 'Mesa' ? tableNumber : undefined);
         return;
       }
     }
 
     if (paymentMethod.toLowerCase().includes('pix')) {
       setShowPaymentModal(false);
-      onCheckout(
+      triggerCheckout(
         isAutoPixMode ? 'Pix (Aprovação Automática)' : paymentMethod,
         discountAmount,
         changeFor,
@@ -238,7 +313,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     }
 
     setShowPaymentModal(false);
-    onCheckout(
+    triggerCheckout(
       paymentMethod,
       discountAmount,
       changeFor,
@@ -289,36 +364,6 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     setNewMethodName('');
     setShowAddMethodInput(false);
   };
-
-  const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0);
-
-  // Dynamic delivery fee calculation based on store deliveryArea zones and rules
-  const addrLower = (deliveryAddress || '').toLowerCase();
-  const radiusLimit = storeSettings?.deliveryArea?.radiusKm || 7;
-  const matchedZone = storeSettings?.deliveryArea?.zones?.find(
-    z => z.active && addrLower.includes(z.name.toLowerCase())
-  );
-
-  const isOutsideRadius = Boolean(
-    matchedZone && matchedZone.distanceKm && matchedZone.distanceKm > radiusLimit
-  );
-
-  const baseDeliveryFee = matchedZone
-    ? matchedZone.fee
-    : (storeSettings?.defaultDeliveryFee ?? 7.00);
-
-  const isFreeDelivery = Boolean(
-    storeSettings?.deliveryArea?.freeDeliveryThreshold &&
-    storeSettings.deliveryArea.freeDeliveryThreshold > 0 &&
-    subtotal >= storeSettings.deliveryArea.freeDeliveryThreshold
-  );
-
-  const isPickup = orderType === 'Retirada' || addrLower.includes('retirada no balcão') || addrLower.includes('retirada na loja');
-  const isTable = orderType === 'Mesa';
-  const rawDeliveryFee = items.length > 0 && !isPickup && !isTable ? (isFreeDelivery ? 0.00 : baseDeliveryFee) : 0.00;
-  const deliveryFee = isFreeShippingCoupon ? 0.00 : rawDeliveryFee;
-  const discountAmount = (subtotal * discountPercent) + fixedDiscount;
-  const total = Math.max(0, subtotal + deliveryFee - discountAmount);
 
   // Opção 2: Modo de Aprovação 100% Automática do Pix (Mercado Pago API)
   const isAutoPixMode =
@@ -1052,6 +1097,62 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               </span>
             </div>
           ) : null}
+
+          {/* Seletor de Bairro com Taxa Cobrada por Bairro */}
+          <div className="bg-[#1c1b1b] p-3 rounded-lg border border-[#353535]/80 space-y-2 mt-1">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#ff5722]" />
+                <span>Bairro da Entrega (Taxa por Bairro):</span>
+              </label>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                Taxa: R$ {deliveryFee.toFixed(2).replace('.', ',')}
+              </span>
+            </div>
+
+            {(storeSettings?.deliveryArea?.zones || []).filter(z => z.active).length > 0 && (
+              <div className="space-y-1.5">
+                <select
+                  value={
+                    (storeSettings?.deliveryArea?.zones || []).some(
+                      z => z.active && z.name.toLowerCase() === selectedNeighborhood.trim().toLowerCase()
+                    )
+                      ? (storeSettings?.deliveryArea?.zones || []).find(
+                          z => z.active && z.name.toLowerCase() === selectedNeighborhood.trim().toLowerCase()
+                        )?.name
+                      : selectedNeighborhood
+                  }
+                  onChange={e => setSelectedNeighborhood(e.target.value)}
+                  className="w-full bg-[#252525] border border-[#ff5722]/50 rounded-lg px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-[#ff5722]"
+                >
+                  <option value="">Selecione seu bairro para calcular o frete...</option>
+                  {(storeSettings?.deliveryArea?.zones || [])
+                    .filter(z => z.active)
+                    .map(z => (
+                      <option key={z.id} value={z.name}>
+                        {z.name} — Taxa: R$ {z.fee.toFixed(2).replace('.', ',')} ({z.estimatedTime || '25-35 min'})
+                      </option>
+                    ))}
+                  <option value="Outro Bairro">Outro bairro (Taxa padrão: R$ {(storeSettings?.defaultDeliveryFee ?? 7.00).toFixed(2).replace('.', ',')})</option>
+                </select>
+
+                {matchedZone ? (
+                  <div className="flex items-center justify-between text-[10px] bg-emerald-950/40 border border-emerald-500/30 rounded px-2 py-1 text-emerald-300">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3 text-emerald-400" />
+                      <span>Bairro: <strong>{matchedZone.name}</strong> • Taxa: <strong>R$ {matchedZone.fee.toFixed(2).replace('.', ',')}</strong></span>
+                    </span>
+                    <span className="font-mono text-emerald-400 font-bold">{matchedZone.estimatedTime || '25-35 min'}</span>
+                  </div>
+                ) : selectedNeighborhood ? (
+                  <div className="text-[10px] text-[#b4b5b5] bg-[#222] rounded px-2 py-1 border border-[#353535] flex items-center justify-between">
+                    <span>Bairro selecionado: <strong className="text-white">{selectedNeighborhood}</strong></span>
+                    <span className="text-emerald-400 font-bold font-mono">Taxa: R$ {baseDeliveryFee.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
         </section>
         )}
 
@@ -1252,8 +1353,10 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           <div className="flex justify-between items-center text-[11px]">
             <span className="text-[#b4b5b5] flex items-center gap-1">
               <span>Taxa de entrega</span>
-              {matchedZone && (
-                <span className="text-[9px] text-[#ff8a65] font-semibold">({matchedZone.name})</span>
+              {(matchedZone || selectedNeighborhood) && (
+                <span className="text-[9px] text-[#ff8a65] font-semibold">
+                  (Bairro: {matchedZone?.name || selectedNeighborhood})
+                </span>
               )}
             </span>
             {isPickup ? (

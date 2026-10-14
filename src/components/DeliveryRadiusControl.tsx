@@ -73,11 +73,13 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
   // Sync state feedback
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'visual_radar' | 'calc_engine' | 'zones_list'>('visual_radar');
+  const [activeTab, setActiveTab] = useState<'visual_radar' | 'calc_engine' | 'zones_list'>('zones_list');
 
   // New zone form state
   const [newZoneName, setNewZoneName] = useState('');
-  const [newZoneDistance, setNewZoneDistance] = useState('4.0');
+  const [newZoneFee, setNewZoneFee] = useState('7.00');
+  const [newZoneDistance, setNewZoneDistance] = useState('3.5');
+  const [newZoneTime, setNewZoneTime] = useState('25-35 min');
 
   // Synchronize internal state when storeSettings updates from Firebase
   useEffect(() => {
@@ -149,7 +151,7 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
       feePerKm,
       freeDeliveryThreshold,
       allowPickup,
-      calculationMode: 'dynamic_km' as const,
+      calculationMode: 'zones' as const,
       zones: targetZones,
     };
 
@@ -373,8 +375,49 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
         </div>
       </div>
 
-      {/* Tabs: Radar Visual vs Engine de Cálculo vs Lista de Bairros */}
+      {/* Banner de Cobrança por Bairro */}
+      <div className="bg-gradient-to-r from-emerald-950/60 via-[#1c1b1b] to-[#1c1b1b] border border-emerald-500/40 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white">
+                Cobrança de Taxa de Entrega por Bairro Ativa
+              </h4>
+              <span className="text-[10px] bg-emerald-500 text-black px-2 py-0.2 rounded font-extrabold uppercase">
+                ATIVO
+              </span>
+            </div>
+            <p className="text-[11px] text-[#b4b5b5] mt-0.5">
+              O cliente seleciona seu bairro no cardápio/carrinho e o valor cadastrado para cada bairro é cobrado automaticamente.
+            </p>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <span className="text-[10px] text-[#8e8f8f] uppercase font-bold block">Bairros Ativos</span>
+          <span className="font-mono text-sm font-black text-emerald-400">
+            {zones.filter(z => z.active).length} de {zones.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Tabs: Tabela de Bairros vs Radar Visual vs Simulador */}
       <div className="flex gap-2 border-b border-[#353535] pb-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('zones_list')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold font-['Montserrat'] transition-all whitespace-nowrap ${
+            activeTab === 'zones_list'
+              ? 'bg-[#ff5722] text-white shadow-md'
+              : 'bg-[#181818] text-[#b4b5b5] hover:text-white border border-[#353535]'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Tabela de Bairros & Taxas ({zones.length})</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('visual_radar')}
@@ -399,19 +442,6 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
         >
           <DollarSign className="w-3.5 h-3.5" />
           <span>Fórmula de Taxa por Km & Simulador</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('zones_list')}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold font-['Montserrat'] transition-all whitespace-nowrap ${
-            activeTab === 'zones_list'
-              ? 'bg-[#ff5722] text-white shadow-md'
-              : 'bg-[#181818] text-[#b4b5b5] hover:text-white border border-[#353535]'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          <span>Bairros & Taxas Individuais ({zones.length})</span>
         </button>
       </div>
 
@@ -708,53 +738,76 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
           </div>
 
           {/* Form to Add New Neighborhood */}
-          <div className="bg-[#181818] p-3.5 rounded-xl border border-[#353535] space-y-2">
-            <span className="font-bold text-white text-xs block">+ Cadastrar Novo Bairro:</span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input
-                type="text"
-                placeholder="Nome do Bairro (Ex: Santana, Tatuapé...)"
-                value={newZoneName}
-                onChange={e => setNewZoneName(e.target.value)}
-                className="bg-[#121212] border border-[#353535] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#ff5722]"
-              />
-
-              <div className="flex items-center gap-1.5">
+          <div className="bg-[#181818] p-3.5 rounded-xl border border-[#353535] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white text-xs block">+ Cadastrar Novo Bairro e Definir Taxa:</span>
+              <span className="text-[10px] text-[#8e8f8f]">Taxa cobrada automaticamente ao cliente</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+              <div className="sm:col-span-1">
+                <label className="text-[10px] text-[#b4b5b5] block mb-0.5">Nome do Bairro:</label>
                 <input
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  placeholder="Distância da Loja (km)"
-                  value={newZoneDistance}
-                  onChange={e => setNewZoneDistance(e.target.value)}
-                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#ff5722]"
+                  type="text"
+                  placeholder="Ex: Santana, Moema..."
+                  value={newZoneName}
+                  onChange={e => setNewZoneName(e.target.value)}
+                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ff5722]"
                 />
-                <span className="text-xs text-[#8e8f8f] font-bold">km</span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!newZoneName.trim()) return;
-                  const dist = parseFloat(newZoneDistance) || 4.0;
-                  const computedFee = calculateFeeForDistance(dist);
-                  const newZone: DeliveryZone = {
-                    id: 'zone-' + Date.now(),
-                    name: newZoneName.trim(),
-                    distanceKm: dist,
-                    fee: computedFee,
-                    estimatedTime: `${Math.round(15 + dist * 3)}-${Math.round(25 + dist * 4)} min`,
-                    active: true,
-                  };
-                  const updated = [...zones, newZone];
-                  setZones(updated);
-                  setNewZoneName('');
-                  handleSaveToFirebase(updated);
-                }}
-                className="btn-flame text-white px-4 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm"
-              >
-                <Plus className="w-3.5 h-3.5" /> Adicionar Bairro
-              </button>
+              <div>
+                <label className="text-[10px] text-[#b4b5b5] block mb-0.5">Taxa de Entrega (R$):</label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1.5 text-xs text-emerald-400 font-bold">R$</span>
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="0"
+                    placeholder="7.00"
+                    value={newZoneFee}
+                    onChange={e => setNewZoneFee(e.target.value)}
+                    className="w-full bg-[#121212] border border-[#353535] rounded-lg pl-8 pr-2 py-1.5 text-xs text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-[#b4b5b5] block mb-0.5">Tempo Estimado:</label>
+                <input
+                  type="text"
+                  placeholder="25-35 min"
+                  value={newZoneTime}
+                  onChange={e => setNewZoneTime(e.target.value)}
+                  className="w-full bg-[#121212] border border-[#353535] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ff5722]"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newZoneName.trim()) return;
+                    const parsedFee = parseFloat(newZoneFee.replace(',', '.')) || 7.0;
+                    const dist = parseFloat(newZoneDistance) || 3.5;
+                    const newZone: DeliveryZone = {
+                      id: 'zone-' + Date.now(),
+                      name: newZoneName.trim(),
+                      distanceKm: dist,
+                      fee: parsedFee,
+                      estimatedTime: newZoneTime.trim() || '25-35 min',
+                      active: true,
+                    };
+                    const updated = [...zones, newZone];
+                    setZones(updated);
+                    setNewZoneName('');
+                    setNewZoneFee('7.00');
+                    handleSaveToFirebase(updated);
+                  }}
+                  className="w-full btn-flame text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all shadow-sm h-8"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Bairro
+                </button>
+              </div>
             </div>
           </div>
 

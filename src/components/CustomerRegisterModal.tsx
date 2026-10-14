@@ -13,10 +13,12 @@ import {
   FileText,
   Flame,
 } from 'lucide-react';
-import { CustomerProfile } from '../types';
+import { CustomerProfile, StoreSettings } from '../types';
+import { getDeliveryFeeForNeighborhood } from '../utils/deliveryFee';
 
 interface CustomerRegisterModalProps {
   initialProfile?: CustomerProfile | null;
+  storeSettings?: StoreSettings;
   onSave: (profile: CustomerProfile) => void;
   onClose?: () => void;
   canClose?: boolean;
@@ -24,6 +26,7 @@ interface CustomerRegisterModalProps {
 
 export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
   initialProfile,
+  storeSettings,
   onSave,
   onClose,
   canClose = true,
@@ -482,32 +485,69 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
             </div>
 
             {/* Bairro e Complemento */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[#b4b5b5] font-medium mb-1">
-                  Bairro <span className="text-[#ff5722]">*</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between mb-0.5">
+                <label className="block text-[#b4b5b5] font-medium text-xs">
+                  Bairro da Entrega <span className="text-[#ff5722]">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={neighborhood}
-                  onChange={e => setNeighborhood(e.target.value)}
-                  placeholder="Ex: Centro"
-                  required
-                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
-                />
+                {neighborhood.trim() && (() => {
+                  const feeInfo = getDeliveryFeeForNeighborhood(neighborhood, storeSettings);
+                  return (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold font-mono">
+                      Taxa de Entrega: R$ {feeInfo.fee.toFixed(2).replace('.', ',')}
+                    </span>
+                  );
+                })()}
               </div>
 
-              <div>
-                <label className="block text-[#b4b5b5] font-medium mb-1">
-                  Complemento
-                </label>
-                <input
-                  type="text"
-                  value={complement}
-                  onChange={e => setComplement(e.target.value)}
-                  placeholder="Ex: Apto 42, Bloco B"
-                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
-                />
+              {/* Seletor rápido de bairros cadastrados se houver */}
+              {(storeSettings?.deliveryArea?.zones || []).filter(z => z.active).length > 0 && (
+                <select
+                  value={
+                    (storeSettings?.deliveryArea?.zones || []).some(
+                      z => z.active && z.name.toLowerCase() === neighborhood.trim().toLowerCase()
+                    )
+                      ? neighborhood.trim()
+                      : ''
+                  }
+                  onChange={e => {
+                    if (e.target.value) {
+                      setNeighborhood(e.target.value);
+                    }
+                  }}
+                  className="w-full mb-1.5 bg-[#252525] border border-[#ff5722]/40 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#ff5722]"
+                >
+                  <option value="">Selecione seu bairro para calcular a taxa...</option>
+                  {(storeSettings?.deliveryArea?.zones || [])
+                    .filter(z => z.active)
+                    .map(z => (
+                      <option key={z.id} value={z.name}>
+                        {z.name} — Taxa: R$ {z.fee.toFixed(2).replace('.', ',')} ({z.estimatedTime || '25-35 min'})
+                      </option>
+                    ))}
+                </select>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <input
+                    type="text"
+                    value={neighborhood}
+                    onChange={e => setNeighborhood(e.target.value)}
+                    placeholder="Nome do bairro"
+                    required
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={complement}
+                    onChange={e => setComplement(e.target.value)}
+                    placeholder="Complemento (Apto, Bloco)"
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
+                  />
+                </div>
               </div>
             </div>
 

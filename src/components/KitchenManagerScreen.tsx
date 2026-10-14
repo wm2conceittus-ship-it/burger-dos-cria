@@ -4725,9 +4725,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   }`}
                 >
                   <MapPin className="w-4 h-4" />
-                  <span>Área de Atuação</span>
+                  <span>Área & Taxas por Bairro</span>
                   <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded font-extrabold uppercase">
-                    {storeSettings.deliveryArea?.radiusKm || 7} km
+                    {(storeSettings.deliveryArea?.zones || []).length} bairros
                   </span>
                 </button>
 
@@ -4964,7 +4964,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[#b4b5b5] mb-1">Taxa Padrão de Entrega (R$)</label>
+                  <label className="block text-[#b4b5b5] mb-1 font-semibold">Taxa Padrão de Entrega (Fallback / Outros Bairros)</label>
                   <input
                     type="number"
                     step="0.50"
@@ -4975,8 +4975,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         defaultDeliveryFee: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-[#ff5722]"
                   />
+                  <span className="text-[10px] text-[#8e8f8f] block mt-0.5">
+                    Utilizada somente se o cliente informar um bairro não cadastrado na aba "Área & Taxas por Bairro".
+                  </span>
                 </div>
               </div>
 

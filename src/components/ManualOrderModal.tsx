@@ -183,28 +183,67 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
           {/* Conditional Delivery / Mesa Fields */}
           {orderType === 'Delivery' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-[#1c1b1b] rounded-2xl border border-[#353535]">
-              <div className="sm:col-span-2">
-                <label className="block text-[#ffb5a0] mb-1 font-semibold flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#ff5722]" /> Endereço de Entrega
+            <div className="space-y-2 p-3 bg-[#1c1b1b] rounded-2xl border border-[#353535]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[#ffb5a0] mb-1 font-semibold flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-[#ff5722]" /> Bairro de Entrega
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                      Taxa do Bairro: R$ {Number(deliveryFee).toFixed(2).replace('.', ',')}
+                    </span>
+                  </label>
+                  <select
+                    onChange={e => {
+                      const zoneName = e.target.value;
+                      if (!zoneName) return;
+                      const matched = (storeSettings?.deliveryArea?.zones || []).find(z => z.name === zoneName);
+                      if (matched) {
+                        setDeliveryFee(matched.fee);
+                        if (!deliveryAddress.includes(matched.name)) {
+                          setDeliveryAddress(prev => prev ? `${prev} - ${matched.name}` : matched.name);
+                        }
+                      }
+                    }}
+                    className="w-full bg-[#20201f] border border-[#ff5722]/40 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-[#ff5722]"
+                  >
+                    <option value="">Selecione o Bairro para taxa automática...</option>
+                    {(storeSettings?.deliveryArea?.zones || [])
+                      .filter(z => z.active)
+                      .map(z => (
+                        <option key={z.id} value={z.name}>
+                          {z.name} — R$ {z.fee.toFixed(2).replace('.', ',')} ({z.estimatedTime || '25-35 min'})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#ffb5a0] mb-1 font-semibold text-xs">
+                    Taxa de Entrega (R$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="0"
+                    value={deliveryFee}
+                    onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-[#20201f] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono font-bold text-xs text-emerald-400 focus:outline-none focus:border-[#ff5722]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[#b4b5b5] mb-1 font-medium text-xs">
+                  Endereço Completo (Rua, Número, Complemento, Bairro)
                 </label>
                 <input
                   type="text"
                   value={deliveryAddress}
                   onChange={e => setDeliveryAddress(e.target.value)}
-                  placeholder="Rua, número, complemento, bairro"
-                  className="w-full bg-[#20201f] border border-[#353535] rounded-xl px-3 py-2 text-white placeholder:text-[#555] focus:outline-none focus:border-[#ff5722]"
-                />
-              </div>
-              <div>
-                <label className="block text-[#ffb5a0] mb-1 font-semibold">Taxa de Entrega (R$)</label>
-                <input
-                  type="number"
-                  step="0.50"
-                  min="0"
-                  value={deliveryFee}
-                  onChange={e => setDeliveryFee(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-[#20201f] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+                  placeholder="Ex: Rua Augusta, 450, Apto 12 - Consolação"
+                  className="w-full bg-[#20201f] border border-[#353535] rounded-xl px-3 py-2 text-white placeholder:text-[#555] text-xs focus:outline-none focus:border-[#ff5722]"
                 />
               </div>
             </div>

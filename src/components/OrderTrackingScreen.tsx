@@ -538,8 +538,8 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
                   </div>
                 ))}
                 <div className="pt-2 border-t border-[#353535]/40 flex justify-between text-xs text-[#b4b5b5]">
-                  <span>Taxa de entrega</span>
-                  <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                  <span>Taxa de entrega {order.deliveryFee > 0 ? '(cobrada por bairro)' : ''}</span>
+                  <span className="font-mono text-white font-semibold">R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
                 </div>
               </div>
             )}

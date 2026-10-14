@@ -1,26 +1,46 @@
-import React, { useState } from 'react';
-import { X, MapPin, Check, Navigation, Loader2, Compass, AlertCircle, Sparkles } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, MapPin, Check, Navigation, Loader2, Compass, AlertCircle, Sparkles, DollarSign } from 'lucide-react';
+import { StoreSettings } from '../types';
+import { getDeliveryFeeForNeighborhood } from '../utils/deliveryFee';
 
 interface AddressModalProps {
   currentAddress: string;
-  onSave: (newAddress: string) => void;
+  storeSettings?: StoreSettings;
+  currentNeighborhood?: string;
+  onSave: (newAddress: string, chosenNeighborhood?: string) => void;
   onClose: () => void;
 }
 
 export const AddressModal: React.FC<AddressModalProps> = ({
   currentAddress,
+  storeSettings,
+  currentNeighborhood,
   onSave,
   onClose,
 }) => {
-  const [street, setStreet] = useState(currentAddress.split(' - ')[0] || 'Rua das Flores, 123');
-  const [neighborhood, setNeighborhood] = useState(currentAddress.split(' - ')[1] || 'Centro, São Paulo - SP');
-  const [complement, setComplement] = useState('Apto 42');
-  
+  const [street, setStreet] = useState(() => currentAddress.split(' - ')[0] || 'Rua das Flores, 123');
+  const [neighborhood, setNeighborhood] = useState(() => {
+    if (currentNeighborhood) return currentNeighborhood;
+    const parts = currentAddress.split(' - ');
+    return parts[1] || 'Consolação, São Paulo - SP';
+  });
+  const [complement, setComplement] = useState('');
+
   // GPS state
   const [isLocating, setIsLocating] = useState(false);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const [geoCoords, setGeoCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+
+  // Active zones for quick selection
+  const activeZones = useMemo(
+    () => (storeSettings?.deliveryArea?.zones || []).filter(z => z.active),
+    [storeSettings?.deliveryArea?.zones]
+  );
+
+  // Live fee calculation based on entered/selected neighborhood
+  const feeInfo = useMemo(() => {
+    return getDeliveryFeeForNeighborhood(neighborhood, storeSettings);
+  }, [neighborhood, storeSettings]);
 
   const handleGetGPSLocation = () => {
     setGeoError(null);
@@ -37,11 +57,9 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     navigator.geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude, accuracy } = position.coords;
-        setGeoCoords({ lat: latitude, lng: longitude, accuracy });
         setGeoStatus('Coordenadas obtidas! Buscando rua e bairro...');
 
         try {
-          // Attempt reverse geocoding via OpenStreetMap Nominatim
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
             {
@@ -73,18 +91,16 @@ export const AddressModal: React.FC<AddressModalProps> = ({
             const detectedNeighborhood = `${district}, ${city} - ${state}`;
 
             setStreet(detectedStreet);
-            setNeighborhood(detectedNeighborhood);
+            setNeighborhood(district || detectedNeighborhood);
             setGeoStatus(`Localizado com sucesso! (Precisão: ±${Math.round(accuracy)}m)`);
           } else {
-            // Fallback with coordinates
             setStreet(`Localização GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
-            setNeighborhood('Região Metropolitana, São Paulo - SP');
+            setNeighborhood('Consolação, São Paulo - SP');
             setGeoStatus(`Coordenadas fixadas (±${Math.round(accuracy)}m)`);
           }
-        } catch (err) {
-          // Fallback if network blocked
+        } catch {
           setStreet(`Localização GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
-          setNeighborhood('Região Central, São Paulo - SP');
+          setNeighborhood('Consolação, São Paulo - SP');
           setGeoStatus(`Coordenadas fixadas (±${Math.round(accuracy)}m)`);
         } finally {
           setIsLocating(false);
@@ -95,10 +111,10 @@ export const AddressModal: React.FC<AddressModalProps> = ({
         setGeoStatus(null);
         if (error.code === error.PERMISSION_DENIED) {
           setGeoError(
-            'Permissão de GPS negada. Por favor, autorize a localização no navegador ou digite o endereço manualmente.'
+            'Permissão de GPS negada. Por favor, autorize a localização no navegador ou selecione seu bairro na lista.'
           );
         } else if (error.code === error.TIMEOUT) {
-          setGeoError('O tempo limite para obter o GPS expirou. Tente novamente ou digite manualmente.');
+          setGeoError('O tempo limite para obter o GPS expirou. Digite ou selecione o bairro abaixo.');
         } else {
           setGeoError('Não foi possível obter sua posição via satélite. Digite manualmente.');
         }
@@ -114,26 +130,31 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   const handleQuickPreset = (presetStreet: string, presetNeigh: string) => {
     setStreet(presetStreet);
     setNeighborhood(presetNeigh);
-    setGeoStatus('Endereço aplicado!');
+    setGeoStatus('Endereço e bairro aplicados!');
     setGeoError(null);
   };
 
   const handleSave = () => {
-    const formatted = `${street}${complement ? ` - ${complement}` : ''}, ${neighborhood}`;
-    onSave(formatted);
+    const cleanStreet = street.trim();
+    const cleanNeigh = neighborhood.trim();
+    const formatted = `${cleanStreet}${complement.trim() ? ` (${complement.trim()})` : ''} - ${cleanNeigh}`;
+    onSave(formatted, feeInfo.zoneName || cleanNeigh);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div className="bg-[#20201f] border border-[#353535] rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-[#353535]/60 pb-3">
           <div className="flex items-center gap-2 text-[#ff5722]">
             <MapPin className="w-5 h-5" />
-            <h3 className="font-['Montserrat'] font-bold text-base text-white">
-              Definir Endereço de Entrega
-            </h3>
+            <div>
+              <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                Definir Endereço de Entrega
+              </h3>
+              <p className="text-[10px] text-[#b4b5b5]">A taxa de entrega é calculada com base no seu bairro</p>
+            </div>
           </div>
           <button onClick={onClose} className="text-[#b4b5b5] hover:text-white p-1">
             <X className="w-5 h-5" />
@@ -152,7 +173,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                   Localização Automática por GPS
                 </span>
                 <span className="text-[10px] text-[#b4b5b5]">
-                  Detecte sua rua e número em tempo real
+                  Detecte sua rua e bairro em tempo real
                 </span>
               </div>
             </div>
@@ -192,7 +213,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
           )}
 
           {/* Quick Presets */}
-          <div className="flex items-center gap-2 pt-1 border-t border-[#353535]/50">
+          <div className="flex items-center gap-2 pt-1 border-t border-[#353535]/50 flex-wrap">
             <span className="text-[10px] text-[#8e8f8f] flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#ff8a65]" /> Atalhos:
             </span>
@@ -201,20 +222,82 @@ export const AddressModal: React.FC<AddressModalProps> = ({
               onClick={() => handleQuickPreset('Av. Paulista, 1578', 'Bela Vista, São Paulo - SP')}
               className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
             >
-              Av. Paulista
+              Bela Vista
             </button>
             <button
               type="button"
               onClick={() => handleQuickPreset('Rua Augusta, 450', 'Consolação, São Paulo - SP')}
               className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
             >
-              Rua Augusta
+              Consolação
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickPreset('Praça da Sé, 100', 'Centro Histórico, São Paulo - SP')}
+              className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
+            >
+              Centro
             </button>
           </div>
         </div>
 
         {/* Input Fields */}
         <div className="space-y-3 text-xs">
+          {/* Bairro Selector & Badge - Highlighted for neighborhood-based delivery fee */}
+          <div className="p-3 bg-[#181818] rounded-2xl border border-[#ff5722]/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[#ffb5a0] font-bold text-xs flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#ff5722]" />
+                Bairro da Entrega (Cálculo da Taxa) <span className="text-[#ff5722]">*</span>
+              </label>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-mono font-bold flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />
+                Taxa: R$ {feeInfo.fee.toFixed(2).replace('.', ',')}
+              </span>
+            </div>
+
+            {/* Dropdown of registered neighborhoods */}
+            {activeZones.length > 0 && (
+              <div>
+                <select
+                  value={
+                    activeZones.some(z => z.name.toLowerCase() === neighborhood.trim().toLowerCase())
+                      ? activeZones.find(z => z.name.toLowerCase() === neighborhood.trim().toLowerCase())?.name
+                      : ''
+                  }
+                  onChange={e => {
+                    if (e.target.value) {
+                      setNeighborhood(e.target.value);
+                    }
+                  }}
+                  className="w-full bg-[#20201f] border border-[#ff5722]/50 rounded-xl px-3 py-2 text-white font-medium text-xs focus:outline-none focus:border-[#ff5722]"
+                >
+                  <option value="">Selecione seu bairro na lista...</option>
+                  {activeZones.map(zone => (
+                    <option key={zone.id} value={zone.name}>
+                      {zone.name} — Taxa: R$ {zone.fee.toFixed(2).replace('.', ',')} ({zone.estimatedTime || '25-35 min'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <input
+                type="text"
+                value={neighborhood}
+                onChange={e => setNeighborhood(e.target.value)}
+                placeholder="Ou digite o nome do bairro..."
+                className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722] placeholder:text-[#666]"
+              />
+              {feeInfo.isMatched && feeInfo.zone && (
+                <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
+                  <Check className="w-3 h-3" /> Bairro reconhecido: <strong>{feeInfo.zone.name}</strong> • Taxa R$ {feeInfo.fee.toFixed(2).replace('.', ',')}
+                </p>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-[#b4b5b5] mb-1 font-medium">Rua e Número</label>
             <input
@@ -236,17 +319,6 @@ export const AddressModal: React.FC<AddressModalProps> = ({
               className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
             />
           </div>
-
-          <div>
-            <label className="block text-[#b4b5b5] mb-1 font-medium">Bairro e Cidade</label>
-            <input
-              type="text"
-              value={neighborhood}
-              onChange={e => setNeighborhood(e.target.value)}
-              placeholder="Ex: Consolação, São Paulo - SP"
-              className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
-            />
-          </div>
         </div>
 
         {/* Actions */}
@@ -261,11 +333,10 @@ export const AddressModal: React.FC<AddressModalProps> = ({
             onClick={handleSave}
             className="flex-1 btn-flame text-white py-3 rounded-xl text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
           >
-            <Check className="w-4 h-4" /> Confirmar Endereço
+            <Check className="w-4 h-4" /> Confirmar (Taxa R$ {feeInfo.fee.toFixed(2).replace('.', ',')})
           </button>
         </div>
       </div>
     </div>
   );
 };
-

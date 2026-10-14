@@ -5,7 +5,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
-import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES } from './data/mockData';
+import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES, INITIAL_DELIVERY_ZONES } from './data/mockData';
+import { getDeliveryFeeForNeighborhood } from './utils/deliveryFee';
 import {
   testFirestoreConnection,
   subscribeToOrders,
@@ -166,15 +167,7 @@ export default function App() {
       radiusKm: 7,
       freeDeliveryThreshold: 120.0,
       allowPickup: true,
-      zones: [
-        { id: 'zone-1', name: 'Consolação', fee: 5.0, estimatedTime: '20-30 min', active: true },
-        { id: 'zone-2', name: 'Bela Vista / Bixiga', fee: 6.0, estimatedTime: '25-35 min', active: true },
-        { id: 'zone-3', name: 'Centro Histórico', fee: 7.0, estimatedTime: '30-40 min', active: true },
-        { id: 'zone-4', name: 'Jardins / Cerqueira César', fee: 8.0, estimatedTime: '30-45 min', active: true },
-        { id: 'zone-5', name: 'Higienópolis', fee: 7.5, estimatedTime: '25-35 min', active: true },
-        { id: 'zone-6', name: 'Pinheiros', fee: 9.0, estimatedTime: '35-50 min', active: true },
-        { id: 'zone-7', name: 'Vila Madalena', fee: 10.0, estimatedTime: '40-55 min', active: true },
-      ],
+      zones: INITIAL_DELIVERY_ZONES,
     },
     coupons: [
       {
@@ -522,17 +515,31 @@ export default function App() {
             : remoteSettings.managerPin.padEnd(6, '0')
           : '123456';
 
-        setStoreSettings(prev => ({
-          ...prev,
-          ...remoteSettings,
-          whatsappSupport: remoteSettings.whatsappSupport || prev.whatsappSupport || '(88) 99217-6318',
-          whatsappManagerAlert: remoteSettings.whatsappManagerAlert || remoteSettings.whatsappSupport || prev.whatsappManagerAlert || '(88) 99217-6318',
-          autoSendWhatsappAlertToManager: remoteSettings.autoSendWhatsappAlertToManager !== false,
-          autoSendWhatsappOnDispatch: remoteSettings.autoSendWhatsappOnDispatch !== false,
-          managerPin: normalizedPin,
-          tables: cleanedTables || prev.tables,
-          employees: cleanedEmployees || prev.employees,
-        }));
+        setStoreSettings(prev => {
+          const mergedDeliveryArea = {
+            ...(prev.deliveryArea || {}),
+            ...(remoteSettings.deliveryArea || {}),
+            zones:
+              remoteSettings.deliveryArea?.zones && remoteSettings.deliveryArea.zones.length > 0
+                ? remoteSettings.deliveryArea.zones
+                : prev.deliveryArea?.zones && prev.deliveryArea.zones.length > 0
+                ? prev.deliveryArea.zones
+                : INITIAL_DELIVERY_ZONES,
+          };
+
+          return {
+            ...prev,
+            ...remoteSettings,
+            deliveryArea: mergedDeliveryArea,
+            whatsappSupport: remoteSettings.whatsappSupport || prev.whatsappSupport || '(88) 99217-6318',
+            whatsappManagerAlert: remoteSettings.whatsappManagerAlert || remoteSettings.whatsappSupport || prev.whatsappManagerAlert || '(88) 99217-6318',
+            autoSendWhatsappAlertToManager: remoteSettings.autoSendWhatsappAlertToManager !== false,
+            autoSendWhatsappOnDispatch: remoteSettings.autoSendWhatsappOnDispatch !== false,
+            managerPin: normalizedPin,
+            tables: cleanedTables || prev.tables,
+            employees: cleanedEmployees || prev.employees,
+          };
+        });
       }
     });
 
@@ -655,7 +662,9 @@ export default function App() {
     orderType: 'Delivery' | 'Retirada' | 'Mesa' = 'Delivery',
     tableNumber?: number,
     pixReceiptUrl?: string,
-    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado'
+    customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado',
+    customDeliveryFee?: number,
+    chosenNeighborhood?: string
   ) => {
     if (!customerProfile) {
       setIsCustomerRegisterOpen(true);
@@ -666,7 +675,19 @@ export default function App() {
     const isTableOrder = orderType === 'Mesa';
     const isPickupOrder = orderType === 'Retirada';
     const subtotal = cartItems.reduce((acc, it) => acc + it.totalPrice, 0);
-    const deliveryFee = isTableOrder || isPickupOrder ? 0.00 : storeSettings.defaultDeliveryFee;
+
+    // Cálculo da taxa de entrega cobrada por Bairro
+    const neighborhoodFeeResult = getDeliveryFeeForNeighborhood(
+      chosenNeighborhood || customerProfile.neighborhood || customerProfile.address || deliveryAddress,
+      storeSettings
+    );
+
+    const deliveryFee = isTableOrder || isPickupOrder
+      ? 0.00
+      : customDeliveryFee !== undefined
+      ? customDeliveryFee
+      : neighborhoodFeeResult.fee;
+
     const total = Math.max(0, subtotal + deliveryFee - discountAmount);
     const newOrderNum = isTableOrder
       ? `#MESA-${tableNumber || 1}`
@@ -694,6 +715,8 @@ export default function App() {
         changeFor: changeFor || existingOrder.changeFor,
         mercadoPagoPaymentId: mercadoPagoPaymentId || existingOrder.mercadoPagoPaymentId,
         pixReceiptUrl: pixReceiptUrl || existingOrder.pixReceiptUrl,
+        deliveryFee: existingOrder.deliveryFee ?? deliveryFee,
+        total: existingOrder.total ?? total,
         status:
           finalPaymentStatus === 'aprovado' && existingOrder.status === 'novo' && isAutoAccept
             ? 'preparando'
@@ -706,6 +729,8 @@ export default function App() {
         paymentMethod: updatedOrder.paymentMethod,
         mercadoPagoPaymentId: updatedOrder.mercadoPagoPaymentId,
         pixReceiptUrl: updatedOrder.pixReceiptUrl,
+        deliveryFee: updatedOrder.deliveryFee,
+        total: updatedOrder.total,
         status: updatedOrder.status,
       });
 
@@ -724,11 +749,16 @@ export default function App() {
       return;
     }
 
-    const effectiveAddress = isTableOrder
+    const neighborhoodLabel = chosenNeighborhood || customerProfile.neighborhood;
+    let effectiveAddress = isTableOrder
       ? `Consumo no Local • Mesa ${tableNumber || 1}`
       : isPickupOrder
       ? 'Retirada no Balcão da Loja'
       : customerProfile.address || deliveryAddress;
+
+    if (!isTableOrder && !isPickupOrder && neighborhoodLabel && !effectiveAddress.toLowerCase().includes(neighborhoodLabel.toLowerCase())) {
+      effectiveAddress += ` - Bairro: ${neighborhoodLabel}`;
+    }
 
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -1283,6 +1313,7 @@ export default function App() {
       {isCustomerRegisterOpen && (
         <CustomerRegisterModal
           initialProfile={customerProfile}
+          storeSettings={storeSettings}
           canClose={true}
           onSave={handleSaveCustomerProfile}
           onClose={() => setIsCustomerRegisterOpen(false)}
@@ -1292,7 +1323,21 @@ export default function App() {
       {isAddressModalOpen && (
         <AddressModal
           currentAddress={deliveryAddress}
-          onSave={setDeliveryAddress}
+          storeSettings={storeSettings}
+          currentNeighborhood={customerProfile?.neighborhood}
+          onSave={(newAddress, chosenNeighborhood) => {
+            setDeliveryAddress(newAddress);
+            if (customerProfile) {
+              const updatedProfile: CustomerProfile = {
+                ...customerProfile,
+                address: newAddress,
+                neighborhood: chosenNeighborhood || customerProfile.neighborhood,
+              };
+              setCustomerProfile(updatedProfile);
+              saveCustomerProfileToFirestore(updatedProfile);
+            }
+            setIsAddressModalOpen(false);
+          }}
           onClose={() => setIsAddressModalOpen(false)}
         />
       )}
