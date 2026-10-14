@@ -219,9 +219,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     try {
       const saved = localStorage.getItem('kitchen_kds_layout');
       if (saved === 'grid') return 'grid';
-      if (saved === 'kanban') return 'carousel'; // Migrated to carousel per user request
+      if (saved === 'kanban') return 'kanban';
       if (saved === 'carousel') return 'carousel';
-      return 'carousel';
+      return 'kanban';
     } catch {
       return 'carousel';
     }
@@ -572,6 +572,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
   const [viewingReceiptOrder, setViewingReceiptOrder] = useState<Order | null>(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null);
 
   // Pix Key & QR Code Image state for Manager configuration
   const [pixKeyInput, setPixKeyInput] = useState<string>(() => storeSettings.pixKey ?? '');
@@ -1026,7 +1027,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         const phoneMatch = (order.customerPhone || '').toLowerCase().includes(q);
         const addrMatch = (order.address || '').toLowerCase().includes(q);
         const tableMatch = order.tableNumber ? String(order.tableNumber).includes(q) : false;
-        const itemMatch = (order.items || []).some(it => it.name.toLowerCase().includes(q));
+        const itemMatch = (order.items || []).some(it => {
+          const name = it?.name || (it as any)?.productName || (it as any)?.title || '';
+          return name.toLowerCase().includes(q);
+        });
         if (!numMatch && !nameMatch && !phoneMatch && !addrMatch && !tableMatch && !itemMatch) {
           return false;
         }
@@ -1036,7 +1040,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   }, [orders, kanbanTypeFilter, kanbanSearch]);
 
   const kanbanNovosOrders = useMemo(
-    () => filteredKanbanOrders.filter(o => o.status === 'novo' || o.status === 'recebido'),
+    () => filteredKanbanOrders.filter(o => !o.status || o.status === 'novo' || o.status === 'recebido' || (o.status !== 'preparando' && o.status !== 'pronto' && o.status !== 'em_entrega' && o.status !== 'entregue' && o.status !== 'recusado' && o.status !== 'cancelado')),
     [filteredKanbanOrders]
   );
   const kanbanPreparandoOrders = useMemo(
@@ -2036,19 +2040,19 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-xl border border-[#353535] shadow-inner shrink-0 self-end sm:self-auto">
-                  <button type="button" onClick={() => handleSelectOrdersLayoutMode('carousel')}
-                    className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
-                    title="Modo Carrossel"
-                  >
-                    <GalleryHorizontal className="w-3.5 h-3.5" />
-                    <span>Carrossel</span>
-                  </button>
                   <button type="button" onClick={() => handleSelectOrdersLayoutMode('kanban')}
                     className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
                     title="Quadro Kanban"
                   >
                     <Kanban className="w-3.5 h-3.5" />
                     <span>Kanban</span>
+                  </button>
+                  <button type="button" onClick={() => handleSelectOrdersLayoutMode('carousel')}
+                    className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 text-[#b4b5b5] hover:text-white"
+                    title="Modo Carrossel"
+                  >
+                    <GalleryHorizontal className="w-3.5 h-3.5" />
+                    <span>Carrossel</span>
                   </button>
                   <button type="button" onClick={() => handleSelectOrdersLayoutMode('grid')}
                     className="h-7 px-2.5 sm:px-3 rounded-lg text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 bg-[#ff5722] text-white shadow-md"
@@ -2584,6 +2588,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                               const isQuickMoveOpen = quickMoveOrderId === order.id;
 
+                              const cleanOrderNum = (order.orderNumber || '').startsWith('#')
+                                ? order.orderNumber
+                                : `#${order.orderNumber || ''}`;
+
                               return (
                                 <div
                                   key={order.id}
@@ -2596,7 +2604,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     setDraggedOrderId(null);
                                     setDragOverColumn(null);
                                   }}
-                                  className={`bg-[#20201f] border rounded-xl shadow-md flex flex-col transition-all select-none group/card cursor-grab active:cursor-grabbing relative ${
+                                  className={`bg-white border rounded-xl shadow-sm hover:shadow-md flex flex-col transition-all select-none group/card relative ${
                                     cardDensity === 'compact'
                                       ? 'p-2.5 gap-1.5'
                                       : 'p-3 gap-2'
@@ -2604,11 +2612,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     draggedOrderId === order.id || touchDrag?.order.id === order.id
                                       ? 'opacity-40 scale-95 border-[#ff5722]'
                                       : order.isUrgent || (isOverdue && col.key !== 'concluido')
-                                      ? 'border-[#ff5722]/70 bg-[#241c19] ring-1 ring-[#ff5722]/30 shadow-[#ff5722]/10'
-                                      : 'border-[#353535] hover:border-[#4d4d4d]'
+                                      ? 'border-[#ff5722] ring-2 ring-[#ff5722]/30 shadow-[#ff5722]/15'
+                                      : 'border-gray-200 hover:border-gray-300'
                                   }`}
                                 >
-                                  {/* Linha 1: Grip para arrastar (dedo ou mouse), Número, Nome do Cliente e Impressão */}
+                                  {/* Linha 1: Grip para arrastar, Número, Nome do Cliente, Ver Detalhes, WhatsApp e Impressão */}
                                   <div className="flex items-start justify-between gap-1.5">
                                     <div
                                       onTouchStart={e => handleTouchDragStart(e, order)}
@@ -2616,44 +2624,60 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       title="Arraste com o dedo no celular ou mouse no PC"
                                     >
                                       <div
-                                        className="text-[#ff5722] sm:text-[#8e8f8f] group-hover/handle:text-white transition-colors p-1 -ml-1 rounded hover:bg-white/10 active:bg-[#ff5722]/30 shrink-0"
+                                        className="text-[#ff5722] sm:text-gray-400 group-hover/handle:text-gray-700 transition-colors p-1 -ml-1 rounded hover:bg-gray-100 active:bg-orange-100 shrink-0"
                                       >
                                         <GripVertical className="w-4 h-4 shrink-0" />
                                       </div>
                                       <div className="min-w-0">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-['Montserrat'] font-black text-white text-xs sm:text-[13px] tracking-tight bg-black/40 px-1.5 py-0.5 rounded border border-white/10 font-mono">
-                                            #{order.orderNumber}
+                                          <span className="font-['Montserrat'] font-black text-[#d84315] text-xs sm:text-[13px] tracking-tight bg-orange-50 px-2 py-0.5 rounded border border-orange-200 font-mono">
+                                            {cleanOrderNum}
                                           </span>
-                                          <span className="font-bold text-xs text-[#f5f5f5] truncate max-w-[110px] sm:max-w-[130px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedOrderDetail(order)}
+                                            className="font-bold text-xs sm:text-sm text-gray-900 hover:text-[#ff5722] truncate max-w-[110px] sm:max-w-[140px] text-left transition-colors"
+                                            title="Clique para ver os detalhes completos do pedido"
+                                          >
                                             {order.customerName}
-                                          </span>
+                                          </button>
                                         </div>
                                       </div>
                                     </div>
 
-                                    {/* Botões do Topo: WhatsApp e Imprimir */}
+                                    {/* Botões do Topo: Ver Detalhes (Olho), WhatsApp e Imprimir */}
                                     <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={e => {
+                                          e.stopPropagation();
+                                          setSelectedOrderDetail(order);
+                                        }}
+                                        className="p-1 rounded bg-gray-100 hover:bg-orange-50 text-gray-600 hover:text-[#ff5722] border border-gray-200 transition-colors"
+                                        title="Ver detalhes completos do pedido"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </button>
                                       {order.customerPhone && (
                                         <a
-                                          href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da Burguer dos Crias sobre seu pedido #${order.orderNumber}:`)}`}
+                                          href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da Burguer dos Crias sobre seu pedido ${cleanOrderNum}:`)}`}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="p-1 rounded bg-[#282828] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040] transition-colors"
+                                          className="p-1 rounded bg-gray-100 hover:bg-emerald-500 text-gray-600 hover:text-white border border-gray-200 transition-colors"
                                           title={`Conversar com cliente no WhatsApp (${order.customerPhone})`}
                                           onClick={e => e.stopPropagation()}
                                         >
-                                          <MessageSquare className="w-3 h-3" />
+                                          <MessageSquare className="w-3.5 h-3.5" />
                                         </a>
                                       )}
                                       <button type="button" onClick={e => {
                                           e.stopPropagation();
                                           onPrintOrder(order);
                                         }}
-                                        className="p-1 rounded bg-[#282828] hover:bg-[#ff5722] text-[#ffdad6] hover:text-white border border-[#404040] transition-colors"
+                                        className="p-1 rounded bg-gray-100 hover:bg-[#ff5722] text-gray-600 hover:text-white border border-gray-200 transition-colors"
                                         title="Imprimir comanda térmica"
                                       >
-                                        <Printer className="w-3 h-3" />
+                                        <Printer className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
@@ -2664,10 +2688,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       {/* Canal */}
                                       <span className={`px-1.5 py-0.5 rounded font-['Montserrat'] font-bold flex items-center gap-1 border ${
                                         order.type === 'Delivery'
-                                          ? 'bg-sky-950/60 text-sky-300 border-sky-500/30'
+                                          ? 'bg-sky-50 text-sky-700 border-sky-200'
                                           : order.type === 'Mesa'
-                                          ? 'bg-purple-950/60 text-purple-300 border-purple-500/30'
-                                          : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
+                                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                          : 'bg-amber-50 text-amber-800 border-amber-200'
                                       }`}>
                                         {order.type === 'Delivery' && <Bike className="w-2.5 h-2.5" />}
                                         {order.type === 'Retirada' && <ShoppingBag className="w-2.5 h-2.5" />}
@@ -2683,8 +2707,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       <span
                                         className={`flex items-center gap-1 px-1.5 py-0.5 rounded font-mono font-medium ${
                                           isOverdue && col.key !== 'concluido'
-                                            ? 'bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse'
-                                            : 'bg-[#282828] text-[#b4b5b5]'
+                                            ? 'bg-red-50 text-red-700 border border-red-300 animate-pulse'
+                                            : 'bg-gray-100 text-gray-600 border border-gray-200'
                                         }`}
                                         title="Tempo decorrido desde a abertura"
                                       >
@@ -2694,64 +2718,83 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     </div>
 
                                     {order.isUrgent && (
-                                      <span className="bg-[#93000a] text-[#ffdad6] text-[8.5px] px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse border border-red-500/40">
+                                      <span className="bg-red-600 text-white text-[8.5px] px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse shadow-xs">
                                         Urgente
                                       </span>
                                     )}
                                   </div>
 
-                                  {/* Lista de Itens do Pedido */}
-                                  <div className="space-y-0.5 text-xs py-1 border-y border-[#353535]/60 max-h-24 sm:max-h-28 overflow-y-auto hide-scrollbar">
-                                    {(order.items || []).map((item, idx) => (
-                                      <div key={idx} className="space-y-0.5">
-                                        <div className="flex justify-between items-start text-white/95 leading-tight">
-                                          <span className="font-medium text-[10.5px] truncate">
-                                            <strong className="text-[#ff5722] font-mono mr-1">{item.quantity}x</strong>
-                                            {item.name}
-                                            {item.pizzaSize && (
-                                              <span className="text-[9px] text-[#ff8a65] ml-1 font-bold">({item.pizzaSize})</span>
-                                            )}
-                                            {item.juiceSize && (
-                                              <span className="text-[9px] text-[#ff8a65] ml-1 font-bold">({item.juiceSize})</span>
-                                            )}
-                                          </span>
-                                          <span className="text-[10px] text-[#ff8a65] font-mono shrink-0 ml-1 font-bold">
-                                            R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',')}
-                                          </span>
-                                        </div>
-                                        {/* Observação Específica do Item */}
-                                        {item.notes && (
-                                          <div className="text-[9px] font-medium text-amber-300 bg-amber-500/10 border-l-2 border-amber-400 px-1.5 py-0.5 rounded-r">
-                                            ⚠️ Obs: "{item.notes}"
+                                  {/* Lista de Itens do Pedido - Visível e legível sem corte de texto */}
+                                  <div
+                                    onClick={() => setSelectedOrderDetail(order)}
+                                    className="space-y-1 text-xs py-1.5 border-y border-gray-200 bg-gray-50/70 p-2 rounded-lg max-h-36 overflow-y-auto cursor-pointer hover:bg-orange-50/30 transition-colors"
+                                    title="Clique para abrir detalhes completos"
+                                  >
+                                    {(order.items || []).map((item, idx) => {
+                                      const itemName = item.name || (item as any).product?.name || (item as any).title || (item as any).productName || 'Item sem descrição';
+                                      const itemQty = item.quantity || 1;
+                                      const itemPrice = (item.price || 0) * itemQty;
+                                      return (
+                                        <div key={idx} className="space-y-0.5 border-b border-gray-100 last:border-b-0 pb-1 last:pb-0">
+                                          <div className="flex justify-between items-start gap-1.5 text-gray-900 leading-snug">
+                                            <div className="font-medium text-[11px] flex-1 min-w-0 break-words">
+                                              <strong className="text-[#ff5722] font-mono mr-1 font-bold">{itemQty}x</strong>
+                                              <span className="text-gray-900 font-semibold">{itemName}</span>
+                                              {item.pizzaSize && (
+                                                <span className="text-[9.5px] text-orange-700 ml-1 font-bold bg-orange-100 px-1 py-0.2 rounded">({item.pizzaSize})</span>
+                                              )}
+                                              {item.juiceSize && (
+                                                <span className="text-[9.5px] text-amber-700 ml-1 font-bold bg-amber-100 px-1 py-0.2 rounded">({item.juiceSize})</span>
+                                              )}
+                                            </div>
+                                            <span className="text-[10.5px] text-orange-600 font-mono shrink-0 ml-1 font-bold">
+                                              R$ {itemPrice.toFixed(2).replace('.', ',')}
+                                            </span>
                                           </div>
-                                        )}
-                                      </div>
-                                    ))}
+                                          {/* Observação Específica do Item */}
+                                          {item.notes && (
+                                            <div className="text-[9.5px] font-medium text-amber-900 bg-amber-50 border-l-2 border-amber-500 px-1.5 py-0.5 rounded-r">
+                                              ⚠️ Obs: "{item.notes}"
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
 
                                     {/* Observação Geral do Pedido */}
                                     {order.notes && (
-                                      <div className="text-[9px] font-medium text-amber-200 bg-amber-950/40 border border-amber-500/30 px-1.5 py-1 rounded mt-0.5">
-                                        💬 Obs: "{order.notes}"
+                                      <div className="text-[9.5px] font-medium text-amber-900 bg-amber-100/70 border border-amber-300 px-1.5 py-1 rounded mt-0.5">
+                                        💬 Obs Geral: "{order.notes}"
                                       </div>
                                     )}
                                   </div>
 
+                                  {/* Botão de Ver Detalhes Completo */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedOrderDetail(order)}
+                                    className="w-full text-center py-1 text-[10.5px] font-bold text-gray-700 hover:text-[#ff5722] hover:bg-orange-50 rounded-lg border border-gray-200 transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                                  >
+                                    <Eye className="w-3 h-3 text-[#ff5722]" />
+                                    <span>Ver Detalhes do Pedido</span>
+                                  </button>
+
                                   {/* Endereço Delivery e Rota no Google Maps */}
                                   {order.type === 'Delivery' && order.address && (
-                                    <div className="flex items-center justify-between gap-1 text-[9px] text-[#b4b5b5] bg-[#161616] p-1.5 rounded-lg border border-[#303030]">
-                                      <div className="flex items-center gap-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-1 text-[9.5px] text-gray-700 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
+                                      <div className="flex items-center gap-1 min-w-0 flex-1">
                                         <MapPin className="w-2.5 h-2.5 text-[#ff5722] shrink-0" />
-                                        <span className="truncate text-white font-medium">{order.address}</span>
+                                        <span className="truncate text-gray-800 font-medium">{order.address}</span>
                                       </div>
                                       <a
                                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 font-bold bg-[#019ad8]/15 hover:bg-[#019ad8]/30 px-1.5 py-0.5 rounded border border-[#019ad8]/30 transition-colors"
+                                        className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 font-bold bg-sky-100 hover:bg-sky-200 px-1.5 py-0.5 rounded border border-sky-200 transition-colors text-[9px]"
                                         title="Abrir rota no Google Maps GPS"
                                         onClick={e => e.stopPropagation()}
                                       >
-                                        <Navigation className="w-2 h-2 text-[#019ad8]" />
+                                        <Navigation className="w-2 h-2 text-sky-600" />
                                         <span>GPS</span>
                                       </a>
                                     </div>
@@ -2759,16 +2802,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                                   {/* Motoboy Atribuído (Nas colunas de Entrega ou Pronto) */}
                                   {order.courierName && (
-                                    <div className="p-1.5 bg-[#181818] rounded-lg border border-[#353535] text-[9px] space-y-0.5">
+                                    <div className="p-1.5 bg-sky-50 rounded-lg border border-sky-200 text-[9px] space-y-0.5">
                                       <div className="flex items-center justify-between">
-                                        <span className="text-white font-bold truncate flex items-center gap-1">
-                                          <Bike className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                                        <span className="text-sky-950 font-bold truncate flex items-center gap-1">
+                                          <Bike className="w-2.5 h-2.5 text-sky-600 shrink-0" />
                                           {order.courierName}
                                         </span>
                                         {order.courierPhone && (() => {
                                           const courierMsg = [
                                             `*🛵 NOVA ENTREGA - ${storeSettings.storeName || 'BURGUER DOS CRIAS'}*`,
-                                            `*Pedido:* #${order.orderNumber}`,
+                                            `*Pedido:* ${cleanOrderNum}`,
                                             `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
                                             `*Endereço:* ${order.address || 'Não informado'}`,
                                             order.address ? `*Rota GPS:* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
@@ -2788,7 +2831,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                               href={`https://wa.me/55${order.courierPhone.replace(/\D/g, '')}?text=${encodeURIComponent(courierMsg)}`}
                                               target="_blank"
                                               rel="noreferrer"
-                                              className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
+                                              className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1"
                                               onClick={e => e.stopPropagation()}
                                               title="Enviar ficha da entrega para o WhatsApp do entregador"
                                             >
@@ -2798,7 +2841,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         })()}
                                       </div>
                                       {order.courierVehicle && (
-                                        <span className="text-[#8e8f8f] block truncate text-[8.5px]">
+                                        <span className="text-sky-700 block truncate text-[8.5px]">
                                           {order.courierVehicle} {order.courierPlate ? `• ${order.courierPlate}` : ''}
                                         </span>
                                       )}
@@ -2808,37 +2851,37 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   {/* Total & Forma de Pagamento */}
                                   <div className="space-y-0.5 pt-0.5">
                                     <div className="flex items-center justify-between text-xs">
-                                      <span className="text-[#8e8f8f] text-[10px] font-bold uppercase tracking-wider">Total:</span>
+                                      <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Total:</span>
                                       <span className="font-['Montserrat'] font-black text-xs sm:text-[13px] text-[#ff5722] whitespace-nowrap shrink-0">
                                         R$&nbsp;{(order.total || 0).toFixed(2).replace('.', ',')}
                                       </span>
                                     </div>
 
                                     {isPixApproved ? (
-                                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-md px-1.5 py-1 text-[9px] space-y-0.5">
+                                      <div className="bg-emerald-50 border border-emerald-300 rounded-md px-1.5 py-1 text-[9px] space-y-0.5">
                                         <div className="flex items-center justify-between">
-                                          <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                            <CheckCircle className="w-2.5 h-2.5" />
+                                          <span className="text-emerald-800 font-bold flex items-center gap-1">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
                                             {order.mercadoPagoPaymentId ? 'PIX APROVADO AUTOMATICAMENTE' : 'PIX CONFIRMADO'}
                                           </span>
-                                          <span className="text-[7.5px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-black uppercase">
+                                          <span className="text-[7.5px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded font-black uppercase">
                                             {order.mercadoPagoPaymentId ? 'API MP' : 'PAGO'}
                                           </span>
                                         </div>
                                         {order.mercadoPagoPaymentId && (
-                                          <span className="text-[8px] text-emerald-300/80 font-mono block">
+                                          <span className="text-[8px] text-emerald-700 font-mono block">
                                             Transação: #{order.mercadoPagoPaymentId}
                                           </span>
                                         )}
                                       </div>
                                     ) : isPixPending ? (
-                                      <div className="bg-amber-950/40 border border-amber-500/50 rounded-lg p-1.5 space-y-1.5 text-[9px]">
+                                      <div className="bg-amber-50 border border-amber-300 rounded-lg p-1.5 space-y-1.5 text-[9px]">
                                         <div className="flex items-center justify-between">
-                                          <span className="text-amber-300 font-bold flex items-center gap-1">
-                                            <Clock className="w-2.5 h-2.5 text-amber-400 animate-spin" />
+                                          <span className="text-amber-900 font-bold flex items-center gap-1">
+                                            <Clock className="w-2.5 h-2.5 text-amber-600 animate-spin" />
                                             {order.mercadoPagoPaymentId ? 'PIX: AGUARDANDO API BANCO' : 'PIX: CONFERIR CONTA'}
                                           </span>
-                                          <span className="text-[7.5px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded font-bold uppercase">
+                                          <span className="text-[7.5px] bg-amber-100 text-amber-800 border border-amber-300 px-1 py-0.2 rounded font-bold uppercase">
                                             PENDENTE
                                           </span>
                                         </div>
@@ -2849,9 +2892,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                               await mercadoPagoApi.simulateApproval(order.mercadoPagoPaymentId!);
                                               onUpdatePaymentStatus?.(order.id, 'aprovado');
                                             }}
-                                            className="w-full bg-sky-950/60 hover:bg-sky-900/60 text-sky-200 border border-sky-500/40 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[8.5px] transition-colors"
+                                            className="w-full bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[8.5px] transition-colors"
                                           >
-                                            <Zap className="w-2.5 h-2.5 text-sky-400" />
+                                            <Zap className="w-2.5 h-2.5 text-sky-600" />
                                             <span>Simular Aprovação API (Teste)</span>
                                           </button>
                                         )}
@@ -2861,9 +2904,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                               e.stopPropagation();
                                               setViewingReceiptOrder(order);
                                             }}
-                                            className="w-full bg-[#2a2216] hover:bg-[#382d1c] text-amber-200 border border-amber-500/40 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[9px] transition-colors"
+                                            className="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 py-1 px-1.5 rounded flex items-center justify-center gap-1 font-bold text-[9px] transition-colors"
                                           >
-                                            <Eye className="w-2.5 h-2.5 text-amber-400" />
+                                            <Eye className="w-2.5 h-2.5 text-amber-600" />
                                             <span>Ver Comprovante Anexado</span>
                                           </button>
                                         )}
@@ -2880,11 +2923,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           </button>
                                           {order.customerPhone && (
                                             <a
-                                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido #${order.orderNumber}. Poderia nos enviar o comprovante do Pix?`)}`}
+                                              href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido ${cleanOrderNum}. Poderia nos enviar o comprovante do Pix?`)}`}
                                               target="_blank"
                                               rel="noreferrer"
                                               onClick={e => e.stopPropagation()}
-                                              className="p-1 rounded bg-[#242424] hover:bg-emerald-600 text-[#b4b5b5] hover:text-white border border-[#404040]"
+                                              className="p-1 rounded bg-gray-100 hover:bg-emerald-500 text-gray-600 hover:text-white border border-gray-300"
                                               title="Pedir comprovante via WhatsApp"
                                             >
                                               <MessageSquare className="w-2.5 h-2.5" />
@@ -2893,36 +2936,36 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         </div>
                                       </div>
                                     ) : isOnlinePaid ? (
-                                      <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px]">
-                                        <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                          <CheckCircle className="w-2.5 h-2.5" /> PAGO ONLINE
+                                      <div className="bg-emerald-50 border border-emerald-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px]">
+                                        <span className="text-emerald-800 font-bold flex items-center gap-1">
+                                          <CheckCircle className="w-2.5 h-2.5 text-emerald-600" /> PAGO ONLINE
                                         </span>
-                                        <span className="text-[7.5px] bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-black uppercase">
+                                        <span className="text-[7.5px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded font-black uppercase">
                                           NÃO COBRAR
                                         </span>
                                       </div>
                                     ) : isNeedMachine ? (
-                                      <div className="bg-amber-950/40 border border-amber-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-amber-300 font-bold">
+                                      <div className="bg-amber-50 border border-amber-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-amber-900 font-bold">
                                         <span className="flex items-center gap-1">
-                                          <CreditCard className="w-2.5 h-2.5 text-amber-400" /> MAQUININHA
+                                          <CreditCard className="w-2.5 h-2.5 text-amber-600" /> MAQUININHA
                                         </span>
-                                        <span className="text-[7.5px] bg-amber-500/20 px-1 py-0.2 rounded uppercase">
+                                        <span className="text-[7.5px] bg-amber-100 border border-amber-300 px-1 py-0.2 rounded uppercase">
                                           COBRAR
                                         </span>
                                       </div>
                                     ) : isCash ? (
-                                      <div className="bg-blue-950/40 border border-blue-500/30 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-blue-300 font-bold">
+                                      <div className="bg-blue-50 border border-blue-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-blue-900 font-bold">
                                         <span className="flex items-center gap-1">
-                                          <Banknote className="w-2.5 h-2.5 text-blue-400" /> DINHEIRO
+                                          <Banknote className="w-2.5 h-2.5 text-blue-600" /> DINHEIRO
                                         </span>
-                                        <span className="text-[8px] text-[#ffdad6]">
+                                        <span className="text-[8px] text-blue-800">
                                           {order.changeFor ? `Troco p/ ${order.changeFor}` : 'Sem troco'}
                                         </span>
                                       </div>
                                     ) : (
-                                      <div className="bg-[#262626] border border-[#383838] rounded-md px-1.5 py-0.5 text-[8.5px] text-[#b4b5b5] flex justify-between">
+                                      <div className="bg-gray-100 border border-gray-200 rounded-md px-1.5 py-0.5 text-[8.5px] text-gray-700 flex justify-between">
                                         <span>Pagamento:</span>
-                                        <span className="text-white font-medium">{order.paymentMethod || 'A combinar'}</span>
+                                        <span className="text-gray-900 font-medium">{order.paymentMethod || 'A combinar'}</span>
                                       </div>
                                     )}
                                   </div>
@@ -2967,7 +3010,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   )}
 
                                   {/* Botões de Ação Operacional do Card */}
-                                  <div className="pt-1.5 border-t border-[#353535]/60 flex items-center gap-1">
+                                  <div className="pt-1.5 border-t border-gray-200 flex items-center gap-1">
                                     {/* Seta Voltar Etapa (se não for Novo) */}
                                     {col.key !== 'novo' && (
                                       <button type="button" onClick={() => {
@@ -2981,7 +3024,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                               : 'em_entrega';
                                           executeMoveOrder(order, prevCol);
                                         }}
-                                        className="h-7 w-7 rounded-lg bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border border-[#383838] flex items-center justify-center shrink-0 transition-all active:scale-95"
+                                        className="h-7 w-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 border border-gray-300 flex items-center justify-center shrink-0 transition-all active:scale-95"
                                         title="Voltar para etapa anterior"
                                       >
                                         <ArrowLeft className="w-3 h-3" />
@@ -2992,7 +3035,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                     {col.key === 'novo' ? (
                                       <div className="flex-1 flex gap-1">
                                         <button type="button" onClick={() => setRejectOrderTarget(order)}
-                                          className="px-2 py-1 rounded-lg bg-[#2f2020] hover:bg-[#452525] text-red-300 border border-red-500/30 text-[10px] font-semibold transition-colors active:scale-95"
+                                          className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[10px] font-semibold transition-colors active:scale-95"
                                           title="Recusar pedido"
                                         >
                                           Recusar
@@ -3006,7 +3049,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       </div>
                                     ) : col.key === 'preparando' ? (
                                       <button type="button" onClick={() => executeMoveOrder(order, 'pronto')}
-                                        className="flex-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white border border-amber-600 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                                       >
                                         <Package className="w-3 h-3" />
                                         <span>Marcar Pronto</span>
@@ -3016,7 +3059,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       <div className="flex-1 space-y-0.5">
                                         {order.type === 'Delivery' ? (
                                           <button type="button" onClick={() => executeMoveOrder(order, 'em_entrega')}
-                                            className="w-full bg-[#019ad8]/20 text-[#86cfff] hover:bg-[#019ad8]/30 border border-[#019ad8]/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                            className="w-full bg-[#019ad8] hover:bg-[#0288be] text-white py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                                           >
                                             <Bike className="w-3 h-3" />
                                             <span>Despachar Rota</span>
@@ -3024,7 +3067,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           </button>
                                         ) : (
                                           <button type="button" onClick={() => executeMoveOrder(order, 'concluido')}
-                                            className="w-full bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                                           >
                                             <CheckCircle className="w-3 h-3" />
                                             <span>Entregar no Balcão</span>
@@ -3032,7 +3075,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         )}
                                         {order.type === 'Delivery' && (storeSettings.couriers || []).filter(c => c.active).length > 1 && (
                                           <button type="button" onClick={() => setDispatchOrderTarget(order)}
-                                            className="w-full text-[8.5px] text-[#86cfff]/80 hover:text-white text-center underline"
+                                            className="w-full text-[8.5px] text-[#019ad8] hover:underline text-center font-bold"
                                           >
                                             Escolher motoboy
                                           </button>
@@ -3040,7 +3083,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       </div>
                                     ) : col.key === 'em_entrega' ? (
                                       <button type="button" onClick={() => executeMoveOrder(order, 'concluido')}
-                                        className="flex-1 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1"
+                                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-1 rounded-lg text-[10px] font-bold font-['Montserrat'] transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                                       >
                                         <CheckCircle className="w-3 h-3" />
                                         <span>Concluir Entrega</span>
@@ -3049,14 +3092,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       /* Coluna Finalizados */
                                       <div className="flex-1 flex gap-1">
                                         <button type="button" onClick={() => executeMoveOrder(order, 'pronto')}
-                                          className="flex-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] py-1 rounded-lg text-[9.5px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1"
+                                          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 py-1 rounded-lg text-[9.5px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1"
                                           title="Reabrir pedido caso tenha sido concluído por engano"
                                         >
                                           <RotateCcw className="w-2.5 h-2.5" />
                                           <span>Reabrir</span>
                                         </button>
                                         <button type="button" onClick={() => onPrintOrder(order)}
-                                          className="px-1.5 py-1 bg-[#262626] hover:bg-[#333] text-slate-300 border border-[#383838] rounded-lg text-[9.5px] font-bold transition-all"
+                                          className="px-1.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg text-[9.5px] font-bold transition-all"
                                           title="Imprimir segunda via"
                                         >
                                           2ª Via
@@ -3069,7 +3112,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       className={`h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 ${
                                         isQuickMoveOpen
                                           ? 'bg-[#ff5722] text-white border-[#ff5722]'
-                                          : 'bg-[#262626] hover:bg-[#333] text-[#b4b5b5] hover:text-white border-[#383838]'
+                                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 border-gray-300'
                                       }`}
                                       title="Mover diretamente para qualquer coluna"
                                     >
@@ -3082,10 +3125,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                       href={getManagerWhatsAppNotificationUrl(order, storeSettings)}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 bg-emerald-950/40 hover:bg-emerald-600 text-emerald-300 hover:text-white border-emerald-500/40 active:scale-95"
+                                      className="h-7 px-1.5 rounded-lg border text-[9.5px] font-bold transition-all flex items-center gap-1 shrink-0 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 active:scale-95"
                                       title="Enviar / Abrir ficha no WhatsApp do Gestor"
                                     >
-                                      <MessageSquare className="w-2.5 h-2.5" />
+                                      <MessageSquare className="w-2.5 h-2.5 text-emerald-600" />
                                       <span className="hidden sm:inline">WhatsApp</span>
                                     </a>
                                   </div>
@@ -3199,23 +3242,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   return (
                     <div
                       key={order.id}
-                      className="bg-[#20201f] rounded-lg border border-[#ff5722]/30 shadow-xl overflow-hidden flex flex-col group hover:border-[#ff5722] transition-all"
+                      className="bg-white rounded-xl border-2 border-red-500 shadow-md overflow-hidden flex flex-col group hover:shadow-lg transition-all text-gray-900"
                     >
-                      <div className="h-24 w-full relative overflow-hidden bg-black">
-                        <img
-                          src={APP_IMAGES.urgentCardBanner}
-                          alt="Smash burger urgente"
-                          className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#20201f] to-transparent" />
-                        <div className="absolute bottom-2.5 left-4 flex items-center gap-2">
-                          <span className="bg-[#93000a] text-[#ffdad6] px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider font-['Montserrat']">
+                      <div className="h-16 w-full relative overflow-hidden bg-red-600 flex items-center justify-between px-4">
+                        <div className="flex items-center gap-2 text-white">
+                          <span className="bg-white text-red-700 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider font-['Montserrat']">
                             Urgente
                           </span>
-                          <span className="text-[10px] text-[#ffb5a0] bg-black/60 px-2 py-0.5 rounded-full">
+                          <span className="text-[11px] font-mono font-bold bg-black/30 px-2 py-0.5 rounded-full">
                             {order.timeAgo}
                           </span>
                         </div>
+                        <Zap className="w-6 h-6 text-yellow-300 fill-yellow-300 animate-bounce" />
                       </div>
 
                       <div className="p-4 flex-grow flex flex-col justify-between">
@@ -3223,7 +3261,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                                <h3
+                                  onClick={() => setSelectedOrderDetail(order)}
+                                  className="font-['Montserrat'] font-bold text-base text-gray-900 hover:text-[#ff5722] cursor-pointer"
+                                >
                                   {order.orderNumber} - {order.customerName}
                                 </h3>
                                 {isPixApproved ? (
@@ -3248,18 +3289,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   </span>
                                 ) : null}
                               </div>
-                              <p className="text-xs text-[#b4b5b5]">
+                              <p className="text-xs text-gray-500">
                                 {order.timeAgo} • {order.type}
                               </p>
                               {order.type === 'Delivery' && order.address && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] mt-1 pt-1 border-t border-[#353535]/40">
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-600 mt-1 pt-1 border-t border-gray-200">
                                   <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
-                                  <span className="truncate flex-1 text-white">{order.address}</span>
+                                  <span className="truncate flex-1 text-gray-800 font-medium">{order.address}</span>
                                   <a
                                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-[#141414] px-1.5 py-0.5 rounded border border-[#353535]"
+                                    className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200"
                                     title="Abrir rota no Google Maps"
                                   >
                                     <Navigation className="w-2.5 h-2.5 text-[#019ad8]" />
@@ -3270,27 +3311,52 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               )}
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOrderDetail(order)}
+                                className="p-1 rounded bg-gray-100 hover:bg-orange-50 text-gray-600 hover:text-[#ff5722] border border-gray-200 transition-colors"
+                                title="Ver detalhes completos do pedido"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
                               <button onClick={() => onPrintOrder(order)}
-                                className="flex items-center gap-1 px-2.5 py-1 bg-[#282828] hover:bg-[#ff5722] text-[#ffdad6] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#404040] transition-all active:scale-95 shadow-sm"
+                                className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-[#ff5722] text-gray-700 hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-gray-200 transition-all active:scale-95 shadow-sm"
                                 title="Imprimir comanda térmica (58mm/80mm)"
                               >
                                 <Printer className="w-3.5 h-3.5 text-[#ff8a65]" />
                                 <span>Imprimir</span>
                               </button>
-                              <Zap className="w-5 h-5 text-[#ff5722] fill-[#ff5722]" />
                             </div>
                           </div>
 
-                          <div className="space-y-1 mb-3 text-xs text-[#e5e2e1]">
-                            {order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between">
-                                <span>{item.quantity}x {item.name}</span>
-                                <span className="text-[#ff5722] font-semibold">
-                                  R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                                </span>
-                              </div>
-                            ))}
+                          <div
+                            onClick={() => setSelectedOrderDetail(order)}
+                            className="space-y-1 mb-3 text-xs text-gray-900 bg-gray-50/70 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-orange-50/30 transition-colors"
+                            title="Clique para ver os detalhes completos"
+                          >
+                            {order.items.map((item, idx) => {
+                              const itemName = item.name || (item as any).product?.name || (item as any).title || (item as any).productName || 'Item sem descrição';
+                              return (
+                                <div key={idx} className="flex justify-between items-start gap-1 border-b border-gray-100 last:border-b-0 pb-1 last:pb-0">
+                                  <span className="font-medium text-gray-900">
+                                    <strong className="text-[#ff5722] font-mono mr-1">{item.quantity}x</strong> {itemName}
+                                  </span>
+                                  <span className="text-[#ff5722] font-semibold font-mono shrink-0">
+                                    R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',')}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderDetail(order)}
+                            className="w-full mb-3 text-center py-1 text-[11px] font-bold text-gray-700 hover:text-[#ff5722] hover:bg-orange-50 rounded-lg border border-gray-200 transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-[#ff5722]" />
+                            <span>Ver Detalhes do Pedido</span>
+                          </button>
 
                           {/* Payment Instruction Banner */}
                           <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
@@ -3545,7 +3611,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 return (
                   <div
                     key={order.id}
-                    className="bg-[#20201f] rounded-lg p-4 border border-[#353535]/50 shadow-md relative overflow-hidden flex flex-col justify-between group hover:border-[#ff5722]/30 transition-all"
+                    className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden flex flex-col justify-between group hover:shadow-md transition-all text-gray-900"
                   >
                     {isNovo && (
                       <div className="absolute top-0 right-0 p-2">
@@ -3561,7 +3627,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                             isNovo
                               ? 'bg-[#ff5722]/10 text-[#ff5722]'
-                              : 'bg-[#353535] text-[#ff8a65]'
+                              : 'bg-gray-100 text-[#ff8a65]'
                           }`}
                         >
                           {isNovo ? (
@@ -3572,7 +3638,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="font-['Montserrat'] font-bold text-sm md:text-base text-white">
+                            <h3
+                              onClick={() => setSelectedOrderDetail(order)}
+                              className="font-['Montserrat'] font-bold text-sm md:text-base text-gray-900 hover:text-[#ff5722] cursor-pointer"
+                            >
                               {order.orderNumber} - {order.customerName}
                             </h3>
                             {isPixApproved ? (
@@ -3597,18 +3666,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </span>
                             ) : null}
                           </div>
-                          <p className="text-xs text-[#b4b5b5]">
+                          <p className="text-xs text-gray-500">
                             {order.timeAgo} • {order.type}
                           </p>
                           {order.type === 'Delivery' && order.address && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] mt-1 pt-1 border-t border-[#353535]/40">
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-600 mt-1 pt-1 border-t border-gray-200">
                               <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
-                              <span className="truncate flex-1 text-white">{order.address}</span>
+                              <span className="truncate flex-1 text-gray-800 font-medium">{order.address}</span>
                               <a
                                 href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-[#86cfff] hover:text-white shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-[#141414] px-1.5 py-0.5 rounded border border-[#353535]"
+                                className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200"
                                 title="Abrir rota no Google Maps"
                               >
                                 <Navigation className="w-2.5 h-2.5 text-[#019ad8]" />
@@ -3618,35 +3687,61 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             </div>
                           )}
                         </div>
-                        <button onClick={() => onPrintOrder(order)}
-                          className="ml-auto flex items-center gap-1 px-2.5 py-1 bg-[#252525] hover:bg-[#ff5722] text-[#b4b5b5] hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-[#383838] transition-all active:scale-95 shadow-sm shrink-0"
-                          title="Imprimir comanda térmica (58mm/80mm)"
-                        >
-                          <Printer className="w-3.5 h-3.5 text-[#ff5722]" />
-                          <span>Imprimir</span>
-                        </button>
+                        <div className="ml-auto flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderDetail(order)}
+                            className="p-1 rounded bg-gray-100 hover:bg-orange-50 text-gray-600 hover:text-[#ff5722] border border-gray-200 transition-colors"
+                            title="Ver detalhes completos do pedido"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => onPrintOrder(order)}
+                            className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-[#ff5722] text-gray-700 hover:text-white rounded-lg text-[11px] font-bold font-['Montserrat'] border border-gray-200 transition-all active:scale-95 shadow-sm"
+                            title="Imprimir comanda térmica (58mm/80mm)"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#ff5722]" />
+                            <span>Imprimir</span>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Items */}
-                      <div className="space-y-2 mb-4 text-xs">
-                        {order.items.map((item, i) => (
-                          <div key={i} className="space-y-1">
-                            <div className="flex justify-between items-start">
-                              <span className="text-white font-medium">
-                                {item.quantity}x {item.name}
-                              </span>
-                              <span className="text-[#ff5722] font-semibold">
-                                R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}
-                              </span>
-                            </div>
-                            {item.notes && (
-                              <div className="pl-2 border-l-2 border-[#ff5722]/40 italic text-[11px] text-[#ffb5a0]">
-                                "{item.notes}"
+                      <div
+                        onClick={() => setSelectedOrderDetail(order)}
+                        className="space-y-2 mb-3 text-xs bg-gray-50/70 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-orange-50/30 transition-colors"
+                        title="Clique para ver os detalhes completos"
+                      >
+                        {order.items.map((item, i) => {
+                          const itemName = item.name || (item as any).product?.name || (item as any).title || (item as any).productName || 'Item sem descrição';
+                          return (
+                            <div key={i} className="space-y-0.5 border-b border-gray-100 last:border-b-0 pb-1 last:pb-0">
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="text-gray-900 font-medium">
+                                  <strong className="text-[#ff5722] font-mono mr-1">{item.quantity}x</strong> {itemName}
+                                </span>
+                                <span className="text-[#ff5722] font-semibold font-mono">
+                                  R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',')}
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        ))}
+                              {item.notes && (
+                                <div className="pl-2 border-l-2 border-amber-500 italic text-[11px] text-amber-900 bg-amber-50 rounded-r py-0.5">
+                                  "{item.notes}"
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrderDetail(order)}
+                        className="w-full mb-3 text-center py-1 text-[11px] font-bold text-gray-700 hover:text-[#ff5722] hover:bg-orange-50 rounded-lg border border-gray-200 transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>Ver Detalhes do Pedido</span>
+                      </button>
 
                       {/* Payment Instruction Banner */}
                       <div className="mb-3 pt-2.5 border-t border-[#353535]/50 space-y-1.5">
@@ -7744,6 +7839,398 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal Completo de Detalhes do Pedido para o Gestor */}
+      {selectedOrderDetail && (() => {
+        const order = selectedOrderDetail;
+        const cleanNum = (order.orderNumber || '').startsWith('#') ? order.orderNumber : `#${order.orderNumber || ''}`;
+        const isPix = Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('pix'));
+        const isPixAppr = isPix && order.paymentStatus === 'aprovado';
+        const isPixPend = isPix && order.paymentStatus !== 'aprovado';
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white border border-gray-200 rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[92vh] text-gray-900">
+              {/* Header do Modal */}
+              <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50/80">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center border border-[#ff5722]/30 shadow-xs">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-black text-gray-900 font-['Montserrat']">
+                        Pedido {cleanNum}
+                      </h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        order.status === 'novo' || order.status === 'recebido'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                          : order.status === 'preparando'
+                          ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                          : order.status === 'pronto'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : order.status === 'em_entrega'
+                          ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                          : order.status === 'entregue'
+                          ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                          : 'bg-red-100 text-red-700 border border-red-300'
+                      }`}>
+                        {order.status === 'novo' || order.status === 'recebido'
+                          ? 'Novo / Aguardando'
+                          : order.status === 'preparando'
+                          ? 'Em Preparo'
+                          : order.status === 'pronto'
+                          ? 'Pronto'
+                          : order.status === 'em_entrega'
+                          ? 'Em Rota'
+                          : order.status === 'entregue'
+                          ? 'Entregue'
+                          : 'Recusado'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      {order.timeAgo || 'Agora'} • Canal: <strong className="text-gray-800">{order.type}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderDetail(null)}
+                  className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center transition-colors"
+                  title="Fechar detalhes"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Corpo com Scroll */}
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+                {/* Dados do Cliente e Contato */}
+                <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                      Dados do Cliente
+                    </span>
+                    {order.customerPhone && (
+                      <a
+                        href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${order.customerName}, aqui é da hamburgueria sobre seu pedido ${cleanNum}:`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded-lg transition-colors"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        <span>Abrir WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-900">
+                    <div>
+                      <span className="text-gray-500 text-[10px] block">Nome:</span>
+                      <strong className="text-sm font-bold text-gray-900">{order.customerName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10px] block">Telefone:</span>
+                      <strong className="text-sm font-mono text-gray-900">{order.customerPhone || 'Não informado'}</strong>
+                    </div>
+                  </div>
+
+                  {order.type === 'Delivery' && order.address && (
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between gap-2">
+                      <div className="flex items-start gap-1.5 min-w-0">
+                        <MapPin className="w-4 h-4 text-[#ff5722] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-gray-500 text-[10px] block">Endereço de Entrega:</span>
+                          <span className="text-gray-800 font-medium leading-snug">{order.address}</span>
+                        </div>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-800 bg-sky-100 hover:bg-sky-200 px-2.5 py-1 rounded-lg border border-sky-200 transition-colors"
+                      >
+                        <Navigation className="w-3 h-3 text-sky-600" />
+                        <span>Ver Rota GPS</span>
+                      </a>
+                    </div>
+                  )}
+
+                  {order.type === 'Mesa' && (
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="text-purple-700 font-bold flex items-center gap-1">
+                        <UtensilsCrossed className="w-3.5 h-3.5" />
+                        Consumo no Salão • Mesa #{order.tableNumber || 1}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Itens do Pedido */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                      Itens do Pedido ({(order.items || []).length})
+                    </span>
+                    <span className="text-gray-500 text-[10px]">Quantidades & Observações</span>
+                  </div>
+
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 bg-white">
+                    {(order.items || []).map((item, idx) => {
+                      const itemName = item.name || (item as any).product?.name || (item as any).title || (item as any).productName || 'Item sem descrição';
+                      const itemQty = item.quantity || 1;
+                      const itemTotal = (item.price || 0) * itemQty;
+
+                      return (
+                        <div key={idx} className="p-3 hover:bg-gray-50/80 transition-colors">
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="bg-orange-100 text-orange-700 font-mono font-black text-xs px-2 py-0.5 rounded-lg border border-orange-200">
+                                  {itemQty}x
+                                </span>
+                                <strong className="text-sm font-bold text-gray-900 break-words">
+                                  {itemName}
+                                </strong>
+                                {item.pizzaSize && (
+                                  <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold">
+                                    Tam: {item.pizzaSize}
+                                  </span>
+                                )}
+                                {item.juiceSize && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">
+                                    Tam: {item.juiceSize}
+                                  </span>
+                                )}
+                              </div>
+                              {item.notes && (
+                                <div className="mt-1.5 bg-amber-50 text-amber-900 text-[11px] p-1.5 rounded-lg border-l-2 border-amber-500 font-medium">
+                                  ⚠️ Observação: "{item.notes}"
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-mono font-bold text-orange-600 block">
+                                R$ {itemTotal.toFixed(2).replace('.', ',')}
+                              </span>
+                              {itemQty > 1 && (
+                                <span className="text-[10px] font-mono text-gray-500 block">
+                                  (R$ {(item.price || 0).toFixed(2).replace('.', ',')} un)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Observações Gerais do Pedido */}
+                {order.notes && (
+                  <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 space-y-1">
+                    <span className="font-bold text-amber-900 text-[10px] uppercase tracking-wider block">
+                      Observação Geral do Pedido
+                    </span>
+                    <p className="text-xs text-amber-950 font-medium leading-relaxed">
+                      "{order.notes}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Resumo Financeiro & Pagamento */}
+                <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                      Pagamento & Valores
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        order.paymentStatus === 'aprovado'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}>
+                        {order.paymentStatus === 'aprovado' ? '✓ Pago / Confirmado' : '🟡 Pagamento Pendente'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 text-xs pt-1 border-t border-gray-200">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Forma de Pagamento:</span>
+                      <strong className="text-gray-900">{order.paymentMethod || 'A combinar'}</strong>
+                    </div>
+                    {order.changeFor && (
+                      <div className="flex justify-between text-amber-700 font-bold">
+                        <span>Levar troco para:</span>
+                        <span>{order.changeFor}</span>
+                      </div>
+                    )}
+                    {order.subtotal !== undefined && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Subtotal dos Itens:</span>
+                        <span>R$ {order.subtotal.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
+                    {order.deliveryFee !== undefined && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>Taxa de Entrega:</span>
+                        <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-300 text-gray-900">
+                      <span>Total Geral:</span>
+                      <span className="text-base font-black text-[#ff5722] font-mono">
+                        R$ {(order.total || 0).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isPixPend && (
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between gap-2">
+                      <div className="text-[11px] text-amber-800 font-medium">
+                        O cliente realizou o Pix?
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {order.pixReceiptUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedOrderDetail(null);
+                              setViewingReceiptOrder(order);
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-lg border border-amber-300 transition-colors flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3 text-amber-700" />
+                            <span>Ver Comprovante</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdatePaymentStatus?.(order.id, 'aprovado');
+                            setSelectedOrderDetail(prev => prev ? { ...prev, paymentStatus: 'aprovado' } : null);
+                          }}
+                          className="px-3 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-xs flex items-center gap-1 transition-colors"
+                        >
+                          <Check className="w-3 h-3" />
+                          <span>Confirmar Pix</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Motoboy Atribuído */}
+                {order.courierName && (
+                  <div className="bg-sky-50 rounded-2xl p-3.5 border border-sky-200 space-y-1">
+                    <span className="font-bold text-sky-900 text-[10px] uppercase tracking-wider block">
+                      Entregador Responsável
+                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-sky-950 flex items-center gap-1.5">
+                        <Bike className="w-4 h-4 text-sky-600" />
+                        {order.courierName}
+                      </span>
+                      {order.courierVehicle && (
+                        <span className="text-xs text-sky-700">
+                          {order.courierVehicle} {order.courierPlate ? `• ${order.courierPlate}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer com Ações */}
+              <div className="p-4 sm:p-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => onPrintOrder(order)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gray-200 hover:bg-[#ff5722] hover:text-white text-gray-800 text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Imprimir Comanda</span>
+                </button>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrderDetail(null)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold"
+                  >
+                    Fechar
+                  </button>
+
+                  {/* Ação Operacional de Avanço */}
+                  {order.status === 'novo' || order.status === 'recebido' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        executeMoveOrder(order, 'preparando');
+                        setSelectedOrderDetail(null);
+                      }}
+                      className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl btn-flame text-white text-xs font-bold font-['Montserrat'] shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <Soup className="w-4 h-4" />
+                      <span>Aceitar & Preparar</span>
+                    </button>
+                  ) : order.status === 'preparando' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        executeMoveOrder(order, 'pronto');
+                        setSelectedOrderDetail(null);
+                      }}
+                      className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <Package className="w-4 h-4" />
+                      <span>Marcar como Pronto</span>
+                    </button>
+                  ) : order.status === 'pronto' ? (
+                    order.type === 'Delivery' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          executeMoveOrder(order, 'em_entrega');
+                          setSelectedOrderDetail(null);
+                        }}
+                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-[#019ad8] hover:bg-[#0288be] text-white text-xs font-bold font-['Montserrat'] shadow-md flex items-center justify-center gap-1.5"
+                      >
+                        <Bike className="w-4 h-4" />
+                        <span>Despachar Entrega</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          executeMoveOrder(order, 'concluido');
+                          setSelectedOrderDetail(null);
+                        }}
+                        className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-['Montserrat'] shadow-md flex items-center justify-center gap-1.5"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Entregar no Balcão</span>
+                      </button>
+                    )
+                  ) : order.status === 'em_entrega' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        executeMoveOrder(order, 'concluido');
+                        setSelectedOrderDetail(null);
+                      }}
+                      className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold font-['Montserrat'] shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Concluir Entrega</span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal de Compartilhamento do Link Público do Cardápio */}
       <ShareMenuModal
