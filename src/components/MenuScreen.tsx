@@ -200,13 +200,32 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const salgados = products.filter(p => p.category === 'salgados');
   const sucos = products.filter(p => p.category === 'sucos');
   const refrigerantes = products.filter(
-    p => p.category === 'bebidas' && (p.subCategory === 'refrigerantes' || p.name.toLowerCase().includes('coca') || p.name.toLowerCase().includes('guaraná') || p.name.toLowerCase().includes('fanta') || p.name.toLowerCase().includes('sprite'))
+    p =>
+      p.category === 'refrigerantes' ||
+      (p.category as string) === 'refrigerante' ||
+      (p.category === 'bebidas' &&
+        (p.subCategory === 'refrigerantes' ||
+          p.name.toLowerCase().includes('refrigerante') ||
+          p.name.toLowerCase().includes('pepsi') ||
+          p.name.toLowerCase().includes('coca') ||
+          p.name.toLowerCase().includes('guaraná') ||
+          p.name.toLowerCase().includes('fanta') ||
+          p.name.toLowerCase().includes('sprite')))
   );
   const cervejas = products.filter(
     p => p.category === 'bebidas' && (p.subCategory === 'cervejas' || p.name.toLowerCase().includes('cerveja'))
   );
   const outrasBebidas = products.filter(
-    p => p.category === 'bebidas' && p.subCategory !== 'refrigerantes' && !p.name.toLowerCase().includes('cerveja') && !p.name.toLowerCase().includes('coca') && !p.name.toLowerCase().includes('guaraná') && !p.name.toLowerCase().includes('fanta') && !p.name.toLowerCase().includes('sprite')
+    p =>
+      p.category === 'bebidas' &&
+      p.subCategory !== 'refrigerantes' &&
+      !p.name.toLowerCase().includes('cerveja') &&
+      !p.name.toLowerCase().includes('refrigerante') &&
+      !p.name.toLowerCase().includes('pepsi') &&
+      !p.name.toLowerCase().includes('coca') &&
+      !p.name.toLowerCase().includes('guaraná') &&
+      !p.name.toLowerCase().includes('fanta') &&
+      !p.name.toLowerCase().includes('sprite')
   );
 
   // Filter based on search or category
@@ -223,18 +242,24 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
     }
     if (selectedCategory === 'refrigerantes') {
       return (
-        p.category === 'bebidas' &&
-        (p.subCategory === 'refrigerantes' ||
-          p.name.toLowerCase().includes('coca') ||
-          p.name.toLowerCase().includes('guaraná') ||
-          p.name.toLowerCase().includes('fanta') ||
-          p.name.toLowerCase().includes('sprite'))
+        p.category === 'refrigerantes' ||
+        (p.category as string) === 'refrigerante' ||
+        (p.category === 'bebidas' &&
+          (p.subCategory === 'refrigerantes' ||
+            p.name.toLowerCase().includes('refrigerante') ||
+            p.name.toLowerCase().includes('pepsi') ||
+            p.name.toLowerCase().includes('coca') ||
+            p.name.toLowerCase().includes('guaraná') ||
+            p.name.toLowerCase().includes('fanta') ||
+            p.name.toLowerCase().includes('sprite')))
       );
     }
     if (selectedCategory === 'cervejas' || selectedCategory === 'bebidas') {
       return (
         p.category === 'bebidas' &&
         p.subCategory !== 'refrigerantes' &&
+        !p.name.toLowerCase().includes('refrigerante') &&
+        !p.name.toLowerCase().includes('pepsi') &&
         !p.name.toLowerCase().includes('coca') &&
         !p.name.toLowerCase().includes('guaraná') &&
         !p.name.toLowerCase().includes('fanta') &&

@@ -32,7 +32,7 @@ export interface PizzaPrices {
 export interface Product {
   id: string;
   name: string;
-  category: 'burgers' | 'burgues_industrial' | 'combos' | 'salgados' | 'bebidas' | 'pizzas' | 'sucos';
+  category: 'burgers' | 'burgues_industrial' | 'combos' | 'salgados' | 'bebidas' | 'pizzas' | 'sucos' | 'refrigerantes' | 'refrigerante';
   subCategory?: 'cervejas' | 'refrigerantes' | 'quentes';
   price: number;
   originalPrice?: number;

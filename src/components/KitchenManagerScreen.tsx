@@ -197,7 +197,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [mainFilter, setMainFilter] = useState<'abertos' | 'agendados'>('abertos');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'pizzas' | 'salgados' | 'sucos' | 'bebidas'>('all');
+  const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'burgues_industrial' | 'combos' | 'pizzas' | 'salgados' | 'sucos' | 'refrigerantes' | 'bebidas'>('all');
   const [managerPinInput, setManagerPinInput] = useState('');
   const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
@@ -1460,6 +1460,32 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   // Filtered products for Menu Management
   const filteredProducts = products.filter(p => {
     if (cardapioFilter === 'all') return true;
+    if (cardapioFilter === 'refrigerantes') {
+      return (
+        p.category === 'refrigerantes' ||
+        (p.category as string) === 'refrigerante' ||
+        (p.category === 'bebidas' &&
+          (p.subCategory === 'refrigerantes' ||
+            p.name.toLowerCase().includes('refrigerante') ||
+            p.name.toLowerCase().includes('pepsi') ||
+            p.name.toLowerCase().includes('coca') ||
+            p.name.toLowerCase().includes('guaraná') ||
+            p.name.toLowerCase().includes('fanta') ||
+            p.name.toLowerCase().includes('sprite')))
+      );
+    }
+    if (cardapioFilter === 'bebidas') {
+      return (
+        p.category === 'bebidas' &&
+        p.subCategory !== 'refrigerantes' &&
+        !p.name.toLowerCase().includes('refrigerante') &&
+        !p.name.toLowerCase().includes('pepsi') &&
+        !p.name.toLowerCase().includes('coca') &&
+        !p.name.toLowerCase().includes('guaraná') &&
+        !p.name.toLowerCase().includes('fanta') &&
+        !p.name.toLowerCase().includes('sprite')
+      );
+    }
     return p.category === cardapioFilter;
   });
 
@@ -4090,13 +4116,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               {[
                 { id: 'all' as const, label: 'Todos os Itens' },
                 { id: 'burgers' as const, label: 'Burgers Artesanal' },
+                { id: 'burgues_industrial' as const, label: 'Burguês Industrial' },
+                { id: 'combos' as const, label: 'Combos' },
                 { id: 'pizzas' as const, label: 'Pizzas' },
                 { id: 'salgados' as const, label: 'Salgados' },
                 { id: 'sucos' as const, label: 'Sucos Natural' },
-                { id: 'bebidas' as const, label: 'Bebidas' },
+                { id: 'refrigerantes' as const, label: 'Refrigerantes' },
+                { id: 'bebidas' as const, label: 'Bebidas / Outras' },
               ].map(cat => (
                 <button key={cat.id} onClick={() => setCardapioFilter(cat.id)}
-                  className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all ${
+                  className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all whitespace-nowrap ${
                     cardapioFilter === cat.id
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border border-[#73401D]'
                       : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border border-[#353535]'

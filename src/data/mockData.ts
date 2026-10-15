@@ -323,9 +323,19 @@ export const PRODUCTS: Product[] = [
   },
   // Bebidas - Refrigerantes & Geladas
   {
+    id: 'pepsi-1l',
+    name: 'Refrigerante Pepsi 1 Litro',
+    category: 'refrigerantes',
+    subCategory: 'refrigerantes',
+    price: 9.00,
+    costPrice: 5.00,
+    description: 'Garrafa pet 1 litro trincando de gelada.',
+    image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=800&q=80',
+  },
+  {
     id: 'coca-cola',
     name: 'Coca-Cola Original',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 7.90,
     description: 'Lata 350ml trincando de gelada.',
@@ -334,7 +344,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'coca-cola-zero',
     name: 'Coca-Cola Sem Açúcar',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 7.90,
     description: 'Lata 350ml zero calorias, máximo sabor e bem gelada.',
@@ -343,7 +353,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'guarana',
     name: 'Guaraná Antarctica',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 6.90,
     description: 'Lata 350ml gelada com o sabor original do Brasil.',
@@ -352,7 +362,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'guarana-zero',
     name: 'Guaraná Antarctica Zero',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 6.90,
     description: 'Lata 350ml zero açúcar, super refrescante.',
@@ -361,7 +371,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'fanta-laranja',
     name: 'Fanta Laranja',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 6.90,
     description: 'Lata 350ml bem gelada.',
@@ -370,7 +380,7 @@ export const PRODUCTS: Product[] = [
   {
     id: 'sprite',
     name: 'Sprite Lemon Fresh',
-    category: 'bebidas',
+    category: 'refrigerantes',
     subCategory: 'refrigerantes',
     price: 6.90,
     description: 'Lata 350ml com sabor limão refrescante trincando de gelada.',

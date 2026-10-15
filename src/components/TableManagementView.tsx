@@ -519,7 +519,29 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
 
   // Products filtered for modal
   const filteredProductsForAdd = products.filter(p => {
-    const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchCat =
+      selectedCategory === 'all' ||
+      (selectedCategory === 'refrigerantes'
+        ? p.category === 'refrigerantes' ||
+          (p.category as string) === 'refrigerante' ||
+          (p.category === 'bebidas' &&
+            (p.subCategory === 'refrigerantes' ||
+              p.name.toLowerCase().includes('refrigerante') ||
+              p.name.toLowerCase().includes('pepsi') ||
+              p.name.toLowerCase().includes('coca') ||
+              p.name.toLowerCase().includes('guaraná') ||
+              p.name.toLowerCase().includes('fanta') ||
+              p.name.toLowerCase().includes('sprite')))
+        : selectedCategory === 'bebidas'
+        ? p.category === 'bebidas' &&
+          p.subCategory !== 'refrigerantes' &&
+          !p.name.toLowerCase().includes('refrigerante') &&
+          !p.name.toLowerCase().includes('pepsi') &&
+          !p.name.toLowerCase().includes('coca') &&
+          !p.name.toLowerCase().includes('guaraná') &&
+          !p.name.toLowerCase().includes('fanta') &&
+          !p.name.toLowerCase().includes('sprite')
+        : p.category === selectedCategory);
     const matchSearch =
       !productSearch.trim() ||
       p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
@@ -1399,7 +1421,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               </div>
 
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                {['all', 'burgers', 'burgues_industrial', 'combos', 'salgados', 'pizzas', 'sucos', 'bebidas'].map(cat => (
+                {['all', 'burgers', 'burgues_industrial', 'combos', 'salgados', 'pizzas', 'sucos', 'refrigerantes', 'bebidas'].map(cat => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
@@ -1409,7 +1431,17 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                         : 'bg-[#252525] text-[#b4b5b5] hover:text-white'
                     }`}
                   >
-                    {cat === 'all' ? 'Todos' : cat === 'burgues_industrial' ? 'Burguês Ind.' : cat === 'burgers' ? 'Burgers Artesanal' : cat}
+                    {cat === 'all'
+                      ? 'Todos'
+                      : cat === 'burgues_industrial'
+                      ? 'Burguês Ind.'
+                      : cat === 'burgers'
+                      ? 'Burgers Artesanal'
+                      : cat === 'refrigerantes'
+                      ? 'Refrigerantes'
+                      : cat === 'bebidas'
+                      ? 'Outras Bebidas'
+                      : cat}
                   </button>
                 ))}
               </div>

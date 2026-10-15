@@ -39,9 +39,15 @@ const CATEGORY_IMAGE_PRESETS: Record<string, { label: string; url: string }[]> =
     { label: 'Morango', url: 'https://images.unsplash.com/photo-1546173159-315724a31696?auto=format&fit=crop&w=800&q=80' },
     { label: 'Maracujá', url: 'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?auto=format&fit=crop&w=800&q=80' },
   ],
+  refrigerantes: [
+    { label: 'Pepsi 1 Litro / Pet', url: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Coca-Cola Gelada', url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Refrigerante Lata 350ml', url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Guaraná Antarctica', url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?auto=format&fit=crop&w=800&q=80' },
+  ],
   bebidas: [
-    { label: 'Refrigerante', url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80' },
-    { label: 'Cerveja Artesanal', url: 'https://images.unsplash.com/photo-1608270544520-2c70284c8e76?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Cerveja Long Neck', url: 'https://images.unsplash.com/photo-1608270544520-2c70284c8e76?auto=format&fit=crop&w=800&q=80' },
+    { label: 'Água Mineral', url: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=800&q=80' },
   ],
   combos: [
     { label: 'Combo Burger + Fritas', url: 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800&q=80' },
@@ -62,9 +68,27 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onClose,
 }) => {
   const [name, setName] = useState(initialProduct?.name || '');
-  const [category, setCategory] = useState<Product['category']>(
-    initialProduct?.category || 'burgers'
-  );
+  const [category, setCategory] = useState<Product['category']>(() => {
+    if (initialProduct?.category) {
+      if (initialProduct.category === 'refrigerante' || initialProduct.category === 'refrigerantes') {
+        return 'refrigerantes';
+      }
+      if (
+        initialProduct.category === 'bebidas' &&
+        (initialProduct.subCategory === 'refrigerantes' ||
+          initialProduct.name.toLowerCase().includes('refrigerante') ||
+          initialProduct.name.toLowerCase().includes('pepsi') ||
+          initialProduct.name.toLowerCase().includes('coca') ||
+          initialProduct.name.toLowerCase().includes('guaraná') ||
+          initialProduct.name.toLowerCase().includes('fanta') ||
+          initialProduct.name.toLowerCase().includes('sprite'))
+      ) {
+        return 'refrigerantes';
+      }
+      return initialProduct.category;
+    }
+    return 'burgers';
+  });
   const [price, setPrice] = useState(initialProduct ? initialProduct.price.toString() : '');
   const [costPrice, setCostPrice] = useState(
     initialProduct?.costPrice !== undefined ? initialProduct.costPrice.toString() : ''
@@ -223,8 +247,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
-      isAvailable: initialProduct?.isAvailable ?? true,
-      subCategory: initialProduct?.subCategory,
+      subCategory:
+        category === 'refrigerantes' || (category as string) === 'refrigerante'
+          ? 'refrigerantes'
+          : initialProduct?.subCategory,
       juicePrices: category === 'sucos' ? {
         '300ml': parseNum(juice300Price, Math.max(0, basePrice - 3)),
         '500ml': parseNum(juice500Price, basePrice),
@@ -261,7 +287,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         <div className="px-5 py-3.5 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b] flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-lg">
-              {category === 'pizzas' ? '🍕' : category === 'sucos' ? '🥤' : '🍔'}
+              {category === 'pizzas' ? '🍕' : category === 'sucos' ? '🥤' : category === 'refrigerantes' || (category as string) === 'refrigerante' ? '🥫' : '🍔'}
             </span>
             <h3 className="font-['Montserrat'] font-bold text-sm text-white">
               {initialProduct ? 'Editar Item do Cardápio' : 'Novo Item no Cardápio'}
@@ -292,9 +318,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <div>
             <label className="block text-[#b4b5b5] mb-1">Categoria *</label>
             <select
-              value={category}
+              value={category === 'refrigerante' ? 'refrigerantes' : category}
               onChange={e => setCategory(e.target.value as any)}
-              className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+              className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
             >
               <option value="burgers">Burgers Artesanal</option>
               <option value="burgues_industrial">Burguês Industrial</option>
@@ -302,7 +328,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <option value="combos">Combos</option>
               <option value="salgados">Salgados & Porções</option>
               <option value="sucos">Sucos</option>
-              <option value="bebidas">Bebidas</option>
+              <option value="refrigerantes">Refrigerante</option>
+              <option value="bebidas">Bebidas (Cervejas & Outras)</option>
             </select>
           </div>
 
