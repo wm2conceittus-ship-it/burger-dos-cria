@@ -37,6 +37,8 @@ export interface Product {
   price: number;
   originalPrice?: number;
   costPrice?: number; // Preço de custo / CMV unitário dos insumos
+  stock?: number; // Quantidade atual em estoque
+  minStock?: number; // Estoque mínimo que dispara alerta visual de reposição
   description: string;
   image: string;
   tag?: string;

@@ -10,7 +10,9 @@ import {
   Loader2,
   Link as LinkIcon,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Package,
+  AlertTriangle
 } from 'lucide-react';
 import { compressImageFile } from '../utils/imageUpload';
 
@@ -92,6 +94,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [price, setPrice] = useState(initialProduct ? initialProduct.price.toString() : '');
   const [costPrice, setCostPrice] = useState(
     initialProduct?.costPrice !== undefined ? initialProduct.costPrice.toString() : ''
+  );
+  const [stock, setStock] = useState<string>(
+    initialProduct?.stock !== undefined ? initialProduct.stock.toString() : ''
+  );
+  const [minStock, setMinStock] = useState<string>(
+    initialProduct?.minStock !== undefined ? initialProduct.minStock.toString() : ''
   );
   const [juice300Price, setJuice300Price] = useState(
     initialProduct?.juicePrices?.['300ml'] !== undefined
@@ -196,6 +204,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCategory(initialProduct.category || 'burgers');
       setPrice(initialProduct.price !== undefined ? initialProduct.price.toString() : '');
       setCostPrice(initialProduct.costPrice !== undefined ? initialProduct.costPrice.toString() : '');
+      setStock(initialProduct.stock !== undefined ? initialProduct.stock.toString() : '');
+      setMinStock(initialProduct.minStock !== undefined ? initialProduct.minStock.toString() : '');
       setDescription(initialProduct.description || '');
       setImage(initialProduct.image || '');
       setTag(initialProduct.tag || '');
@@ -244,6 +254,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       category,
       price: basePrice,
       costPrice: costPrice.trim() ? parseNum(costPrice) : undefined,
+      stock: stock.trim() !== '' ? Math.max(0, parseInt(stock, 10) || 0) : undefined,
+      minStock: minStock.trim() !== '' ? Math.max(0, parseInt(minStock, 10) || 0) : undefined,
+      isAvailable: initialProduct?.isAvailable !== undefined ? initialProduct.isAvailable : true,
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
@@ -574,6 +587,94 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Seção de Controle de Estoque & Estoque Mínimo */}
+          <div className="p-3.5 bg-gradient-to-br from-[#1c1b1a] via-[#181716] to-[#141414] border border-[#353535] rounded-xl space-y-2.5 shadow-md">
+            <div className="flex items-center justify-between">
+              <label className="text-white font-['Montserrat'] font-bold text-xs flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-[#ff5722]" />
+                <span>Controle de Estoque & Estoque Mínimo</span>
+              </label>
+              <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Alerta no Cardápio
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Estoque Atual */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Atual</label>
+                  <span className="text-[10px] text-[#8e8f8f]">Qtd. Física</span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={stock}
+                    onChange={e => setStock(e.target.value)}
+                    placeholder="Ex: 10"
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-[#ff5722] font-semibold"
+                  />
+                  <span className="absolute right-3 text-xs text-[#8e8f8f] font-mono">un</span>
+                </div>
+              </div>
+
+              {/* Estoque Mínimo */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Mínimo (Alerta)</label>
+                  <span className="text-[10px] text-amber-400 font-bold">Gatilho de Aviso</span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={minStock}
+                    onChange={e => setMinStock(e.target.value)}
+                    placeholder="Ex: 5"
+                    className="w-full bg-[#1c1b1b] border border-amber-500/40 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-amber-400 font-semibold"
+                  />
+                  <span className="absolute right-3 text-xs text-amber-400 font-mono font-bold">un</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Alerta / Dica em tempo real sobre o Estoque Mínimo */}
+            {minStock.trim() !== '' && (
+              <div
+                className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border transition-all ${
+                  stock.trim() !== '' && Number(stock) <= Number(minStock)
+                    ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
+                    : 'bg-[#141414] border-[#353535] text-[#b4b5b5]'
+                }`}
+              >
+                <AlertTriangle
+                  className={`w-4 h-4 shrink-0 mt-0.5 ${
+                    stock.trim() !== '' && Number(stock) <= Number(minStock)
+                      ? 'text-amber-400 animate-pulse'
+                      : 'text-[#8e8f8f]'
+                  }`}
+                />
+                <div>
+                  {stock.trim() !== '' && Number(stock) <= Number(minStock) ? (
+                    <span>
+                      <strong className="text-amber-300 font-bold">Alerta visual ativo no cardápio:</strong>{' '}
+                      O item está com <strong>{stock} un.</strong> (atingiu ou ficou abaixo do mínimo de{' '}
+                      <strong>{minStock} un.</strong>). O gestor verá o destaque de reposição urgente.
+                    </span>
+                  ) : (
+                    <span>
+                      Quando a quantidade em estoque atingir <strong>{minStock} unidades ou menos</strong>, um alerta visual de reposição será exibido no cardápio do gestor.
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="block text-[#b4b5b5] mb-1">Destaque / Tag (Opcional)</label>

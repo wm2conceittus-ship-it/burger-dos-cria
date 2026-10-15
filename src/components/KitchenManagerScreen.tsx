@@ -197,7 +197,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [mainFilter, setMainFilter] = useState<'abertos' | 'agendados'>('abertos');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'novos' | 'preparando' | 'prontos' | 'em_entrega' | 'historico'>('novos');
   const [showGuideModal, setShowGuideModal] = useState(false);
-  const [cardapioFilter, setCardapioFilter] = useState<'all' | 'burgers' | 'burgues_industrial' | 'combos' | 'pizzas' | 'salgados' | 'sucos' | 'refrigerantes' | 'bebidas'>('all');
+  const [cardapioFilter, setCardapioFilter] = useState<'all' | 'low_stock' | 'burgers' | 'burgues_industrial' | 'combos' | 'pizzas' | 'salgados' | 'sucos' | 'refrigerantes' | 'bebidas'>('all');
   const [managerPinInput, setManagerPinInput] = useState('');
   const [pinToast, setPinToast] = useState<string | null>(null);
   const [linkCopiedToast, setLinkCopiedToast] = useState(false);
@@ -1457,8 +1457,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     setTimeout(() => setFinancialToast(null), 3500);
   };
 
+  // Produtos com estoque mínimo atingido (alerta visual)
+  const lowStockProducts = products.filter(
+    p => p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock
+  );
+
   // Filtered products for Menu Management
   const filteredProducts = products.filter(p => {
+    if (cardapioFilter === 'low_stock') {
+      return p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock;
+    }
     if (cardapioFilter === 'all') return true;
     if (cardapioFilter === 'refrigerantes') {
       return (
@@ -1725,26 +1733,42 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 icon: UtensilsCrossed,
                 badge: (storeSettings.tables || []).filter(t => t.status === 'ocupada' || t.status === 'conta_pedida').length,
               },
-              { id: 'cardapio' as const, label: 'Cardápio & Estoque', icon: Layers },
+              {
+                id: 'cardapio' as const,
+                label: 'Cardápio & Estoque',
+                icon: Layers,
+                badge: lowStockProducts.length > 0 ? lowStockProducts.length : undefined,
+                isAlert: lowStockProducts.length > 0,
+              },
               { id: 'relatorios' as const, label: 'Finanças & Gráficos', icon: BarChart3 },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
             ].map(tab => {
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
+              const isAlert = (tab as any).isAlert;
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-[0_2px_12px_rgba(61,32,12,0.4)] border border-[#73401D]'
-                      : managerTheme === 'light'
+                      : isAlert
+                        ? 'bg-amber-950/40 text-amber-300 hover:text-white border border-amber-500/50 hover:bg-amber-900/40 shadow-sm'
+                        : managerTheme === 'light'
                         ? 'bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 shadow-sm'
                         : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className={`w-4 h-4 ${isAlert && !isActive ? 'text-amber-400' : ''}`} />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-white text-[#5C3317] text-[10px] flex items-center justify-center font-extrabold">
+                    <span
+                      className={`min-w-4 h-4 px-1 rounded-full text-[10px] flex items-center justify-center font-extrabold ${
+                        isAlert
+                          ? 'bg-amber-400 text-black animate-pulse shadow-sm ring-1 ring-amber-300'
+                          : 'bg-white text-[#5C3317]'
+                      }`}
+                      title={isAlert ? `${tab.badge} itens atingiram o estoque mínimo` : undefined}
+                    >
                       {tab.badge}
                     </span>
                   )}
@@ -4114,6 +4138,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {/* Filter categories */}
             <div className="flex gap-2 overflow-x-auto hide-scrollbar">
               {[
+                ...(lowStockProducts.length > 0
+                  ? [{
+                      id: 'low_stock' as const,
+                      label: `⚠️ Estoque Crítico (${lowStockProducts.length})`,
+                      isAlert: true
+                    }]
+                  : []),
                 { id: 'all' as const, label: 'Todos os Itens' },
                 { id: 'burgers' as const, label: 'Burgers Artesanal' },
                 { id: 'burgues_industrial' as const, label: 'Burguês Industrial' },
@@ -4123,18 +4154,65 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 { id: 'sucos' as const, label: 'Sucos Natural' },
                 { id: 'refrigerantes' as const, label: 'Refrigerantes' },
                 { id: 'bebidas' as const, label: 'Bebidas / Outras' },
-              ].map(cat => (
-                <button key={cat.id} onClick={() => setCardapioFilter(cat.id)}
-                  className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all whitespace-nowrap ${
-                    cardapioFilter === cat.id
-                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border border-[#73401D]'
-                      : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border border-[#353535]'
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
+              ].map(cat => {
+                const isActive = cardapioFilter === cat.id;
+                const isAlertCat = (cat as any).isAlert;
+                return (
+                  <button key={cat.id} onClick={() => setCardapioFilter(cat.id as any)}
+                    className={`px-4 py-1.5 rounded-md text-xs font-['Montserrat'] font-semibold transition-all whitespace-nowrap ${
+                      isAlertCat
+                        ? isActive
+                          ? 'bg-amber-500 text-black border border-amber-400 font-bold shadow-md shadow-amber-500/20'
+                          : 'bg-amber-950/40 text-amber-300 border border-amber-500/50 hover:bg-amber-900/50 animate-pulse'
+                        : isActive
+                        ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white border border-[#73401D]'
+                        : 'bg-[#20201f] text-[#b4b5b5] hover:text-white border border-[#353535]'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Alerta Visual de Reposição de Estoque Mínimo */}
+            {lowStockProducts.length > 0 && (
+              <div className="bg-gradient-to-r from-amber-950/60 via-[#231b15] to-[#1c1b1b] border-2 border-amber-500/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-amber-950/20 animate-in fade-in duration-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                    <AlertTriangle className="w-5 h-5 animate-pulse text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white">
+                        Alerta de Estoque Mínimo Atingido
+                      </span>
+                      <span className="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full font-black uppercase">
+                        {lowStockProducts.length} {lowStockProducts.length === 1 ? 'item' : 'itens'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 mt-0.5">
+                      {lowStockProducts.map(p => `${p.name} (${p.stock ?? 0}/${p.minStock} un)`).slice(0, 3).join(', ')}
+                      {lowStockProducts.length > 3 ? ` e mais ${lowStockProducts.length - 3} itens precisam de reposição.` : ' necessitam de reposição imediata.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setCardapioFilter(cardapioFilter === 'low_stock' ? 'all' : 'low_stock')}
+                    className={`px-3.5 py-1.5 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-1.5 transition-all w-full sm:w-auto shadow-md ${
+                      cardapioFilter === 'low_stock'
+                        ? 'bg-zinc-700 text-white hover:bg-zinc-600'
+                        : 'bg-amber-500 hover:bg-amber-400 text-black'
+                    }`}
+                  >
+                    <span>{cardapioFilter === 'low_stock' ? 'Mostrar Todos os Itens' : 'Ver Itens em Alerta'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Guia & Dica Rápida de Gestão do Cardápio */}
             <div className="bg-[#1c1b1b] border border-[#ff5722]/30 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
@@ -4147,7 +4225,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     Como gerenciar e apagar itens do cardápio:
                   </span>
                   <p className="text-[11px] text-[#b4b5b5] mt-0.5">
-                    Para pausar itens esgotados clique em <strong>Em Estoque / Pausado</strong>. Para alterar preço ou detalhes clique em <strong>Editar</strong>. Para remover definitivamente, clique em <strong>Excluir</strong>.
+                    Para pausar itens esgotados clique em <strong>Em Estoque / Pausado</strong>. Para alterar preço, estoque ou estoque mínimo clique em <strong>Editar</strong>. Para remover definitivamente, clique em <strong>Excluir</strong>.
                   </p>
                 </div>
               </div>
@@ -4160,11 +4238,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {filteredProducts.map(product => {
                 const isAvailable = product.isAvailable !== false;
+                const hasStockAlert = product.minStock !== undefined && product.stock !== undefined && product.stock <= product.minStock;
+                const isZeroStock = product.stock !== undefined && product.stock <= 0;
+
                 return (
                   <div
                     key={product.id}
                     className={`bg-[#20201f] rounded-lg p-4 border transition-all flex items-center gap-3.5 ${
-                      isAvailable ? 'border-[#353535]/60' : 'border-red-900/40 bg-[#191515] opacity-80'
+                      !isAvailable
+                        ? 'border-red-900/40 bg-[#191515] opacity-80'
+                        : hasStockAlert
+                        ? isZeroStock
+                          ? 'border-red-500/80 bg-gradient-to-r from-red-950/25 to-[#20201f] ring-2 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                          : 'border-amber-500/80 bg-gradient-to-r from-amber-950/25 via-[#221c17] to-[#20201f] ring-2 ring-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.18)]'
+                        : 'border-[#353535]/60'
                     }`}
                   >
                     <div className="w-16 h-16 rounded-md overflow-hidden bg-[#1c1b1b] flex-shrink-0 relative">
@@ -4178,14 +4265,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           ESGOTADO
                         </div>
                       )}
+                      {isAvailable && hasStockAlert && (
+                        <div className={`absolute top-0.5 left-0.5 right-0.5 px-1 py-0.5 rounded text-[7.5px] font-black uppercase text-center tracking-wider shadow-md ${
+                          isZeroStock ? 'bg-red-600 text-white animate-pulse' : 'bg-amber-500 text-black'
+                        }`}>
+                          {isZeroStock ? 'ZERADO' : 'MÍNIMO'}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex-grow min-w-0">
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h4 className="font-['Montserrat'] font-bold text-xs text-white truncate">
-                            {product.name}
-                          </h4>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-['Montserrat'] font-bold text-xs text-white truncate">
+                              {product.name}
+                            </h4>
+                            {hasStockAlert && (
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8.5px] font-extrabold uppercase tracking-wide animate-pulse ${
+                                isZeroStock
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
+                              }`}>
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                {isZeroStock ? 'Esgotado' : 'Estoque Baixo'}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[11px] text-[#b4b5b5] truncate mt-0.5 font-light">
                             {product.description}
                           </p>
@@ -4203,8 +4309,35 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               Sem custo
                             </span>
                           )}
+                          {product.stock !== undefined && (
+                            <span
+                              className={`text-[9.5px] font-mono block font-bold mt-0.5 ${
+                                hasStockAlert ? 'text-amber-400' : 'text-[#a1a1aa]'
+                              }`}
+                              title={product.minStock !== undefined ? `Estoque mínimo: ${product.minStock} un.` : undefined}
+                            >
+                              Estoque: {product.stock} un. {product.minStock !== undefined ? `(mín: ${product.minStock})` : ''}
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      {/* Alerta Visual de Reposição em Destaque */}
+                      {hasStockAlert && (
+                        <div className={`mt-1.5 px-2 py-1 rounded-md text-[10px] font-bold flex items-center justify-between border ${
+                          isZeroStock
+                            ? 'bg-red-950/60 border-red-500/50 text-red-200'
+                            : 'bg-amber-950/60 border-amber-500/50 text-amber-200'
+                        }`}>
+                          <span className="flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                            <span>{isZeroStock ? 'Estoque Zerado!' : 'Estoque Mínimo Atingido!'}</span>
+                          </span>
+                          <span className="font-mono underline">
+                            Restam {product.stock ?? 0} un. (Mín: {product.minStock})
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-[#353535]/40">
                         {/* Toggle Available */}

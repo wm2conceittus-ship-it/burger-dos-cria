@@ -67,7 +67,18 @@ export default function App() {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter(isNotDeleted);
+          const merged = parsed.map((p: Product) => {
+            const defaultProd = PRODUCTS.find(dp => dp.id === p.id);
+            if (defaultProd) {
+              return {
+                ...p,
+                stock: p.stock !== undefined ? p.stock : defaultProd.stock,
+                minStock: p.minStock !== undefined ? p.minStock : defaultProd.minStock,
+              };
+            }
+            return p;
+          });
+          return merged.filter(isNotDeleted);
         }
       }
     } catch {
