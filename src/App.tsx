@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
 import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES, INITIAL_DELIVERY_ZONES } from './data/mockData';
+import { DEFAULT_WEEKLY_SCHEDULE } from './utils/scheduleUtils';
 import { getDeliveryFeeForNeighborhood } from './utils/deliveryFee';
 import {
   testFirestoreConnection,
@@ -107,6 +108,8 @@ export default function App() {
     autoSendWhatsappAlertToManager: true,
     autoSendWhatsappOnDispatch: true,
     openingHours: 'Terça a Domingo, 18h - 00h',
+    weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
+    scheduleMode: 'auto',
     pixKey: '11987654321',
     pixApprovalMode: 'automatic',
     acceptedPaymentMethods: [
@@ -240,7 +243,7 @@ export default function App() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
-  const [deliveryAddress, setDeliveryAddress] = useState('Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP');
+  const [deliveryAddress, setDeliveryAddress] = useState('Rua das Flores, 123 - Apto 42, Centro, São Paulo - SP - CEP: 01001-000');
 
   // Customer Profile State (Persisted in localStorage and synced to Firestore)
   const [customerProfile, setCustomerProfile] = useState<CustomerProfile | null>(() => {
@@ -402,7 +405,7 @@ export default function App() {
     }
     saveCustomerProfileToFirestore(profile);
     setIsCustomerRegisterOpen(false);
-    showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${profile.name.split(' ')[0]}! 🔥`);
+    showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${(profile.name || 'Cliente').split(' ')[0]}! 🔥`);
   };
 
   // Rastreamento para disparo de alerta sonoro em novos pedidos e confirmação de PIX
@@ -771,10 +774,14 @@ export default function App() {
       effectiveAddress += ` - Bairro: ${neighborhoodLabel}`;
     }
 
+    if (!isTableOrder && !isPickupOrder && customerProfile.cep && !effectiveAddress.toLowerCase().includes('cep:')) {
+      effectiveAddress += ` - CEP: ${customerProfile.cep}`;
+    }
+
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber: newOrderNum,
-      customerName: customerProfile.name,
+      customerName: customerProfile.name || 'Cliente',
       customerPhone: customerProfile.phone,
       type: orderType,
       tableNumber: isTableOrder ? tableNumber || 1 : undefined,
@@ -814,6 +821,27 @@ export default function App() {
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder);
 
+    // Deduz estoque em tempo real para itens que possuem controle de estoque
+    setProducts(prevProducts => {
+      let hasStockChange = false;
+      const updated = prevProducts.map(p => {
+        const orderedItem = cartItems.find(ci => ci.product.id === p.id);
+        if (orderedItem && p.stock !== undefined) {
+          hasStockChange = true;
+          const newStock = Math.max(0, p.stock - orderedItem.quantity);
+          return { ...p, stock: newStock };
+        }
+        return p;
+      });
+      if (hasStockChange) {
+        saveAllProductsToFirestore(updated);
+        try {
+          localStorage.setItem('burger_manager_products', JSON.stringify(updated));
+        } catch {}
+      }
+      return hasStockChange ? updated : prevProducts;
+    });
+
     // If it's a table order, sync with storeSettings.tables!
     if (isTableOrder && tableNumber) {
       const currentTables = storeSettings.tables || [];
@@ -830,7 +858,7 @@ export default function App() {
           return {
             ...t,
             status: 'ocupada' as const,
-            customerName: customerProfile.name,
+            customerName: customerProfile.name || 'Cliente',
             peopleCount: t.peopleCount || 2,
             openedAt: t.openedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             items: [...t.items, ...newItems],
@@ -1004,6 +1032,30 @@ export default function App() {
     knownOrderIds.current.add(newOrder.id);
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder);
+
+    // Deduz estoque em tempo real para itens do pedido manual
+    setProducts(prevProducts => {
+      let hasStockChange = false;
+      const updated = prevProducts.map(p => {
+        const orderedItem = newOrder.items.find(
+          item => item.name.toLowerCase() === p.name.toLowerCase()
+        );
+        if (orderedItem && p.stock !== undefined) {
+          hasStockChange = true;
+          const newStock = Math.max(0, p.stock - orderedItem.quantity);
+          return { ...p, stock: newStock };
+        }
+        return p;
+      });
+      if (hasStockChange) {
+        saveAllProductsToFirestore(updated);
+        try {
+          localStorage.setItem('burger_manager_products', JSON.stringify(updated));
+        } catch {}
+      }
+      return hasStockChange ? updated : prevProducts;
+    });
+
     if (storeSettings.soundAlerts !== false) {
       playNewOrderSound();
     }
@@ -1181,6 +1233,7 @@ export default function App() {
             setIsProductModalOpen(true);
           }}
           onDeleteProduct={handleDeleteProduct}
+          onUpdateStoreSettings={handleUpdateStoreSettings}
         />
       )}
 
@@ -1336,13 +1389,14 @@ export default function App() {
           currentAddress={deliveryAddress}
           storeSettings={storeSettings}
           currentNeighborhood={customerProfile?.neighborhood}
-          onSave={(newAddress, chosenNeighborhood) => {
+          onSave={(newAddress, chosenNeighborhood, savedCep) => {
             setDeliveryAddress(newAddress);
             if (customerProfile) {
               const updatedProfile: CustomerProfile = {
                 ...customerProfile,
                 address: newAddress,
                 neighborhood: chosenNeighborhood || customerProfile.neighborhood,
+                cep: savedCep || customerProfile.cep,
               };
               setCustomerProfile(updatedProfile);
               saveCustomerProfileToFirestore(updatedProfile);

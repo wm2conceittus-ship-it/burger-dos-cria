@@ -43,6 +43,7 @@ import {
 import { compressImageFile } from '../utils/imageUpload';
 import { mercadoPagoApi, PixResponse } from '../services/mercadoPagoService';
 import { getDeliveryFeeForNeighborhood } from '../utils/deliveryFee';
+import { getStoreOperatingStatus } from '../utils/scheduleUtils';
 
 interface CartScreenProps {
   items: CartItem[];
@@ -112,6 +113,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   const [showQrCodeInline, setShowQrCodeInline] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [customerPixReceipt, setCustomerPixReceipt] = useState<string>('');
+  const operatingStatus = useMemo(() => getStoreOperatingStatus(storeSettings), [storeSettings]);
   const [isUploadingReceipt, setIsUploadingReceipt] = useState<boolean>(false);
 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,6 +222,18 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
   const baseDeliveryFee = neighborhoodCalc.fee;
 
+  // Validação de CEP obrigatório para entrega
+  const currentCep = useMemo(() => {
+    if (customerProfile?.cep) {
+      const clean = customerProfile.cep.replace(/\D/g, '');
+      if (clean.length === 8) return customerProfile.cep;
+    }
+    const match = (deliveryAddress || '').match(/CEP:\s*(\d{5}-?\d{3})/i);
+    return match ? match[1] : null;
+  }, [customerProfile?.cep, deliveryAddress]);
+
+  const hasValidCep = Boolean(currentCep);
+
   const isFreeDelivery = Boolean(
     storeSettings?.deliveryArea?.freeDeliveryThreshold &&
     storeSettings.deliveryArea.freeDeliveryThreshold > 0 &&
@@ -259,6 +273,16 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   const handleConfirmPayment = () => {
+    if (orderType === 'Delivery' && !hasValidCep) {
+      setShowPaymentModal(false);
+      if (onOpenAddressModal) {
+        onOpenAddressModal();
+      } else if (onOpenCustomerRegister) {
+        onOpenCustomerRegister();
+      }
+      return;
+    }
+
     const isCard =
       paymentMethod.toLowerCase().includes('cartão') ||
       paymentMethod.toLowerCase().includes('crédito') ||
@@ -328,6 +352,14 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     setPaymentMethod(methodName);
     if (!customerProfile && onOpenCustomerRegister) {
       onOpenCustomerRegister();
+      return;
+    }
+    if (orderType === 'Delivery' && !hasValidCep) {
+      if (onOpenAddressModal) {
+        onOpenAddressModal();
+      } else if (onOpenCustomerRegister) {
+        onOpenCustomerRegister();
+      }
       return;
     }
     setShowPaymentModal(true);
@@ -767,6 +799,21 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           )}
         </div>
 
+        {/* Aviso se a hamburgueria estiver fechada */}
+        {operatingStatus.isClosed && (
+          <div className="bg-red-500/15 border border-red-500/40 rounded-lg p-3 flex items-start gap-2.5 text-xs animate-in fade-in">
+            <Clock className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-red-400 font-['Montserrat'] block">
+                {operatingStatus.statusText}
+              </span>
+              <p className="text-[11px] text-[#b4b5b5]">
+                {operatingStatus.statusSubtext}. Você pode concluir o pedido para deixá-lo pré-agendado para quando a chapa abrir!
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
         {items.length === 0 ? (
           <div className="bg-[#20201f] rounded-lg p-5 text-center border border-[#353535]/50 space-y-2.5">
@@ -1065,9 +1112,20 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                   <span className="text-xs font-semibold text-white truncate">
                     {deliveryAddress.split(' - ')[0] || deliveryAddress}
                   </span>
-                  <span className="text-[10px] text-[#b4b5b5] truncate">
-                    {deliveryAddress.split(' - ')[1] || 'Centro, São Paulo - SP'}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-[#b4b5b5] truncate">
+                      {deliveryAddress.split(' - ')[1] || 'Centro, São Paulo - SP'}
+                    </span>
+                    {hasValidCep ? (
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-bold">
+                        CEP: {currentCep}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-1.5 py-0.2 rounded font-bold">
+                        Pendente
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
@@ -1077,6 +1135,23 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                 <Navigation className="w-3 h-3 text-[#ff5722]" /> Alterar
               </button>
             </div>
+
+            {/* Aviso quando CEP não está preenchido */}
+            {!hasValidCep && (
+              <div className="p-2.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-[11px] text-amber-300 flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Informe seu CEP para calcular a entrega e concluir o pedido.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenAddressModal}
+                  className="bg-amber-500 text-black font-bold px-2.5 py-1 rounded-md text-[10px] hover:bg-amber-400 transition-colors whitespace-nowrap ml-2 shadow-sm"
+                >
+                  Informar CEP
+                </button>
+              </div>
+            )}
 
           {/* Feedback do Raio de Atendimento da Loja */}
           {isOutsideRadius ? (

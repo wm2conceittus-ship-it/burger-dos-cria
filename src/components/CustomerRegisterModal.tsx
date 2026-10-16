@@ -240,6 +240,16 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
       return;
     }
 
+    const cleanCepDigits = cep.replace(/\D/g, '');
+    if (!cleanCepDigits) {
+      setErrorMsg('Por favor, informe o CEP para a entrega.');
+      return;
+    }
+    if (cleanCepDigits.length !== 8) {
+      setErrorMsg('O CEP informado está incompleto. Digite os 8 dígitos (ex: 01234-567).');
+      return;
+    }
+
     const cleanStreet = street.trim();
     if (!cleanStreet) {
       setErrorMsg('Por favor, informe a Rua ou Logradouro da entrega.');
@@ -264,6 +274,9 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
       fullAddress += ` (${complement.trim()})`;
     }
     fullAddress += ` - ${cleanNeighborhood}, ${city.trim()}`;
+    if (cep.trim()) {
+      fullAddress += ` - CEP: ${cep.trim()}`;
+    }
     if (reference.trim()) {
       fullAddress += ` [Ref: ${reference.trim()}]`;
     }
@@ -419,15 +432,19 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[#b4b5b5] font-medium mb-1">
-                  CEP (opcional)
+                  CEP <span className="text-[#ff5722] font-bold">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type="text"
+                    required
                     value={cep}
                     onChange={e => handleCepChange(e.target.value)}
                     placeholder="01234-567"
-                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
+                    maxLength={9}
+                    className={`w-full bg-[#1c1b1b] border rounded-md px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none ${
+                      cepError ? 'border-amber-500 focus:border-amber-500' : 'border-[#353535] focus:border-[#ff5722]'
+                    }`}
                   />
                   {isSearchingCep && (
                     <Loader2 className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 animate-spin text-[#ff5722]" />
@@ -437,10 +454,11 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
 
               <div>
                 <label className="block text-[#b4b5b5] font-medium mb-1">
-                  Cidade / UF
+                  Cidade / UF <span className="text-[#ff5722] font-bold">*</span>
                 </label>
                 <input
                   type="text"
+                  required
                   value={city}
                   onChange={e => setCity(e.target.value)}
                   placeholder="São Paulo - SP"
@@ -449,8 +467,12 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
               </div>
             </div>
 
-            {cepError && (
-              <p className="text-[10px] text-amber-400 -mt-1">{cepError}</p>
+            {cepError ? (
+              <p className="text-[10px] text-amber-400 -mt-1 font-medium">{cepError}</p>
+            ) : (
+              <p className="text-[9.5px] text-[#8e8f8f] -mt-1 flex items-center gap-1">
+                <span>📍 Digite o CEP (8 dígitos) para buscar rua e bairro automaticamente.</span>
+              </p>
             )}
 
             {/* Rua e Número */}

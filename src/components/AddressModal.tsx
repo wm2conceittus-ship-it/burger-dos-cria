@@ -7,7 +7,7 @@ interface AddressModalProps {
   currentAddress: string;
   storeSettings?: StoreSettings;
   currentNeighborhood?: string;
-  onSave: (newAddress: string, chosenNeighborhood?: string) => void;
+  onSave: (newAddress: string, chosenNeighborhood?: string, cep?: string) => void;
   onClose: () => void;
 }
 
@@ -25,6 +25,42 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     return parts[1] || 'Consolação, São Paulo - SP';
   });
   const [complement, setComplement] = useState('');
+  const [cep, setCep] = useState(() => {
+    const match = currentAddress.match(/CEP:\s*(\d{5}-?\d{3})/i);
+    return match ? match[1] : '';
+  });
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+
+  const handleCepChange = async (val: string) => {
+    const raw = val.replace(/\D/g, '').slice(0, 8);
+    let formatted = raw;
+    if (raw.length > 5) {
+      formatted = `${raw.slice(0, 5)}-${raw.slice(5)}`;
+    }
+    setCep(formatted);
+    setCepError(null);
+
+    if (raw.length === 8) {
+      setIsSearchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.erro) {
+            setCepError('CEP não encontrado. Digite o endereço manualmente.');
+          } else {
+            if (data.logradouro) setStreet(data.logradouro);
+            if (data.bairro) setNeighborhood(data.bairro);
+          }
+        }
+      } catch {
+        setCepError('Não foi possível consultar o CEP automaticamente.');
+      } finally {
+        setIsSearchingCep(false);
+      }
+    }
+  };
 
   // GPS state
   const [isLocating, setIsLocating] = useState(false);
@@ -92,6 +128,12 @@ export const AddressModal: React.FC<AddressModalProps> = ({
 
             setStreet(detectedStreet);
             setNeighborhood(district || detectedNeighborhood);
+            if (address.postcode) {
+              const cleanPost = address.postcode.replace(/\D/g, '').slice(0, 8);
+              if (cleanPost.length === 8) {
+                setCep(`${cleanPost.slice(0, 5)}-${cleanPost.slice(5)}`);
+              }
+            }
             setGeoStatus(`Localizado com sucesso! (Precisão: ±${Math.round(accuracy)}m)`);
           } else {
             setStreet(`Localização GPS (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
@@ -127,18 +169,39 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     );
   };
 
-  const handleQuickPreset = (presetStreet: string, presetNeigh: string) => {
+  const handleQuickPreset = (presetStreet: string, presetNeigh: string, presetCep?: string) => {
     setStreet(presetStreet);
     setNeighborhood(presetNeigh);
-    setGeoStatus('Endereço e bairro aplicados!');
+    if (presetCep) {
+      setCep(presetCep);
+      setCepError(null);
+    }
+    setGeoStatus('Endereço, bairro e CEP aplicados!');
     setGeoError(null);
   };
 
   const handleSave = () => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (!cleanCep) {
+      setGeoError('O CEP é obrigatório para entrega. Por favor, informe seu CEP.');
+      return;
+    }
+    if (cleanCep.length !== 8) {
+      setGeoError('O CEP deve conter 8 dígitos válidos (ex: 01234-567).');
+      return;
+    }
     const cleanStreet = street.trim();
+    if (!cleanStreet) {
+      setGeoError('Por favor, informe a rua e número da residência.');
+      return;
+    }
     const cleanNeigh = neighborhood.trim();
-    const formatted = `${cleanStreet}${complement.trim() ? ` (${complement.trim()})` : ''} - ${cleanNeigh}`;
-    onSave(formatted, feeInfo.zoneName || cleanNeigh);
+    if (!cleanNeigh) {
+      setGeoError('Por favor, informe o bairro de entrega.');
+      return;
+    }
+    const formatted = `${cleanStreet}${complement.trim() ? ` (${complement.trim()})` : ''} - ${cleanNeigh} - CEP: ${cep.trim()}`;
+    onSave(formatted, feeInfo.zoneName || cleanNeigh, cep.trim());
     onClose();
   };
 
@@ -219,30 +282,62 @@ export const AddressModal: React.FC<AddressModalProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => handleQuickPreset('Av. Paulista, 1578', 'Bela Vista, São Paulo - SP')}
+              onClick={() => handleQuickPreset('Av. Paulista, 1578', 'Bela Vista, São Paulo - SP', '01310-200')}
               className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
             >
-              Bela Vista
+              Bela Vista (01310-200)
             </button>
             <button
               type="button"
-              onClick={() => handleQuickPreset('Rua Augusta, 450', 'Consolação, São Paulo - SP')}
+              onClick={() => handleQuickPreset('Rua Augusta, 450', 'Consolação, São Paulo - SP', '01304-000')}
               className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
             >
-              Consolação
+              Consolação (01304-000)
             </button>
             <button
               type="button"
-              onClick={() => handleQuickPreset('Praça da Sé, 100', 'Centro Histórico, São Paulo - SP')}
+              onClick={() => handleQuickPreset('Praça da Sé, 100', 'Centro Histórico, São Paulo - SP', '01001-000')}
               className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
             >
-              Centro
+              Centro (01001-000)
             </button>
           </div>
         </div>
 
         {/* Input Fields */}
         <div className="space-y-3 text-xs">
+          {/* CEP Input (Obrigatório) */}
+          <div className="p-3 bg-[#181818] rounded-2xl border border-[#353535] space-y-1.5">
+            <div>
+              <label className="text-[#ffb5a0] font-bold text-xs flex items-center gap-1.5">
+                <span>CEP <span className="text-[#ff5722]">*</span></span>
+              </label>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                required
+                value={cep}
+                onChange={e => handleCepChange(e.target.value)}
+                placeholder="01234-567"
+                maxLength={9}
+                className={`w-full bg-[#141414] border rounded-xl px-3 py-2 text-white focus:outline-none text-xs ${
+                  cepError ? 'border-amber-500 focus:border-amber-500' : 'border-[#353535] focus:border-[#ff5722]'
+                }`}
+              />
+              {isSearchingCep && (
+                <Loader2 className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#ff5722]" />
+              )}
+            </div>
+            {cepError ? (
+              <p className="text-[10px] text-amber-400 font-medium">{cepError}</p>
+            ) : (
+              <p className="text-[9.5px] text-[#8e8f8f]">
+                Digite o CEP para buscar rua e bairro automaticamente.
+              </p>
+            )}
+          </div>
+
           {/* Bairro Selector & Badge - Highlighted for neighborhood-based delivery fee */}
           <div className="p-3 bg-[#181818] rounded-2xl border border-[#ff5722]/30 space-y-2">
             <div className="flex items-center justify-between">

@@ -33,6 +33,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
   const isPizza = product.category === 'pizzas';
   const isJuice = product.category === 'sucos';
+  const isOutOfStock = product.isAvailable === false || (product.stock !== undefined && product.stock <= 0);
+  const isLowStock = !isOutOfStock && product.stock !== undefined && product.minStock !== undefined && product.stock <= product.minStock;
   const selectedSizeConfig = PIZZA_SIZES.find(s => s.id === pizzaSize) || PIZZA_SIZES[2];
   const selectedJuiceSizeConfig = JUICE_SIZES.find(s => s.id === juiceSize) || JUICE_SIZES[1];
 
@@ -172,7 +174,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
         />
         <div className="absolute bottom-0 left-0 w-full p-5 z-20">
           <div className="max-w-2xl mx-auto">
-            <div className="flex gap-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
               <span className="bg-[#ff5722]/20 text-[#ff8a65] px-3 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-[#ff5722]/30">
                 {product.tag || 'Gourmet'}
               </span>
@@ -180,6 +182,16 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
                 <Star className="w-3.5 h-3.5 fill-[#86cfff]" />
                 {product.rating || 4.9}
               </span>
+              {isOutOfStock && (
+                <span className="bg-red-500/20 text-red-300 px-3 py-0.5 rounded-full text-xs font-bold border border-red-500/40">
+                  ✕ Esgotado
+                </span>
+              )}
+              {isLowStock && (
+                <span className="bg-amber-500/20 text-amber-300 px-3 py-0.5 rounded-full text-xs font-bold border border-amber-500/40">
+                  ⚠️ Restam {product.stock} un.
+                </span>
+              )}
             </div>
             <h1 className="font-['Montserrat'] text-2xl md:text-3xl font-extrabold text-[#e5e2e1] tracking-tight">
               {product.name}
@@ -464,7 +476,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
           <div className="flex items-center bg-[#20201f] rounded-md p-1 border border-[#353535]">
             <button
               onClick={() => setQuantity(q => Math.max(1, q - 1))}
-              disabled={quantity <= 1}
+              disabled={quantity <= 1 || isOutOfStock}
               className="w-10 h-10 flex items-center justify-center text-[#e5e2e1] hover:text-[#ff5722] disabled:opacity-40 transition-colors active:scale-90"
             >
               <Minus className="w-5 h-5" />
@@ -474,7 +486,8 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
             </span>
             <button
               onClick={() => setQuantity(q => q + 1)}
-              className="w-10 h-10 flex items-center justify-center text-[#e5e2e1] hover:text-[#ff5722] transition-colors active:scale-90"
+              disabled={isOutOfStock}
+              className="w-10 h-10 flex items-center justify-center text-[#e5e2e1] hover:text-[#ff5722] disabled:opacity-40 transition-colors active:scale-90"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -482,21 +495,30 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
           {/* CTA Add to cart */}
           <button
+            disabled={isOutOfStock}
             onClick={handleAdd}
-            className="flex-grow btn-flame text-white py-3 px-5 rounded-md font-['Montserrat'] text-base md:text-lg flex justify-between items-center active:scale-95 transition-all shadow-xl"
+            className={`flex-grow py-3 px-5 rounded-md font-['Montserrat'] text-base md:text-lg flex justify-between items-center transition-all shadow-xl ${
+              isOutOfStock
+                ? 'bg-[#303030] text-[#8e8f8f] cursor-not-allowed border border-[#404040]'
+                : 'btn-flame text-white active:scale-95'
+            }`}
           >
             <div className="flex flex-col items-start leading-tight">
               <span className="text-[10px] uppercase font-semibold opacity-85 tracking-wider">
-                Adicionar
+                {isOutOfStock ? 'Esgotado' : 'Adicionar'}
               </span>
-              <span className="font-bold">ao Carrinho</span>
-            </div>
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-[10px] opacity-85">Total</span>
-              <span className="font-extrabold text-base md:text-lg whitespace-nowrap">
-                R$&nbsp;{totalPrice.toFixed(2).replace('.', ',')}
+              <span className="font-bold">
+                {isOutOfStock ? 'Item Indisponível' : 'ao Carrinho'}
               </span>
             </div>
+            {!isOutOfStock && (
+              <div className="flex flex-col items-end leading-tight">
+                <span className="text-[10px] opacity-85">Total</span>
+                <span className="font-extrabold text-base md:text-lg whitespace-nowrap">
+                  R$&nbsp;{totalPrice.toFixed(2).replace('.', ',')}
+                </span>
+              </div>
+            )}
           </button>
         </div>
       </div>

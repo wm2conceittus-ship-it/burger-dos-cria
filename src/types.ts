@@ -2,7 +2,7 @@ export type Screen = 'menu' | 'product_detail' | 'cart' | 'tracking' | 'kitchen'
 
 export interface CustomerProfile {
   id?: string;
-  name: string;
+  name?: string;
   phone: string;
   email?: string;
   address: string;
@@ -137,6 +137,24 @@ export interface Employee {
   avatar?: string;
 }
 
+export interface DaySchedule {
+  isOpen: boolean; // Aberto neste dia
+  openTime: string; // Ex: "18:00"
+  closeTime: string; // Ex: "23:30" ou "01:00"
+}
+
+export type DayKey = 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+
+export interface WeeklySchedule {
+  sunday: DaySchedule;
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+}
+
 export interface StoreSettings {
   isOpen: boolean;
   storeName: string;
@@ -156,6 +174,8 @@ export interface StoreSettings {
   autoSendWhatsappAlertToManager?: boolean;
   autoSendWhatsappOnDispatch?: boolean;
   openingHours: string;
+  weeklySchedule?: WeeklySchedule;
+  scheduleMode?: 'auto' | 'manual';
   pixKey?: string;
   pixQrCodeImageUrl?: string;
   pixApprovalMode?: 'automatic' | 'manual';

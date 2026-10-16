@@ -36,6 +36,8 @@
         "soundAlerts": { "type": "boolean" },
         "couriers": { "type": "array" },
         "deliveryArea": { "type": "object" },
+        "weeklySchedule": { "type": "object" },
+        "scheduleMode": { "type": "string" },
         "updatedAt": { "type": "string" }
       },
       "required": ["isOpen", "storeName"]

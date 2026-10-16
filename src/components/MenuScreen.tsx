@@ -1,7 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Product, StoreSettings, CustomerProfile } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
+import { getStoreOperatingStatus, generateScheduleSummaryText } from '../utils/scheduleUtils';
+import { WeeklyScheduleModal } from './WeeklyScheduleModal';
 import {
   Search,
   Menu as MenuIcon,
@@ -36,6 +38,10 @@ import {
   Edit2,
   Trash2,
   Beef,
+  Clock,
+  Calendar,
+  Power,
+  AlertCircle,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -57,6 +63,7 @@ interface MenuScreenProps {
   onOpenEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
   onOpenAddProduct?: () => void;
+  onUpdateStoreSettings?: (newSettings: StoreSettings) => void;
 }
 
 export type CategoryFilter =
@@ -90,8 +97,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   onOpenEditProduct,
   onDeleteProduct,
   onOpenAddProduct,
+  onUpdateStoreSettings,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const operatingStatus = useMemo(() => getStoreOperatingStatus(storeSettings), [storeSettings]);
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<any>(null);
 
@@ -319,7 +329,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <UserCheck className="w-3.5 h-3.5 text-[#ff5722]" />
                 <span className="hidden md:inline text-[11px] text-[#b4b5b5]">Olá,</span>
                 <span className="max-w-[70px] sm:max-w-[110px] truncate font-bold text-white text-xs">
-                  {customerProfile.name.split(' ')[0]}
+                  {(customerProfile.name || 'Cliente').split(' ')[0]}
                 </span>
               </button>
             ) : (
@@ -333,6 +343,28 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <span className="sm:hidden">Cadastro</span>
               </button>
             )}
+
+            {/* Status do Horário de Funcionamento */}
+            <button
+              type="button"
+              onClick={() => setShowScheduleModal(true)}
+              className={`h-9 px-2.5 sm:px-3 rounded-full border text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ${
+                operatingStatus.isOpen
+                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-red-500/15 hover:bg-red-500/25 text-red-400 border-red-500/40 animate-pulse'
+              }`}
+              title="Clique para ver os horários de funcionamento da semana"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  operatingStatus.isOpen ? 'bg-emerald-400' : 'bg-red-400'
+                }`}
+              />
+              <span className="hidden sm:inline">
+                {operatingStatus.isOpen ? 'Aberto' : 'Fechado'}
+              </span>
+              <Clock className="w-3.5 h-3.5 opacity-80" />
+            </button>
 
             <button
               onClick={() => setShowShareModal(true)}
@@ -534,9 +566,23 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               </nav>
             </div>
 
-            <div className="pt-4 border-t border-[#353535] text-xs text-[#b4b5b5] space-y-1">
-              <p>Horário: Terça a Domingo, 18h - 00h</p>
-              <p>📍 São Paulo - SP</p>
+            <div className="pt-4 border-t border-[#353535] text-xs text-[#b4b5b5] space-y-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setShowScheduleModal(true);
+                }}
+                className="w-full text-left flex items-center justify-between text-[#ff8a65] hover:text-white font-semibold group py-1"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Horários de Funcionamento
+                </span>
+                <span className="text-[10px] underline">Ver grade</span>
+              </button>
+              <p className="text-[11px] text-[#8e8f8f]">{operatingStatus.statusSubtext}</p>
+              <p className="text-[10px] text-[#8e8f8f]">📍 {storeSettings?.address || 'São Paulo - SP'}</p>
             </div>
           </div>
           <div className="flex-grow" onClick={() => setDrawerOpen(false)} />
@@ -545,25 +591,66 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto space-y-6">
-        {/* Store Closed Alert if closed */}
-        {storeSettings && !storeSettings.isOpen && (
-          <div className="bg-red-500/15 border border-red-500/40 rounded-lg p-4 flex items-center justify-between">
-            <div>
-              <p className="font-['Montserrat'] font-bold text-xs text-red-400">
-                Hamburgueria Fechada no Momento
-              </p>
-              <p className="text-[11px] text-[#b4b5b5] mt-0.5">
-                Você pode visualizar o cardápio, mas os pedidos estão pausados temporariamente.
-              </p>
+        {/* Alerta Visual de Hamburgueria Fechada */}
+        {operatingStatus.isClosed && (
+          <div className="bg-gradient-to-r from-red-950/80 via-[#1f1515] to-red-950/80 border-2 border-red-500/60 rounded-xl p-4 sm:p-5 shadow-xl shadow-red-950/50 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+            {/* Brilho decorativo sutil */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-['Montserrat'] font-black text-xs sm:text-sm text-red-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" />
+                      {operatingStatus.statusText}
+                    </span>
+                    <span className="bg-red-500/20 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-500/30">
+                      Pedidos Pausados
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-white font-medium">
+                    {operatingStatus.statusSubtext}
+                  </p>
+
+                  <p className="text-[11px] text-[#b4b5b5] max-w-xl">
+                    Você pode navegar livremente pelo cardápio, conferir os ingredientes e montar sua sacola à vontade. O envio de pedidos será retomado assim que abrirmos!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleModal(true)}
+                  className="px-3.5 py-2 rounded-lg bg-[#2a2a2a] hover:bg-[#353535] border border-[#454545] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-[#ff8a65]" />
+                  <span>Ver Horários</span>
+                </button>
+
+                {showManagerIcon && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateStoreSettings && storeSettings) {
+                        onUpdateStoreSettings({ ...storeSettings, isOpen: true, scheduleMode: 'manual' });
+                      } else {
+                        onOpenKitchen();
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>Abrir Loja</span>
+                  </button>
+                )}
+              </div>
             </div>
-            {showManagerIcon && (
-              <button
-                onClick={onOpenKitchen}
-                className="text-[11px] font-bold text-[#ff8a65] underline whitespace-nowrap ml-2"
-              >
-                Abrir Loja
-              </button>
-            )}
           </div>
         )}
 
@@ -580,7 +667,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-[#ff8a65] font-extrabold uppercase tracking-wider font-['Montserrat']">
-                    {customerProfile ? `Entregar para ${customerProfile.name.split(' ')[0]}:` : 'Entregar no Endereço:'}
+                    {customerProfile?.name ? `Entregar para ${customerProfile.name.split(' ')[0]}:` : 'Entregar no Endereço:'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 </div>
@@ -1148,9 +1235,22 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <span>{storeSettings.address || storeSettings.deliveryArea?.baseAddress}</span>
             </p>
           )}
-          <p className="text-[11px] text-[#8e8f8f]">
-            {storeSettings?.openingHours || 'Terça a Domingo, 18h - 00h'} • WhatsApp: {storeSettings?.whatsappSupport || '(11) 98765-4321'}
-          </p>
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowScheduleModal(true)}
+              className="text-[11px] text-[#ff8a65] hover:text-white transition-colors flex items-center justify-center gap-1.5 mx-auto font-medium py-1 px-3 rounded-full hover:bg-[#252525]"
+            >
+              <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
+              <span>{storeSettings?.openingHours || generateScheduleSummaryText(operatingStatus.weeklySchedule)}</span>
+              <span className="underline font-bold text-[10px] ml-1">Ver horários →</span>
+            </button>
+          </div>
+          {storeSettings?.whatsappSupport && (
+            <p className="text-[11px] text-[#8e8f8f]">
+              WhatsApp para Dúvidas: {storeSettings.whatsappSupport}
+            </p>
+          )}
         </section>
       </main>
 
@@ -1335,6 +1435,15 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal Completa com os Horários dos 7 Dias da Semana */}
+      <WeeklyScheduleModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        storeSettings={storeSettings}
+        onOpenKitchen={onOpenKitchen}
+        isManager={Boolean(isManager || showManagerIcon)}
+      />
     </div>
   );
 };

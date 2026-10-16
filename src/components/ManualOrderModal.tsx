@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, Order, PizzaSize, JuiceSize, StoreSettings } from '../types';
-import { X, Plus, Trash2, Pizza, Citrus, Wallet, MapPin, Phone, Banknote, CreditCard, Zap, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Trash2, Pizza, Citrus, Wallet, MapPin, Phone, Banknote, CreditCard, Zap, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { PIZZA_SIZES, JUICE_SIZES } from '../data/mockData';
 
 interface ManualOrderModalProps {
@@ -21,7 +21,56 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const [orderType, setOrderType] = useState<'Delivery' | 'Retirada' | 'Mesa'>('Retirada');
   const [tableNumber, setTableNumber] = useState<number>(1);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [cep, setCep] = useState('');
+  const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [deliveryFee, setDeliveryFee] = useState<number>(storeSettings?.defaultDeliveryFee || 7.00);
+
+  const handleCepChange = async (val: string) => {
+    const raw = val.replace(/\D/g, '').slice(0, 8);
+    let formatted = raw;
+    if (raw.length > 5) {
+      formatted = `${raw.slice(0, 5)}-${raw.slice(5)}`;
+    }
+    setCep(formatted);
+    setCepError(null);
+    setFormError(null);
+
+    if (raw.length === 8) {
+      setIsSearchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.erro) {
+            setCepError('CEP não encontrado. Digite o endereço manualmente.');
+          } else {
+            const parts = [];
+            if (data.logradouro) parts.push(data.logradouro);
+            if (data.bairro) parts.push(data.bairro);
+            if (data.localidade) parts.push(`${data.localidade} - ${data.uf}`);
+            if (parts.length > 0) {
+              setDeliveryAddress(parts.join(' - '));
+            }
+            // Auto match zone if neighborhood matches
+            if (data.bairro) {
+              const matched = (storeSettings?.deliveryArea?.zones || []).find(
+                z => z.name.toLowerCase() === data.bairro.toLowerCase()
+              );
+              if (matched) {
+                setDeliveryFee(matched.fee);
+              }
+            }
+          }
+        }
+      } catch {
+        setCepError('Não foi possível consultar o CEP automaticamente.');
+      } finally {
+        setIsSearchingCep(false);
+      }
+    }
+  };
 
   // Formas de recebimento / pagamento
   const availablePaymentMethods = storeSettings?.acceptedPaymentMethods || [
@@ -90,10 +139,35 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName.trim() || items.length === 0) return;
+    setFormError(null);
+
+    if (!customerName.trim()) {
+      setFormError('Por favor, informe o nome do cliente.');
+      return;
+    }
+    if (items.length === 0) {
+      setFormError('Adicione pelo menos um item ao pedido.');
+      return;
+    }
+
+    if (orderType === 'Delivery') {
+      const cleanCep = cep.replace(/\D/g, '');
+      if (!cleanCep) {
+        setFormError('O CEP é obrigatório para pedidos de Entrega (Delivery).');
+        return;
+      }
+      if (cleanCep.length !== 8) {
+        setFormError('O CEP deve conter 8 dígitos válidos (ex: 01234-567).');
+        return;
+      }
+      if (!deliveryAddress.trim()) {
+        setFormError('Por favor, informe a rua e número do endereço de entrega.');
+        return;
+      }
+    }
 
     const effectiveAddress = orderType === 'Delivery'
-      ? (deliveryAddress.trim() || 'Endereço a confirmar via telefone')
+      ? `${deliveryAddress.trim()}${!deliveryAddress.toLowerCase().includes('cep:') ? ` - CEP: ${cep.trim()}` : ''}`
       : orderType === 'Mesa'
       ? `Consumo no Salão • Mesa ${tableNumber || 1}`
       : 'Retirada no Balcão da Loja';
@@ -234,15 +308,48 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                 </div>
               </div>
 
+              {/* CEP Input (Obrigatório) */}
+              <div className="bg-[#141414] p-2.5 rounded-xl border border-[#353535] space-y-1">
+                <div>
+                  <label className="text-[#ffb5a0] font-bold text-xs flex items-center gap-1.5">
+                    <span>CEP da Entrega <span className="text-[#ff5722]">*</span></span>
+                  </label>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={cep}
+                    onChange={e => handleCepChange(e.target.value)}
+                    placeholder="01234-567"
+                    maxLength={9}
+                    className={`w-full bg-[#20201f] border rounded-xl px-3 py-2 text-white placeholder:text-[#555] text-xs focus:outline-none ${
+                      cepError ? 'border-amber-500 focus:border-amber-500' : 'border-[#353535] focus:border-[#ff5722]'
+                    }`}
+                  />
+                  {isSearchingCep && (
+                    <Loader2 className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#ff5722]" />
+                  )}
+                </div>
+                {cepError ? (
+                  <p className="text-[10px] text-amber-400 font-medium">{cepError}</p>
+                ) : (
+                  <p className="text-[9.5px] text-[#8e8f8f]">
+                    Digite os 8 dígitos do CEP para preencher o endereço automaticamente.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-[#b4b5b5] mb-1 font-medium text-xs">
-                  Endereço Completo (Rua, Número, Complemento, Bairro)
+                  Endereço Completo (Rua, Número, Complemento) <span className="text-[#ff5722]">*</span>
                 </label>
                 <input
                   type="text"
+                  required
                   value={deliveryAddress}
                   onChange={e => setDeliveryAddress(e.target.value)}
-                  placeholder="Ex: Rua Augusta, 450, Apto 12 - Consolação"
+                  placeholder="Ex: Rua Augusta, 450, Apto 12"
                   className="w-full bg-[#20201f] border border-[#353535] rounded-xl px-3 py-2 text-white placeholder:text-[#555] text-xs focus:outline-none focus:border-[#ff5722]"
                 />
               </div>
@@ -351,7 +458,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                 >
                   {products.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.name} - R$ {p.price.toFixed(2)}
+                      {p.name} - R$ {p.price.toFixed(2).replace('.', ',')}{p.stock !== undefined ? ` (Estoque: ${p.stock} un)` : ''}
                     </option>
                   ))}
                 </select>
@@ -477,6 +584,13 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
               </div>
             ))}
           </div>
+
+          {formError && (
+            <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
           {/* Total summary */}
           <div className="p-3 bg-[#1c1b1b] rounded-xl border border-[#353535] flex justify-between items-center text-sm font-['Montserrat'] font-bold">

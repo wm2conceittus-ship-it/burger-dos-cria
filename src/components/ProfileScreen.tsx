@@ -227,10 +227,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <span className="text-[11px] text-[#b4b5b5] block mt-0.5">
                   {customerProfile?.neighborhood || customerProfile?.address?.split(' - ')[1] || 'Centro'}, {customerProfile?.city || 'São Paulo - SP'}
                 </span>
-                {customerProfile?.cep && (
-                  <span className="text-[10px] text-[#8e8f8f] font-mono block mt-0.5">
-                    CEP: {customerProfile.cep}
+                {customerProfile?.cep ? (
+                  <span className="text-[10px] text-emerald-400 font-mono block mt-0.5">
+                    ✓ CEP: {customerProfile.cep}
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onEditProfile}
+                    className="text-[10px] text-amber-400 font-bold block mt-1 hover:underline text-left"
+                  >
+                    ⚠️ Adicionar CEP do endereço
+                  </button>
                 )}
                 {customerProfile?.reference && (
                   <span className="text-[10px] text-amber-400 block mt-1 italic">

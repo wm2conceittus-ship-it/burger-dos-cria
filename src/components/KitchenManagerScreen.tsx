@@ -24,6 +24,7 @@ import {
   Edit2,
   DollarSign,
   Clock,
+  Calendar,
   ShoppingBag,
   Sparkles,
   Download,
@@ -103,6 +104,7 @@ import { FinancialPdfModal } from './FinancialPdfModal';
 import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
+import { WeeklyScheduleManager } from './WeeklyScheduleManager';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { ShareMenuModal } from './ShareMenuModal';
 import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
@@ -566,7 +568,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Payment methods in store settings
-  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'funcionarios' | 'area' | 'entregadores' | 'formas' | 'cupons'>('geral');
+  const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'horarios' | 'funcionarios' | 'area' | 'entregadores' | 'formas' | 'cupons'>('geral');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
@@ -1777,7 +1779,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             })}
           </div>
 
-          <div className="hidden lg:flex items-center gap-2 text-xs">
+          <div
+            onClick={() => {
+              setActiveTab('configuracoes');
+              setConfigTab('horarios');
+            }}
+            className="hidden lg:flex items-center gap-2 text-xs cursor-pointer hover:opacity-80 transition-opacity"
+            title="Clique para gerenciar horários de funcionamento"
+          >
             <span
               className={`w-2.5 h-2.5 rounded-full ${
                 storeSettings.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
@@ -1786,6 +1795,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <span className={`${managerTheme === 'light' ? 'text-slate-600' : 'text-[#b4b5b5]'} font-semibold`}>
               {storeSettings.isOpen ? 'Loja Aberta' : 'Loja Fechada'}
             </span>
+            <span className="text-[10px] text-[#ff8a65] underline ml-0.5">Horários</span>
           </div>
         </section>
 
@@ -4863,6 +4873,22 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <span>Geral & Operação</span>
                 </button>
 
+                <button type="button" onClick={() => setConfigTab('horarios')}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
+                    configTab === 'horarios'
+                      ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
+                      : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 text-[#ff5722]" />
+                  <span>Horários da Semana</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase ${
+                    storeSettings.isOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {storeSettings.isOpen ? 'Aberto' : 'Fechado'}
+                  </span>
+                </button>
+
                 <button type="button" onClick={() => setConfigTab('funcionarios')}
                   className={`flex-shrink-0 px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                     configTab === 'funcionarios'
@@ -4986,6 +5012,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               />
             )}
 
+            {/* ABA HORÁRIOS DE FUNCIONAMENTO SEMANAL */}
+            {configTab === 'horarios' && (
+              <WeeklyScheduleManager
+                storeSettings={storeSettings}
+                onUpdateStoreSettings={onUpdateStoreSettings}
+                showToast={msg => {
+                  setAreaToast(msg);
+                  setTimeout(() => setAreaToast(null), 3000);
+                }}
+              />
+            )}
+
             {/* ABA GERAL */}
             {configTab === 'geral' && (
               <div className="bg-[#20201f] rounded-md p-5 border border-[#353535]/50 space-y-4 shadow-md text-xs">
@@ -5044,9 +5082,19 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[#b4b5b5] mb-1 font-semibold">
-                      Horário de Funcionamento
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[#b4b5b5] font-semibold flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>Horário de Funcionamento (Resumo)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setConfigTab('horarios')}
+                        className="text-[10px] text-[#ff8a65] hover:underline font-bold"
+                      >
+                        Grade Detalhada (7 dias) →
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={storeSettings.openingHours || ''}
@@ -5059,6 +5107,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       placeholder="Ex: Terça a Domingo, 18h - 00h"
                       className="w-full bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
                     />
+                    <span className="text-[10px] text-[#8e8f8f] mt-1 block">
+                      Texto exibido no rodapé do cardápio e gerado automaticamente pela grade semanal abaixo.
+                    </span>
                   </div>
                 </div>
 
@@ -5107,6 +5158,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Seção Completa: Horários de Funcionamento por Dia da Semana */}
+              <WeeklyScheduleManager
+                storeSettings={storeSettings}
+                onUpdateStoreSettings={onUpdateStoreSettings}
+                showToast={msg => {
+                  setAreaToast(msg);
+                  setTimeout(() => setAreaToast(null), 3000);
+                }}
+              />
 
               {/* Delivery and Kitchen times */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
