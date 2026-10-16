@@ -2,7 +2,7 @@ export type Screen = 'menu' | 'product_detail' | 'cart' | 'tracking' | 'kitchen'
 
 export interface CustomerProfile {
   id?: string;
-  name?: string;
+  name: string;
   phone: string;
   email?: string;
   address: string;
@@ -13,6 +13,8 @@ export interface CustomerProfile {
   reference?: string;
   city?: string;
   cep?: string;
+  latitude?: number;
+  longitude?: number;
   registeredAt?: string;
 }
 
@@ -263,6 +265,8 @@ export interface Order {
   paymentStatus?: 'pendente' | 'aprovado' | 'recusado';
   pixReceiptUrl?: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   timeAgo: string;
   isUrgent?: boolean;
   courierName?: string;

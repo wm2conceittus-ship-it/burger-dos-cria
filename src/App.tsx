@@ -405,7 +405,7 @@ export default function App() {
     }
     saveCustomerProfileToFirestore(profile);
     setIsCustomerRegisterOpen(false);
-    showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${(profile.name || 'Cliente').split(' ')[0]}! 🔥`);
+    showToast(`Cadastro salvo com sucesso! Bem-vindo(a), ${profile.name.split(' ')[0]}! 🔥`);
   };
 
   // Rastreamento para disparo de alerta sonoro em novos pedidos e confirmação de PIX
@@ -781,13 +781,15 @@ export default function App() {
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       orderNumber: newOrderNum,
-      customerName: customerProfile.name || 'Cliente',
+      customerName: customerProfile.name,
       customerPhone: customerProfile.phone,
       type: orderType,
       tableNumber: isTableOrder ? tableNumber || 1 : undefined,
       status: isAutoAccept ? 'preparando' : 'novo',
       timeAgo: isAutoAccept ? 'Aceito automaticamente' : 'Acabou de ser feito',
       address: effectiveAddress,
+      latitude: !isTableOrder && !isPickupOrder ? customerProfile.latitude : undefined,
+      longitude: !isTableOrder && !isPickupOrder ? customerProfile.longitude : undefined,
       paymentMethod,
       changeFor,
       mercadoPagoPaymentId,
@@ -858,7 +860,7 @@ export default function App() {
           return {
             ...t,
             status: 'ocupada' as const,
-            customerName: customerProfile.name || 'Cliente',
+            customerName: customerProfile.name,
             peopleCount: t.peopleCount || 2,
             openedAt: t.openedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             items: [...t.items, ...newItems],
@@ -1389,7 +1391,7 @@ export default function App() {
           currentAddress={deliveryAddress}
           storeSettings={storeSettings}
           currentNeighborhood={customerProfile?.neighborhood}
-          onSave={(newAddress, chosenNeighborhood, savedCep) => {
+          onSave={(newAddress, chosenNeighborhood, savedCep, coords) => {
             setDeliveryAddress(newAddress);
             if (customerProfile) {
               const updatedProfile: CustomerProfile = {
@@ -1397,6 +1399,8 @@ export default function App() {
                 address: newAddress,
                 neighborhood: chosenNeighborhood || customerProfile.neighborhood,
                 cep: savedCep || customerProfile.cep,
+                latitude: coords?.lat ?? customerProfile.latitude,
+                longitude: coords?.lng ?? customerProfile.longitude,
               };
               setCustomerProfile(updatedProfile);
               saveCustomerProfileToFirestore(updatedProfile);

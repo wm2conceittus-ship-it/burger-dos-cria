@@ -42,6 +42,12 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
   const [city, setCity] = useState(initialProfile?.city || 'São Paulo - SP');
 
   // GPS state
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() => {
+    if (initialProfile?.latitude && initialProfile?.longitude) {
+      return { lat: initialProfile.latitude, lng: initialProfile.longitude };
+    }
+    return null;
+  });
   const [isLocating, setIsLocating] = useState(false);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -155,6 +161,7 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
     navigator.geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude, accuracy } = position.coords;
+        setCoords({ lat: latitude, lng: longitude });
         setGeoStatus('Coordenadas obtidas! Buscando nome da rua...');
 
         try {
@@ -293,6 +300,8 @@ export const CustomerRegisterModal: React.FC<CustomerRegisterModalProps> = ({
       reference: reference.trim(),
       city: city.trim(),
       cep: cep.trim(),
+      latitude: coords?.lat,
+      longitude: coords?.lng,
       registeredAt: initialProfile?.registeredAt || new Date().toISOString(),
     };
 

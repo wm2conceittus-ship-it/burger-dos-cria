@@ -114,6 +114,7 @@ import {
   openWhatsAppLink,
 } from '../utils/whatsappNotification';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
+import { getGoogleMapsRouteUrl, getWazeRouteUrl } from '../utils/gpsRouteUtils';
 
 interface KitchenManagerScreenProps {
   orders: Order[];
@@ -335,7 +336,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       `*Pedido:* #${order.orderNumber}`,
       `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
       `*Endereço:* ${order.address || 'Não informado'}`,
-      order.address ? `*📍 Rota GPS (Google Maps):* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
+      order.address ? `*📍 Rota Google Maps:* ${getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}` : '',
+      order.address ? `*🚗 Rota Waze:* ${getWazeRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}` : '',
       `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
       isOnlinePaid
         ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
@@ -2847,7 +2849,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         <span className="truncate text-gray-800 font-medium">{order.address}</span>
                                       </div>
                                       <a
-                                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                        href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 font-bold bg-sky-100 hover:bg-sky-200 px-1.5 py-0.5 rounded border border-sky-200 transition-colors text-[9px]"
@@ -2874,7 +2876,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                             `*Pedido:* ${cleanOrderNum}`,
                                             `*Cliente:* ${order.customerName}${order.customerPhone ? ` (${order.customerPhone})` : ''}`,
                                             `*Endereço:* ${order.address || 'Não informado'}`,
-                                            order.address ? `*Rota GPS:* https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}` : '',
+                                            order.address ? `*📍 Rota Google Maps:* ${getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}\n*🚗 Rota Waze:* ${getWazeRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}` : '',
                                             `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
                                             isOnlinePaid
                                               ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
@@ -3357,7 +3359,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
                                   <span className="truncate flex-1 text-gray-800 font-medium">{order.address}</span>
                                   <a
-                                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                    href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200"
@@ -3637,7 +3639,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                 )}
 
                                 <a
-                                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                  href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="w-full bg-[#182026] hover:bg-[#1f2b33] border border-[#019ad8]/40 text-[#86cfff] py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
@@ -3734,7 +3736,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
                               <span className="truncate flex-1 text-gray-800 font-medium">{order.address}</span>
                               <a
-                                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                                href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-sky-700 hover:text-sky-900 shrink-0 flex items-center gap-0.5 text-[10px] font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200"
@@ -4030,7 +4032,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                             {/* Live Route Link for Manager */}
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                              href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                               target="_blank"
                               rel="noreferrer"
                               className="w-full bg-[#182026] hover:bg-[#1f2b33] border border-[#019ad8]/40 text-[#86cfff] py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 font-bold text-[10px] transition-colors"
@@ -8170,7 +8172,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </div>
                       </div>
                       <a
-                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
+                        href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
                         target="_blank"
                         rel="noreferrer"
                         className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-800 bg-sky-100 hover:bg-sky-200 px-2.5 py-1 rounded-lg border border-sky-200 transition-colors"

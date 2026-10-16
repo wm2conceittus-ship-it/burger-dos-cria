@@ -7,7 +7,7 @@ interface AddressModalProps {
   currentAddress: string;
   storeSettings?: StoreSettings;
   currentNeighborhood?: string;
-  onSave: (newAddress: string, chosenNeighborhood?: string, cep?: string) => void;
+  onSave: (newAddress: string, chosenNeighborhood?: string, cep?: string, coords?: { lat: number; lng: number } | null) => void;
   onClose: () => void;
 }
 
@@ -63,6 +63,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   };
 
   // GPS state
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [geoStatus, setGeoStatus] = useState<string | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     navigator.geolocation.getCurrentPosition(
       async position => {
         const { latitude, longitude, accuracy } = position.coords;
+        setCoords({ lat: latitude, lng: longitude });
         setGeoStatus('Coordenadas obtidas! Buscando rua e bairro...');
 
         try {
@@ -201,7 +203,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       return;
     }
     const formatted = `${cleanStreet}${complement.trim() ? ` (${complement.trim()})` : ''} - ${cleanNeigh} - CEP: ${cep.trim()}`;
-    onSave(formatted, feeInfo.zoneName || cleanNeigh, cep.trim());
+    onSave(formatted, feeInfo.zoneName || cleanNeigh, cep.trim(), coords);
     onClose();
   };
 

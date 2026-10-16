@@ -4,6 +4,7 @@ import { APP_IMAGES } from '../data/mockData';
 import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import { getStoreOperatingStatus, generateScheduleSummaryText } from '../utils/scheduleUtils';
 import { WeeklyScheduleModal } from './WeeklyScheduleModal';
+import { PromoCarouselBanner } from './PromoCarouselBanner';
 import {
   Search,
   Menu as MenuIcon,
@@ -329,7 +330,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                 <UserCheck className="w-3.5 h-3.5 text-[#ff5722]" />
                 <span className="hidden md:inline text-[11px] text-[#b4b5b5]">Olá,</span>
                 <span className="max-w-[70px] sm:max-w-[110px] truncate font-bold text-white text-xs">
-                  {(customerProfile.name || 'Cliente').split(' ')[0]}
+                  {customerProfile.name.split(' ')[0]}
                 </span>
               </button>
             ) : (
@@ -667,7 +668,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-[#ff8a65] font-extrabold uppercase tracking-wider font-['Montserrat']">
-                    {customerProfile?.name ? `Entregar para ${customerProfile.name.split(' ')[0]}:` : 'Entregar no Endereço:'}
+                    {customerProfile ? `Entregar para ${customerProfile.name.split(' ')[0]}:` : 'Entregar no Endereço:'}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 </div>
@@ -684,6 +685,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <span>{customerProfile ? 'Alterar Dados' : 'Cadastrar / GPS'}</span>
             </button>
           </div>
+        )}
+
+        {/* Banner Rotativo de Promoções do Dia e Especiais */}
+        {!searchQuery.trim() && (
+          <PromoCarouselBanner
+            products={products}
+            storeSettings={storeSettings}
+            onSelectProduct={onSelectProduct}
+            onQuickAdd={onQuickAdd}
+          />
         )}
 
         {/* Search Bar */}

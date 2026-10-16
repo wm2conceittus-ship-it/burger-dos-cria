@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
+import { getGoogleMapsRouteUrl, getWazeRouteUrl } from '../utils/gpsRouteUtils';
 
 interface OrderTrackingScreenProps {
   order?: Order | null;
@@ -438,15 +439,27 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
               </span>
             </div>
           </div>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 bg-[#019ad8] hover:bg-[#019ad8]/90 text-white font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
-          >
-            <span>Ver Rota</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 bg-[#019ad8] hover:bg-[#019ad8]/90 text-white font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
+              title="Abrir rota no Google Maps"
+            >
+              <span>Google Maps</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <a
+              href={getWazeRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 bg-[#33ccff]/20 hover:bg-[#33ccff]/30 text-[#33ccff] border border-[#33ccff]/40 font-['Montserrat'] font-bold text-xs py-2 px-2.5 rounded-lg flex items-center gap-1 active:scale-95 transition-all shadow-sm"
+              title="Abrir no Waze"
+            >
+              <span>Waze</span>
+            </a>
+          </div>
         </div>
 
         {/* Action Buttons */}
