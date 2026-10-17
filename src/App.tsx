@@ -468,6 +468,11 @@ export default function App() {
       }
 
       setOrders(realOrders);
+      setActiveTrackingOrder(prev => {
+        if (!prev) return null;
+        const fresh = realOrders.find(o => o.id === prev.id);
+        return fresh || prev;
+      });
     });
 
     // Subscribe to store settings in Firestore
@@ -908,6 +913,7 @@ export default function App() {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'preparando' } : o))
     );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'preparando' } : prev));
     updateOrderStatusInFirestore(orderId, 'preparando');
     showToast('Pedido aceito na cozinha! Preparando...');
   };
@@ -916,6 +922,7 @@ export default function App() {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'recusado' } : o))
     );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'recusado' } : prev));
     updateOrderStatusInFirestore(orderId, 'recusado');
     showToast('Pedido recusado.');
   };
@@ -924,6 +931,7 @@ export default function App() {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'pronto' } : o))
     );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'pronto' } : prev));
     updateOrderStatusInFirestore(orderId, 'pronto');
     showToast('Pedido pronto para retirada ou entrega!');
   };
@@ -950,6 +958,19 @@ export default function App() {
         return o;
       })
     );
+    setActiveTrackingOrder(prev => {
+      if (prev?.id !== orderId) return prev;
+      return {
+        ...prev,
+        status: 'em_entrega',
+        customerPhone: updatedCustomerPhone || prev.customerPhone,
+        courierName: courierInfo?.name || prev.courierName,
+        courierPhone: courierInfo?.phone || prev.courierPhone,
+        courierAvatar: courierInfo?.avatar || prev.courierAvatar,
+        courierVehicle: courierInfo?.vehicle || prev.courierVehicle,
+        courierPlate: courierInfo?.plate || prev.courierPlate,
+      };
+    });
     const updatePayload: any = {
       status: 'em_entrega',
     };
@@ -970,6 +991,7 @@ export default function App() {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'entregue' } : o))
     );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'entregue' } : prev));
     updateOrderStatusInFirestore(orderId, 'entregue');
     showToast('Pedido marcado como Entregue!');
   };
@@ -978,6 +1000,7 @@ export default function App() {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
     );
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
     updateOrderStatusInFirestore(orderId, newStatus);
   };
 

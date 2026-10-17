@@ -160,6 +160,51 @@ export function getCustomerDispatchWhatsAppUrl(
 }
 
 /**
+ * Monta a mensagem para o WhatsApp do CLIENTE avisando que o pedido foi ACEITO pela cozinha e está em preparo.
+ */
+export function buildCustomerAcceptedWhatsAppMessage(order: Order, storeSettings?: StoreSettings): string {
+  const storeName = storeSettings?.storeName || 'Burguer dos Crias';
+  const isTable = order.type === 'Mesa';
+  const isPickup = order.type === 'Retirada';
+
+  const typeHeader = isTable
+    ? `🍽️ *PEDIDO ACEITO - MESA #${order.tableNumber || 1}*`
+    : isPickup
+    ? `🛍️ *PEDIDO ACEITO PARA RETIRADA NO BALCÃO*`
+    : `🛵 *PEDIDO CONFIRMADO E NA CHAPA!*`;
+
+  const timeEstimate = storeSettings?.estimatedDeliveryTime || '25-35 min';
+
+  return [
+    `🔥 *SEU PEDIDO FOI ACEITO!*`,
+    `🍔 *${storeName.toUpperCase()}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    typeHeader,
+    `Olá, *${order.customerName}*! Seu pedido *#${order.orderNumber}* foi confirmado pela nossa equipe e o chapeiro já iniciou o preparo na chapa! 🥩🔥`,
+    ``,
+    `⏱️ *Tempo estimado:* ~${timeEstimate}`,
+    `💰 *Valor Total:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Você pode acompanhar o andamento do seu pedido e o trajeto em tempo real direto pelo aplicativo!`,
+    storeSettings?.whatsappSupport ? `\n📞 *Suporte da Hamburgueria:* ${storeSettings.whatsappSupport}` : '',
+    `\nAgradecemos a preferência! 😋🍔✨`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
+ * Retorna o link direto (wa.me) para enviar a notificação "Pedido aceito" para o WhatsApp do cliente.
+ */
+export function getCustomerAcceptedWhatsAppUrl(order: Order, storeSettings?: StoreSettings): string {
+  if (!order.customerPhone) return '';
+  const cleanPhone = formatPhoneForWhatsApp(order.customerPhone);
+  if (!cleanPhone || cleanPhone.length < 10) return '';
+  const message = buildCustomerAcceptedWhatsAppMessage(order, storeSettings);
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
  * Abre o link do WhatsApp com compatibilidade garantida em navegadores desktop e mobile.
  */
 export function openWhatsAppLink(url: string): boolean {

@@ -111,6 +111,7 @@ import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/s
 import {
   getManagerWhatsAppNotificationUrl,
   getCustomerDispatchWhatsAppUrl,
+  getCustomerAcceptedWhatsAppUrl,
   openWhatsAppLink,
 } from '../utils/whatsappNotification';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
@@ -3554,11 +3555,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </button>
                             </>
                           ) : isPreparando ? (
-                            <button onClick={() => onAdvanceToReady(order.id)}
-                              className="w-full bg-[#2a2a2a] text-[#ff8a65] border border-[#ff5722]/30 hover:bg-[#ff5722]/10 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all"
-                            >
-                              Mudar para Pronto
-                            </button>
+                            <div className="w-full space-y-1.5">
+                              {order.customerPhone && (
+                                <a
+                                  href={getCustomerAcceptedWhatsAppUrl(order, storeSettings)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 py-2 rounded-md text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                                  title="Avisar cliente no WhatsApp que o lanche está na chapa"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Avisar Cliente no WhatsApp (Aceito)</span>
+                                </a>
+                              )}
+                              <button onClick={() => onAdvanceToReady(order.id)}
+                                className="w-full bg-[#2a2a2a] text-[#ff8a65] border border-[#ff5722]/30 hover:bg-[#ff5722]/10 py-2.5 rounded-md text-xs font-bold font-['Montserrat'] transition-all"
+                              >
+                                Mudar para Pronto
+                              </button>
+                            </div>
                           ) : isPronto ? (
                             <div className="w-full space-y-1.5">
                               <button onClick={() => {
@@ -3942,11 +3957,26 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       )}
 
                       {isPreparando && (
-                        <button onClick={() => onAdvanceToReady(order.id)}
-                          className="w-full bg-[#2a2a2a] text-[#ff8a65] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#ff5722]/20 hover:bg-[#ff5722]/10 transition-all active:scale-95"
-                        >
-                          Mudar para Pronto
-                        </button>
+                        <div className="space-y-1 w-full">
+                          {order.customerPhone && (
+                            <a
+                              href={getCustomerAcceptedWhatsAppUrl(order, storeSettings)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 py-1.5 rounded-md text-[10px] font-bold font-['Montserrat'] flex items-center justify-center gap-1 transition-all"
+                              title="Avisar cliente no WhatsApp que o pedido foi aceito"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <MessageSquare className="w-3 h-3 text-emerald-400" />
+                              <span>Avisar Aceite no Zap</span>
+                            </a>
+                          )}
+                          <button onClick={() => onAdvanceToReady(order.id)}
+                            className="w-full bg-[#2a2a2a] text-[#ff8a65] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#ff5722]/20 hover:bg-[#ff5722]/10 transition-all active:scale-95"
+                          >
+                            Mudar para Pronto
+                          </button>
+                        </div>
                       )}
 
                       {isPronto && (

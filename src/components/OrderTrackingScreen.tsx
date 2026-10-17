@@ -75,8 +75,35 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   }
 
   const isTable = order.type === 'Mesa';
-  const [currentStepIndex, setCurrentStepIndex] = useState<number>(1); // 0: Recebido, 1: Preparo, 2: Entrega, 3: Entregue
+
+  const getStepIndexFromStatus = (status?: string): number => {
+    switch (status) {
+      case 'novo':
+      case 'recebido':
+        return 0;
+      case 'preparando':
+        return 1;
+      case 'pronto':
+      case 'em_entrega':
+        return 2;
+      case 'entregue':
+        return 3;
+      default:
+        return 1;
+    }
+  };
+
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(() =>
+    getStepIndexFromStatus(order.status)
+  );
   const [showItemsList, setShowItemsList] = useState(false);
+
+  // Sincroniza em tempo real com o status atualizado pela cozinha no Firebase
+  useEffect(() => {
+    if (order.status) {
+      setCurrentStepIndex(getStepIndexFromStatus(order.status));
+    }
+  }, [order.status]);
 
   const isPixPending =
     Boolean(order.paymentMethod?.toLowerCase().includes('pix')) &&
@@ -119,12 +146,16 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
       ];
 
   const getStatusText = () => {
+    if (order.status === 'recusado') {
+      return 'PEDIDO RECUSADO';
+    }
+
     if (isTable) {
       switch (currentStepIndex) {
         case 0:
-          return 'PEDIDO CONFIRMADO NO SALÃO';
+          return 'AGUARDANDO CONFIRMAÇÃO DA COZINHA';
         case 1:
-          return 'BURGER NA CHAPA 🔥';
+          return 'BURGER NA CHAPA 🔥 (ACEITO)';
         case 2:
           return 'PRONTO PARA SERVIR NA MESA';
         case 3:
@@ -136,13 +167,13 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
 
     switch (currentStepIndex) {
       case 0:
-        return 'PEDIDO RECEBIDO';
+        return 'AGUARDANDO CONFIRMAÇÃO DA COZINHA';
       case 1:
-        return 'EM PREPARO';
+        return 'PEDIDO ACEITO! EM PREPARO 🔥';
       case 2:
-        return 'SAIU PARA ENTREGA';
+        return 'SAIU PARA ENTREGA 🛵';
       case 3:
-        return 'ENTREGUE';
+        return 'ENTREGUE COM SUCESSO 🎉';
       default:
         return 'EM PREPARO';
     }
@@ -168,13 +199,13 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
 
     switch (currentStepIndex) {
       case 0:
-        return 'A cozinha já confirmou seu pedido';
+        return 'Aguardando o chapeiro aceitar e iniciar o preparo';
       case 1:
-        return `${courierFirstName} está acompanhando o preparo`;
+        return `Pedido aceito! O chapeiro já iniciou o preparo na chapa 🔥`;
       case 2:
-        return `${courierFirstName} está a caminho do seu endereço`;
+        return `${courierFirstName} está a caminho do seu endereço 🛵`;
       case 3:
-        return 'Pedido entregue com sucesso!';
+        return 'Pedido entregue com sucesso! Bom apetite 🎉';
       default:
         return `${courierFirstName} está com seu pedido`;
     }
@@ -239,6 +270,46 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
             </span>
           </p>
         </section>
+
+        {/* Status Alert Banner */}
+        {order.status === 'preparando' && (
+          <div className="bg-gradient-to-r from-[#ff5722]/20 via-[#ff5722]/10 to-amber-500/10 border-2 border-[#ff5722] rounded-2xl p-4 shadow-xl shadow-[#ff5722]/10 animate-in fade-in space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
+              <span className="font-['Montserrat'] font-black text-sm text-[#ff8a65] uppercase tracking-wide">
+                🔥 Pedido Aceito pela Cozinha!
+              </span>
+            </div>
+            <p className="text-xs text-white font-medium">
+              O chapeiro já aceitou seu pedido e iniciou o preparo dos seus lanches artesanais na chapa.
+            </p>
+          </div>
+        )}
+
+        {(order.status === 'novo' || order.status === 'recebido') && (
+          <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-lg animate-in fade-in space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="font-['Montserrat'] font-black text-xs text-amber-300 uppercase tracking-wide">
+                ⏳ Pedido Recebido • Aguardando Chapa
+              </span>
+            </div>
+            <p className="text-xs text-[#d4d4d4]">
+              Seu pedido já foi transmitido para a cozinha. Assim que o chapeiro aceitar, o preparo começará imediatamente!
+            </p>
+          </div>
+        )}
+
+        {order.status === 'recusado' && (
+          <div className="bg-red-950/60 border-2 border-red-500/80 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+            <span className="font-['Montserrat'] font-black text-xs text-red-400 uppercase tracking-wide flex items-center gap-2">
+              ❌ Pedido Não Pôde Ser Aceito
+            </span>
+            <p className="text-xs text-[#e5e2e1]">
+              A cozinha não conseguiu aceitar seu pedido no momento. Entre em contato conosco via WhatsApp para mais informações.
+            </p>
+          </div>
+        )}
 
         {/* Card de Alerta no WhatsApp do Gestor */}
         <div className="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-2xl p-3.5 space-y-2.5 shadow-xl">
