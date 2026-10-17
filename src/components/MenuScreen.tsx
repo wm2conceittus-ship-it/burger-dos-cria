@@ -4,7 +4,6 @@ import { APP_IMAGES } from '../data/mockData';
 import { getPublicMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import { getStoreOperatingStatus, generateScheduleSummaryText } from '../utils/scheduleUtils';
 import { WeeklyScheduleModal } from './WeeklyScheduleModal';
-import { PromoCarouselBanner } from './PromoCarouselBanner';
 import {
   Search,
   Menu as MenuIcon,
@@ -685,16 +684,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               <span>{customerProfile ? 'Alterar Dados' : 'Cadastrar / GPS'}</span>
             </button>
           </div>
-        )}
-
-        {/* Banner Rotativo de Promoções do Dia e Especiais */}
-        {!searchQuery.trim() && (
-          <PromoCarouselBanner
-            products={products}
-            storeSettings={storeSettings}
-            onSelectProduct={onSelectProduct}
-            onQuickAdd={onQuickAdd}
-          />
         )}
 
         {/* Search Bar */}
