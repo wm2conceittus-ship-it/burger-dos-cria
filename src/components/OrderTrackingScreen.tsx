@@ -18,6 +18,8 @@ import {
   Sparkles,
   Phone,
   Share2,
+  Receipt,
+  PackageCheck,
 } from 'lucide-react';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
@@ -80,16 +82,17 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
     switch (status) {
       case 'novo':
       case 'recebido':
-        return 0;
+        return 0; // Recebido
       case 'preparando':
-        return 1;
+        return 1; // Em Preparo
       case 'pronto':
+        return 2; // Pronto
       case 'em_entrega':
-        return 2;
+        return 3; // Em Rota
       case 'entregue':
-        return 3;
+        return 4; // Entregue
       default:
-        return 1;
+        return 0;
     }
   };
 
@@ -131,19 +134,39 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
     return () => clearInterval(interval);
   }, [isPixPending, order.mercadoPagoPaymentId, order.id, storeSettings?.mercadoPago?.accessToken, onUpdatePaymentStatus]);
 
-  const steps = isTable
-    ? [
-        { label: 'Pedido\nConfirmado', icon: Check },
-        { label: 'Na Chapa\n(Preparo)', icon: Flame },
-        { label: 'Pronto p/\nServir', icon: UtensilsCrossed },
-        { label: 'Entregue na\nMesa', icon: CheckCircle2 },
-      ]
-    : [
-        { label: 'Pedido\nRecebido', icon: Check },
-        { label: 'Em\nPreparo', icon: Flame },
-        { label: 'Saiu para\nEntrega', icon: Bike },
-        { label: 'Pedido\nEntregue', icon: CheckCircle2 },
-      ];
+  // 5 Etapas Solicitadas: Recebido, Em Preparo, Pronto, Em Rota e Entregue
+  const steps = [
+    {
+      id: 'recebido',
+      label: 'Recebido',
+      icon: Receipt,
+      desc: isTable ? 'Pedido registrado na Mesa' : 'Pedido registrado e enviado para a chapa',
+    },
+    {
+      id: 'preparo',
+      label: 'Em Preparo',
+      icon: Flame,
+      desc: 'O chapeiro está grelhando o lanche na chapa',
+    },
+    {
+      id: 'pronto',
+      label: 'Pronto',
+      icon: PackageCheck,
+      desc: isTable ? 'Lanches prontos para servir na mesa' : 'Lanches prontos e embalados na bag térmica',
+    },
+    {
+      id: 'em_rota',
+      label: isTable ? 'A Servir' : 'Em Rota',
+      icon: isTable ? UtensilsCrossed : Bike,
+      desc: isTable ? 'Garçom levando o prato à mesa' : 'Entregador em rota a caminho do endereço',
+    },
+    {
+      id: 'entregue',
+      label: 'Entregue',
+      icon: CheckCircle2,
+      desc: isTable ? 'Pedido servido na mesa! Bom apetite' : 'Pedido entregue com sucesso! Bom apetite',
+    },
+  ];
 
   const getStatusText = () => {
     if (order.status === 'recusado') {
@@ -153,27 +176,31 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
     if (isTable) {
       switch (currentStepIndex) {
         case 0:
-          return 'AGUARDANDO CONFIRMAÇÃO DA COZINHA';
+          return 'PEDIDO RECEBIDO NO SALÃO';
         case 1:
-          return 'BURGER NA CHAPA 🔥 (ACEITO)';
+          return 'BURGER NA CHAPA 🔥 (EM PREPARO)';
         case 2:
-          return 'PRONTO PARA SERVIR NA MESA';
+          return 'PRONTO PARA SERVIR ✨';
         case 3:
-          return 'SERVIDO NA SUA MESA';
+          return 'A CAMINHO DA SUA MESA 🍽️';
+        case 4:
+          return 'SERVIDO NA SUA MESA 🎉';
         default:
-          return 'NA COZINHA';
+          return 'EM ATENDIMENTO';
       }
     }
 
     switch (currentStepIndex) {
       case 0:
-        return 'AGUARDANDO CONFIRMAÇÃO DA COZINHA';
+        return 'PEDIDO RECEBIDO PELA HAMBURGUERIA';
       case 1:
         return 'PEDIDO ACEITO! EM PREPARO 🔥';
       case 2:
-        return 'SAIU PARA ENTREGA 🛵';
+        return 'PEDIDO PRONTO & EMBALADO ✨';
       case 3:
-        return 'ENTREGUE COM SUCESSO 🎉';
+        return 'PEDIDO EM ROTA DE ENTREGA 🛵';
+      case 4:
+        return 'PEDIDO ENTREGUE COM SUCESSO 🎉';
       default:
         return 'EM PREPARO';
     }
@@ -187,10 +214,12 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         case 0:
           return `Mesa ${order.tableNumber || 1}: pedido recebido pela cozinha`;
         case 1:
-          return `O chapa está grelhando seu lanche para a Mesa ${order.tableNumber || 1}`;
+          return `O chapeiro está grelhando seu lanche para a Mesa ${order.tableNumber || 1}`;
         case 2:
-          return `O garçom está levando seu pedido para a Mesa ${order.tableNumber || 1}`;
+          return `Lanches finalizados na chapa para a Mesa ${order.tableNumber || 1}`;
         case 3:
+          return `O garçom está levando seu pedido para a Mesa ${order.tableNumber || 1}`;
+        case 4:
           return `Pedido servido com sucesso na Mesa ${order.tableNumber || 1}! Bom apetite 🔥`;
         default:
           return `Pedido em atendimento na Mesa ${order.tableNumber || 1}`;
@@ -201,17 +230,19 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
       case 0:
         return 'Aguardando o chapeiro aceitar e iniciar o preparo';
       case 1:
-        return `Pedido aceito! O chapeiro já iniciou o preparo na chapa 🔥`;
+        return 'Pedido aceito! O chapeiro já iniciou o preparo na chapa 🔥';
       case 2:
-        return `${courierFirstName} está a caminho do seu endereço 🛵`;
+        return 'Lanches artesanais prontos e embalados na bag térmica ✨';
       case 3:
+        return `${courierFirstName} retirou seu pedido e está a caminho do seu endereço 🛵`;
+      case 4:
         return 'Pedido entregue com sucesso! Bom apetite 🎉';
       default:
         return `${courierFirstName} está com seu pedido`;
     }
   };
 
-  const progressPercent = (currentStepIndex / (steps.length - 1)) * 100;
+  const progressPercent = Math.min(100, Math.round((currentStepIndex / (steps.length - 1)) * 100));
 
   return (
     <div className="bg-[#0F0F0F] text-[#e5e2e1] min-h-screen pb-28">
@@ -271,13 +302,27 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           </p>
         </section>
 
-        {/* Status Alert Banner */}
+        {/* Status Alert Banners */}
+        {(order.status === 'novo' || order.status === 'recebido') && (
+          <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-lg animate-in fade-in space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="font-['Montserrat'] font-black text-xs text-amber-300 uppercase tracking-wide">
+                ⏳ Etapa 1: Pedido Recebido • Aguardando Chapa
+              </span>
+            </div>
+            <p className="text-xs text-[#d4d4d4]">
+              Seu pedido já foi transmitido para a cozinha. Assim que o chapeiro aceitar, o preparo começará imediatamente!
+            </p>
+          </div>
+        )}
+
         {order.status === 'preparando' && (
           <div className="bg-gradient-to-r from-[#ff5722]/20 via-[#ff5722]/10 to-amber-500/10 border-2 border-[#ff5722] rounded-2xl p-4 shadow-xl shadow-[#ff5722]/10 animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
               <span className="font-['Montserrat'] font-black text-sm text-[#ff8a65] uppercase tracking-wide">
-                🔥 Pedido Aceito pela Cozinha!
+                🔥 Etapa 2: Pedido Aceito! Burger na Chapa
               </span>
             </div>
             <p className="text-xs text-white font-medium">
@@ -286,16 +331,46 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           </div>
         )}
 
-        {(order.status === 'novo' || order.status === 'recebido') && (
-          <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-lg animate-in fade-in space-y-1.5">
+        {order.status === 'pronto' && (
+          <div className="bg-sky-950/50 border-2 border-sky-500/60 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-              <span className="font-['Montserrat'] font-black text-xs text-amber-300 uppercase tracking-wide">
-                ⏳ Pedido Recebido • Aguardando Chapa
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
+              <span className="font-['Montserrat'] font-black text-sm text-sky-300 uppercase tracking-wide">
+                ✨ Etapa 3: Pedido Pronto & Embalado!
               </span>
             </div>
-            <p className="text-xs text-[#d4d4d4]">
-              Seu pedido já foi transmitido para a cozinha. Assim que o chapeiro aceitar, o preparo começará imediatamente!
+            <p className="text-xs text-white font-medium">
+              Seus lanches acabaram de ser finalizados na chapa e estão devidamente embalados na bag térmica, prontos para saída!
+            </p>
+          </div>
+        )}
+
+        {order.status === 'em_entrega' && (
+          <div className="bg-blue-950/50 border-2 border-[#019ad8] rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#019ad8] animate-ping" />
+              <span className="font-['Montserrat'] font-black text-sm text-[#86cfff] uppercase tracking-wide">
+                🛵 Etapa 4: Pedido em Rota de Entrega!
+              </span>
+            </div>
+            <p className="text-xs text-white font-medium">
+              {order.courierName
+                ? `O entregador ${order.courierName} já retirou a bag e está a caminho do seu endereço.`
+                : 'O entregador já está a caminho do seu endereço com sua encomenda quentinha!'}
+            </p>
+          </div>
+        )}
+
+        {order.status === 'entregue' && (
+          <div className="bg-emerald-950/60 border-2 border-emerald-500/70 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <span className="font-['Montserrat'] font-black text-sm text-emerald-300 uppercase tracking-wide">
+                🎉 Etapa 5: Pedido Entregue com Sucesso!
+              </span>
+            </div>
+            <p className="text-xs text-white font-medium">
+              Agradecemos a sua preferência pelo Burguer dos Crias! Bom apetite!
             </p>
           </div>
         )}
@@ -393,19 +468,34 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           </div>
         )}
 
-        {/* Visual Timeline / Stepper */}
-        <section className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-lg relative overflow-hidden">
-          {/* Progress track */}
-          <div className="relative mb-3">
-            <div className="absolute top-4 left-4 right-4 h-0.5 bg-[#353535] -z-0">
+        {/* Visual Timeline / Stepper (5 Etapas: Recebido, Em Preparo, Pronto, Em Rota, Entregue) */}
+        <section className="bg-[#1c1b1b] rounded-2xl p-4 sm:p-5 border border-[#353535] shadow-xl relative overflow-hidden space-y-3.5">
+          {/* Header do Stepper com indicador de etapa atual */}
+          <div className="flex items-center justify-between pb-2 border-b border-[#353535]/60">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
+              <span className="text-xs font-['Montserrat'] font-black uppercase tracking-wider text-white">
+                Progresso da Entrega
+              </span>
+            </div>
+            <span className="text-[10px] font-['Montserrat'] font-extrabold px-2.5 py-0.5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30">
+              Etapa {currentStepIndex + 1} de 5 • {steps[currentStepIndex].label}
+            </span>
+          </div>
+
+          {/* Progress track com 5 nós */}
+          <div className="relative pt-2 pb-1">
+            {/* Linha de fundo cinza contínua conectando os centros dos círculos */}
+            <div className="absolute top-6 left-6 right-6 h-1 bg-[#2e2d2d] rounded-full -z-0">
+              {/* Barra de preenchimento dinâmica com gradiente de chama e brilho */}
               <div
-                className="h-full bg-[#ff5722] transition-all duration-500 ease-out shadow-[0_0_8px_rgba(255,87,34,0.8)]"
+                className="h-full bg-gradient-to-r from-amber-500 via-[#ff5722] to-emerald-500 rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_rgba(255,87,34,0.7)]"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
 
-            {/* Step icons */}
-            <div className="flex justify-between relative z-10">
+            {/* 5 nós das etapas perfeitamente distribuídos */}
+            <div className="flex justify-between items-start relative z-10">
               {steps.map((step, idx) => {
                 const isPassed = idx < currentStepIndex;
                 const isCurrent = idx === currentStepIndex;
@@ -413,45 +503,64 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
 
                 return (
                   <button
-                    key={idx}
+                    key={step.id}
+                    type="button"
                     onClick={() => setCurrentStepIndex(idx)}
-                    className="flex flex-col items-center group cursor-pointer"
-                    title={`Avançar para etapa: ${step.label.replace('\n', ' ')}`}
+                    className="flex flex-col items-center group cursor-pointer focus:outline-none transition-transform active:scale-95 max-w-[60px] sm:max-w-[76px]"
+                    title={`Etapa ${idx + 1}: ${step.label} - ${step.desc}`}
                   >
+                    {/* Círculo do nó */}
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs transition-all duration-300 border-2 ${
                         isCurrent
-                          ? 'bg-[#ff5722] text-white shadow-[0_0_16px_rgba(255,87,34,0.6)] animate-flame-pulse'
+                          ? 'bg-[#ff5722] text-white border-white shadow-[0_0_18px_rgba(255,87,34,0.8)] scale-110'
                           : isPassed
-                          ? 'bg-[#ff5722] text-white'
-                          : 'bg-[#353535] text-[#b4b5b5]'
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                          : 'bg-[#252424] text-[#8e8f8f] border-[#383838] group-hover:border-[#555]'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      {isPassed ? (
+                        <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                      ) : (
+                        <Icon className={`w-4 h-4 ${isCurrent ? 'animate-pulse text-white' : ''}`} />
+                      )}
                     </div>
+
+                    {/* Rótulo da etapa */}
                     <span
-                      className={`text-[10px] text-center mt-2 leading-tight font-medium ${
+                      className={`text-[9.5px] sm:text-[11px] text-center mt-2 font-['Montserrat'] font-bold leading-tight transition-colors ${
                         isCurrent
-                          ? 'text-[#ff5722] font-bold'
+                          ? 'text-[#ff8a65] font-black'
                           : isPassed
                           ? 'text-white'
-                          : 'text-[#b4b5b5]'
+                          : 'text-[#8e8f8f]'
                       }`}
                     >
-                      {step.label.split('\n').map((line, i) => (
-                        <React.Fragment key={i}>
-                          {line}
-                          {i === 0 && <br />}
-                        </React.Fragment>
-                      ))}
+                      {step.label}
                     </span>
+
+                    {/* Ponto pulsante sutil na etapa atual */}
+                    {isCurrent && (
+                      <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#ff5722] animate-ping" />
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
-          <p className="text-[10px] text-center text-[#b4b5b5] mt-1 italic">
-            Toque nos ícones acima para simular as etapas da entrega
+
+          {/* Card explicativo do status atual */}
+          <div className="bg-[#242323] p-2.5 rounded-xl border border-[#353535] flex items-center justify-between text-xs">
+            <span className="text-[#b4b5b5] text-[11px] truncate mr-2">
+              Status: <strong className="text-white">{steps[currentStepIndex].desc}</strong>
+            </span>
+            <span className="text-[10px] text-[#ff8a65] font-mono font-bold shrink-0">
+              {progressPercent}% Concluído
+            </span>
+          </div>
+
+          <p className="text-[10px] text-center text-[#8e8f8f] italic">
+            Toque nos ícones acima para simular e visualizar as 5 etapas da entrega
           </p>
         </section>
 

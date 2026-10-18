@@ -716,11 +716,10 @@ export default function App() {
     const activeCouriers = (storeSettings.couriers || []).filter(c => c.active);
     const assignedCourier = !isTableOrder && !isPickupOrder && activeCouriers.length > 0 ? activeCouriers[0] : undefined;
 
-    // Se já existir um pedido pendente com este paymentId ou criado nos últimos minutos para este cliente via Pix, atualiza
-    const existingOrder = orders.find(
-      o => (mercadoPagoPaymentId && o.mercadoPagoPaymentId === mercadoPagoPaymentId) ||
-           (o.customerPhone === customerProfile.phone && o.paymentStatus === 'pendente' && o.paymentMethod?.toLowerCase().includes('pix'))
-    );
+    // Se já existir um pedido especificamente vinculado a este ID de pagamento Mercado Pago, atualiza o status de pagamento
+    const existingOrder = mercadoPagoPaymentId
+      ? orders.find(o => o.mercadoPagoPaymentId === mercadoPagoPaymentId)
+      : null;
 
     if (existingOrder) {
       const finalPaymentStatus =
@@ -826,7 +825,15 @@ export default function App() {
     };
 
     setOrders(prev => [newOrder, ...prev]);
-    saveOrderToFirestore(newOrder);
+    saveOrderToFirestore(newOrder).catch(err => {
+      console.error('Falha ao salvar pedido no Firestore:', err);
+      // Segunda tentativa automática em caso de oscilação momentânea de conexão
+      setTimeout(() => {
+        saveOrderToFirestore(newOrder).catch(retryErr => {
+          console.error('Segunda tentativa de salvar no Firestore falhou:', retryErr);
+        });
+      }, 1200);
+    });
 
     // Deduz estoque em tempo real para itens que possuem controle de estoque
     setProducts(prevProducts => {

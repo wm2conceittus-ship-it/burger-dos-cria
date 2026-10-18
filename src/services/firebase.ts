@@ -103,8 +103,15 @@ export function subscribeToOrders(
       snapshot.forEach(docSnap => {
         ordersList.push(docSnap.data() as Order);
       });
-      // Sort orders by timestamp / id descending
-      ordersList.sort((a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || ''));
+      // Sort orders with newest first (extract numeric timestamp from id)
+      ordersList.sort((a, b) => {
+        const timeA = a.id ? Number(a.id.replace(/\D/g, '')) || 0 : 0;
+        const timeB = b.id ? Number(b.id.replace(/\D/g, '')) || 0 : 0;
+        if (timeA && timeB && timeA !== timeB) {
+          return timeB - timeA;
+        }
+        return (b.id || '').localeCompare(a.id || '');
+      });
       onOrdersUpdate(ordersList);
     },
     error => {
