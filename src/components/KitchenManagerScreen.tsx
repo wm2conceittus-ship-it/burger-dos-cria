@@ -98,6 +98,7 @@ import {
   unlockAudioContext,
 } from '../utils/audioAlert';
 import { ManagementGuideModal } from './ManagementGuideModal';
+import jsPDF from 'jspdf';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { PixRecoveryModal } from './PixRecoveryModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
@@ -1401,66 +1402,154 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     setTimeout(() => setFinancialToast(null), 3000);
   };
 
-  // CSV Export
-  const handleExportCSV = () => {
-    const csvRows = [
-      ['RELATÓRIO FINANCEIRO & FECHAMENTO DE CAIXA - BURGER DOS CRIAS'],
-      ['Data de Emissao', new Date().toLocaleString('pt-BR')],
-      ['Status da Operacao', storeSettings.isOpen ? 'Loja Aberta' : 'Loja Fechada'],
-      [''],
-      ['1. RESUMO GERAL DO TURNO'],
-      ['Faturamento Bruto', `R$ ${totalRevenue.toFixed(2)}`],
-      ['Total de Pedidos', validOrders.length.toString()],
-      ['Ticket Medio', `R$ ${averageTicket.toFixed(2)}`],
-      ['Total de Despesas / Saidas', `R$ ${totalExpenses.toFixed(2)}`],
-      ['Lucro Liquido Operacional', `R$ ${netProfit.toFixed(2)}`],
-      ['Margem Liquida Real', `${netMargin.toFixed(1)}%`],
-      ['CMV Insumos (%)', `${cmvPercentage.toFixed(1)}%`],
-      [''],
-      ['2. CONCILIACAO POR FORMAS DE PAGAMENTO'],
-      ['Pix (Conta Corrente)', `R$ ${pixTotal.toFixed(2)}`],
-      ['Cartoes de Credito/Debito (Maquininha)', `R$ ${cardTotal.toFixed(2)}`],
-      ['Dinheiro / Especie (Gaveta)', `R$ ${cashTotal.toFixed(2)}`],
-      [''],
-      ['3. REGISTRO DE DESPESAS E SAIDAS DO CAIXA'],
-      ['Horario', 'Descricao', 'Categoria', 'Valor (R$)'],
-      ...expenses.map(e => [
-        e.time,
-        e.description,
-        e.category === 'gas'
-          ? 'Gás de Cozinha'
-          : e.category === 'bebidas'
-          ? 'Bebidas & Cervejas'
-          : e.category === 'operacional'
-          ? 'Custo Operacional Diário'
-          : e.category === 'fixo'
-          ? 'Custo Fixo (Aluguel/Luz/Água/Net)'
-          : e.category === 'insumos'
-          ? 'Insumos & Carnes'
-          : e.category === 'motoboy'
-          ? 'Entregas / Motoboy'
-          : e.category === 'embalagens'
-          ? 'Embalagens'
-          : 'Outros',
-        `R$ ${e.amount.toFixed(2)}`
-      ]),
-      [''],
-      ['4. PEDIDOS DO TURNO'],
-      ['Numero', 'Cliente', 'Tipo', 'Pagamento', 'Status', 'Valor (R$)'],
-      ...validOrders.map(o => [o.orderNumber, o.customerName, o.type, o.paymentMethod || 'Pix', o.status, `R$ ${o.total.toFixed(2)}`])
-    ];
+  // PDF Export using jsPDF
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
 
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.map(e => e.join(';')).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `fechamento-caixa-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const storeName = storeSettings.storeName || 'Burger dos Crias';
+      const dateStr = new Date().toLocaleString('pt-BR');
 
-    setFinancialToast('Relatório financeiro exportado em CSV com sucesso!');
-    setTimeout(() => setFinancialToast(null), 3500);
+      // Cores principais
+      const primaryColor = [255, 87, 34]; // #ff5722
+      const darkColor = [30, 30, 30];
+      const grayColor = [100, 100, 100];
+
+      // Cabeçalho
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(0, 0, 210, 24, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text(storeName.toUpperCase(), 14, 15);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`RELATORIO DIARIO DE FECHAMENTO • ${dateStr}`, 205, 15, { align: 'right' });
+
+      let y = 35;
+
+      // Seção 1: Resumo Geral
+      doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('1. RESUMO GERAL DO TURNO', 14, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
+      const summaryLines = [
+        `Faturamento Bruto: R$ ${totalRevenue.toFixed(2).replace('.', ',')}`,
+        `Total de Pedidos Realizados: ${validOrders.length}`,
+        `Ticket Médio por Pedido: R$ ${averageTicket.toFixed(2).replace('.', ',')}`,
+        `Total de Despesas / Saídas: R$ ${totalExpenses.toFixed(2).replace('.', ',')}`,
+        `Lucro Líquido Operacional: R$ ${netProfit.toFixed(2).replace('.', ',')}`,
+        `Margem Líquida Real: ${netMargin.toFixed(1)}%`,
+        `CMV (Insumos & Bebidas): ${cmvPercentage.toFixed(1)}%`,
+      ];
+
+      summaryLines.forEach(line => {
+        doc.text(`• ${line}`, 18, y);
+        y += 6;
+      });
+
+      y += 4;
+
+      // Seção 2: Formas de Pagamento
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('2. CONCILIACAO POR FORMAS DE PAGAMENTO', 14, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+
+      const paymentLines = [
+        `Pix (Conta Corrente / Automático): R$ ${pixTotal.toFixed(2).replace('.', ',')}`,
+        `Cartões de Crédito / Débito (Maquininha): R$ ${cardTotal.toFixed(2).replace('.', ',')}`,
+        `Dinheiro / Espécie (Gaveta): R$ ${cashTotal.toFixed(2).replace('.', ',')}`,
+      ];
+
+      paymentLines.forEach(line => {
+        doc.text(`• ${line}`, 18, y);
+        y += 6;
+      });
+
+      y += 4;
+
+      // Seção 3: Despesas Registradas
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('3. DESPESAS E SAIDAS DO CAIXA', 14, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+
+      if (expenses.length === 0) {
+        doc.text('Nenhuma despesa registrada neste turno.', 18, y);
+        y += 6;
+      } else {
+        expenses.forEach(e => {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(`[${e.time}] ${e.description} (${e.category}): R$ ${e.amount.toFixed(2).replace('.', ',')}`, 18, y);
+          y += 5;
+        });
+      }
+
+      y += 4;
+
+      // Seção 4: Pedidos do Turno
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('4. LISTA DE PEDIDOS DO TURNO', 14, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+
+      validOrders.slice(0, 35).forEach(o => {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+        }
+        const line = `#${o.orderNumber} • ${o.customerName} • ${o.type} • ${o.paymentMethod || 'Pix'} • R$ ${o.total.toFixed(2).replace('.', ',')} (${o.status})`;
+        doc.text(line, 18, y);
+        y += 5;
+      });
+
+      // Rodapé em todas as páginas
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
+        doc.text(`Gerado por Burger dos Crias System • Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+      }
+
+      doc.save(`relatorio-diario-${new Date().toISOString().slice(0, 10)}.pdf`);
+      setFinancialToast('Relatório PDF exportado com sucesso!');
+      setTimeout(() => setFinancialToast(null), 3500);
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+      setFinancialToast('Erro ao gerar PDF. Tente novamente.');
+      setTimeout(() => setFinancialToast(null), 3500);
+    }
   };
 
   // Produtos com estoque mínimo atingido (alerta visual)
