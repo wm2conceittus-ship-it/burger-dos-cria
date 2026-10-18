@@ -1645,16 +1645,6 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     )}
                   </button>
 
-                  {/* Botão de Confirmação Rápida: Já fiz o Pix no Banco */}
-                  <button
-                    type="button"
-                    onClick={handleConfirmPayment}
-                    className="w-full bg-[#181818] hover:bg-[#222] border-2 border-emerald-500/60 hover:border-emerald-400 text-emerald-300 py-3.5 px-4 rounded-xl font-['Montserrat'] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all ring-1 ring-emerald-500/30"
-                  >
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span>Já fiz o Pix no meu banco • Concluir Pedido Agora</span>
-                  </button>
-
                   {/* Botão de Demonstração / Teste no Modo Sandbox */}
                   {isAutoPixMode &&
                     (!storeSettings?.mercadoPago?.environment || storeSettings?.mercadoPago?.environment === 'sandbox') &&
@@ -1680,7 +1670,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                       </span>
                       <p>1. Toque em <strong>Copiar Código</strong> acima ou aponte a câmera para o <strong>QR Code</strong>.</p>
                       <p>2. Abra o aplicativo do seu banco (Nubank, Inter, Caixa, Itaú...) e confirme o pagamento de <strong>R$ {total.toFixed(2).replace('.', ',')}</strong>.</p>
-                      <p>3. <strong>Após transferir:</strong> Toque no botão verde <strong>"Já fiz o Pix no meu banco"</strong> ou aguarde a detecção para enviar seu pedido direto à cozinha!</p>
+                      <p>3. <strong>Após transferir:</strong> O sistema detecta a confirmação automaticamente e envia seu pedido direto à cozinha!</p>
                     </div>
                   ) : (
                     /* Comprovante do Pix & WhatsApp (Modo Manual) */
