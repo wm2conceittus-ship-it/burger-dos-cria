@@ -32,7 +32,7 @@ import {
   startPixConfirmedTabNotification,
   unlockAudioContext,
 } from './utils/audioAlert';
-import { getManagerWhatsAppNotificationUrl } from './utils/whatsappNotification';
+import { getManagerWhatsAppNotificationUrl, getCustomerRejectedWhatsAppUrl, openWhatsAppLink } from './utils/whatsappNotification';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
 import { CartScreen } from './components/CartScreen';
@@ -926,12 +926,25 @@ export default function App() {
   };
 
   const handleKitchenRejectOrder = (orderId: string) => {
+    const targetOrder = orders.find(o => o.id === orderId);
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status: 'recusado' } : o))
     );
     setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'recusado' } : prev));
     updateOrderStatusInFirestore(orderId, 'recusado');
-    showToast('Pedido recusado.');
+
+    if (targetOrder && targetOrder.customerPhone) {
+      try {
+        const rejectionUrl = getCustomerRejectedWhatsAppUrl(targetOrder, storeSettings);
+        if (rejectionUrl) {
+          openWhatsAppLink(rejectionUrl);
+        }
+      } catch (err) {
+        console.warn('Erro ao abrir WhatsApp de cancelamento:', err);
+      }
+    }
+
+    showToast('Pedido recusado e aviso enviado ao cliente!');
   };
 
   const handleKitchenAdvanceToReady = (orderId: string) => {

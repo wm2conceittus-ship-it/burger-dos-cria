@@ -112,6 +112,7 @@ import {
   getManagerWhatsAppNotificationUrl,
   getCustomerDispatchWhatsAppUrl,
   getCustomerAcceptedWhatsAppUrl,
+  getCustomerRejectedWhatsAppUrl,
   openWhatsAppLink,
 } from '../utils/whatsappNotification';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
@@ -3573,6 +3574,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               >
                                 Mudar para Pronto
                               </button>
+                              <button onClick={() => onRejectOrder(order.id)}
+                                className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 py-1.5 rounded-md text-[11px] font-bold font-['Montserrat'] transition-all"
+                              >
+                                Cancelar / Recusar Pedido
+                              </button>
                             </div>
                           ) : isPronto ? (
                             <div className="w-full space-y-1.5">
@@ -3975,6 +3981,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             className="w-full bg-[#2a2a2a] text-[#ff8a65] py-2.5 rounded-md text-xs font-bold font-['Montserrat'] border border-[#ff5722]/20 hover:bg-[#ff5722]/10 transition-all active:scale-95"
                           >
                             Mudar para Pronto
+                          </button>
+                          <button onClick={() => onRejectOrder(order.id)}
+                            className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 py-1.5 rounded-md text-[10px] font-bold font-['Montserrat'] transition-all"
+                            onClickCapture={e => e.stopPropagation()}
+                          >
+                            Cancelar Pedido
                           </button>
                         </div>
                       )}
@@ -8420,6 +8432,19 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </button>
 
                   {/* Ação Operacional de Avanço */}
+                  {order.status !== 'entregue' && order.status !== 'recusado' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onRejectOrder(order.id);
+                        setSelectedOrderDetail(null);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40 text-xs font-bold font-['Montserrat'] shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                    >
+                      <span>Cancelar Pedido</span>
+                    </button>
+                  )}
+
                   {order.status === 'novo' || order.status === 'recebido' ? (
                     <button
                       type="button"

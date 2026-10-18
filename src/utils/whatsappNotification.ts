@@ -205,6 +205,39 @@ export function getCustomerAcceptedWhatsAppUrl(order: Order, storeSettings?: Sto
 }
 
 /**
+ * Monta a mensagem para o WhatsApp do CLIENTE avisando que o pedido foi CANCELADO/RECUSADO.
+ */
+export function buildCustomerRejectedWhatsAppMessage(order: Order, storeSettings?: StoreSettings): string {
+  const storeName = storeSettings?.storeName || 'Burguer dos Crias';
+
+  return [
+    `❌ *PEDIDO CANCELADO / RECUSADO*`,
+    `🍔 *${storeName.toUpperCase()}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Olá, *${order.customerName}*. Infelizmente não conseguiremos atender o seu pedido *#${order.orderNumber}* no momento por imprevistos operacionais ou falta de insumos.`,
+    ``,
+    `💰 *Valor Total:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
+    `💳 Caso tenha realizado pagamento online (Pix/Cartão), o estorno será processado automaticamente pelo banco/gateway.`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Pedimos sinceras desculpas pelo transtorno e esperamos atendê-lo(a) em breve!`,
+    storeSettings?.whatsappSupport ? `📞 *Dúvidas/Suporte:* ${storeSettings.whatsappSupport}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
+ * Retorna o link direto (wa.me) para enviar a notificação "Pedido cancelado" para o WhatsApp do cliente.
+ */
+export function getCustomerRejectedWhatsAppUrl(order: Order, storeSettings?: StoreSettings): string {
+  if (!order.customerPhone) return '';
+  const cleanPhone = formatPhoneForWhatsApp(order.customerPhone);
+  if (!cleanPhone || cleanPhone.length < 10) return '';
+  const message = buildCustomerRejectedWhatsAppMessage(order, storeSettings);
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
  * Abre o link do WhatsApp com compatibilidade garantida em navegadores desktop e mobile.
  */
 export function openWhatsAppLink(url: string): boolean {
