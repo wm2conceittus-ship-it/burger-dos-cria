@@ -1731,6 +1731,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </button>
             </div>
 
+            {/* Botão para Gerar e Imprimir QR Code do Cardápio */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="bg-[#ff5722]/15 hover:bg-[#ff5722]/25 text-[#ff8a65] hover:text-white border border-[#ff5722]/40 px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+              title="Gerar, Baixar e Imprimir QR Code do Cardápio para Clientes"
+            >
+              <QrCode className="w-4 h-4 text-[#ff5722]" />
+              <span className="hidden sm:inline">QR Code Cardápio</span>
+            </button>
+
             <button onClick={async () => {
                 const url = getPublicMenuUrl();
                 await copyToClipboard(url);
@@ -4372,9 +4382,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </p>
                 </div>
               </div>
-              <button type="button" onClick={onOpenAddProduct} className="px-3.5 py-2 rounded-md btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto" >
-                <Plus className="w-3.5 h-3.5" /> Adicionar Produto
-              </button>
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowShareModal(true)}
+                  className="px-3.5 py-2 rounded-md bg-[#252525] hover:bg-[#303030] border border-[#ff5722]/40 text-[#ff8a65] hover:text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 flex-1 sm:flex-none"
+                  title="Gerar e Imprimir QR Code do Cardápio para Clientes"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-[#ff5722]" />
+                  <span>QR Code Cardápio</span>
+                </button>
+                <button type="button" onClick={onOpenAddProduct} className="px-3.5 py-2 rounded-md btn-flame text-white text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-1.5 shrink-0 flex-1 sm:flex-none" >
+                  <Plus className="w-3.5 h-3.5" /> Adicionar Produto
+                </button>
+              </div>
             </div>
 
             {/* Product Table / Cards */}
@@ -8604,10 +8625,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         );
       })()}
 
-      {/* Modal de Compartilhamento do Link Público do Cardápio */}
+      {/* Modal de Compartilhamento e QR Code do Cardápio */}
       <ShareMenuModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+        storeName={storeSettings.storeName}
         customBaseUrl={storeSettings.customMenuUrl}
         onSaveCustomBaseUrl={url =>
           onUpdateStoreSettings({
