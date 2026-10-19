@@ -202,14 +202,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
     );
   };
 
-  // Group products by category
-  const burgers = products.filter(p => p.category === 'burgers');
-  const burguesIndustrial = products.filter(p => p.category === 'burgues_industrial');
-  const pizzas = products.filter(p => p.category === 'pizzas');
-  const combos = products.filter(p => p.category === 'combos');
-  const salgados = products.filter(p => p.category === 'salgados');
-  const sucos = products.filter(p => p.category === 'sucos');
-  const refrigerantes = products.filter(
+  // Group products by category (se não for gestor, filtra apenas produtos disponíveis)
+  const availableProducts = isManager ? products : products.filter(p => p.isAvailable !== false);
+
+  const burgers = availableProducts.filter(p => p.category === 'burgers');
+  const burguesIndustrial = availableProducts.filter(p => p.category === 'burgues_industrial');
+  const pizzas = availableProducts.filter(p => p.category === 'pizzas');
+  const combos = availableProducts.filter(p => p.category === 'combos');
+  const salgados = availableProducts.filter(p => p.category === 'salgados');
+  const sucos = availableProducts.filter(p => p.category === 'sucos');
+  const refrigerantes = availableProducts.filter(
     p =>
       p.category === 'refrigerantes' ||
       (p.category as string) === 'refrigerante' ||
@@ -222,10 +224,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           p.name.toLowerCase().includes('fanta') ||
           p.name.toLowerCase().includes('sprite')))
   );
-  const cervejas = products.filter(
+  const cervejas = availableProducts.filter(
     p => p.category === 'bebidas' && (p.subCategory === 'cervejas' || p.name.toLowerCase().includes('cerveja'))
   );
-  const outrasBebidas = products.filter(
+  const outrasBebidas = availableProducts.filter(
     p =>
       p.category === 'bebidas' &&
       p.subCategory !== 'refrigerantes' &&
@@ -239,7 +241,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   );
 
   // Filter based on search or category
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = availableProducts.filter(p => {
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase());
