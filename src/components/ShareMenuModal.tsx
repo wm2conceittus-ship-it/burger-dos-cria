@@ -56,7 +56,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
   if (!isOpen) return null;
 
   const targetUrl = customUrl || currentUrl;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(targetUrl)}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=12&data=${encodeURIComponent(targetUrl)}`;
 
   const handleCopy = async () => {
     const success = await copyToClipboard(targetUrl);
@@ -69,20 +69,78 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
     }
   };
 
+  // Função para compor o QR Code com o logo centralizado em um arquivo PNG baixável
   const handleDownloadQr = async () => {
     setIsDownloading(true);
     try {
-      const response = await fetch(qrCodeUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const canvas = document.createElement('canvas');
+      const size = 500;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+
+      // 1. Carrega a imagem do QR Code da API
+      const qrImage = new Image();
+      qrImage.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        qrImage.onload = resolve;
+        qrImage.onerror = reject;
+        qrImage.src = qrCodeUrl;
+      });
+
+      // Desenha o QR code no canvas
+      ctx.drawImage(qrImage, 0, 0, size, size);
+
+      // 2. Carrega o Logo da Hamburgueria
+      const logoImage = new Image();
+      logoImage.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        logoImage.onload = resolve;
+        logoImage.onerror = () => {
+          // Fallback se falhar ao carregar o logo externamente
+          resolve(null);
+        };
+        logoImage.src = APP_IMAGES.logo;
+      });
+
+      // Se carregou o logo com sucesso, desenha no centro com borda e fundo branco
+      if (logoImage.complete && logoImage.naturalWidth !== 0) {
+        const logoSize = 110;
+        const x = (size - logoSize) / 2;
+        const y = (size - logoSize) / 2;
+
+        // Fundo circular branco para destacar o logo sobre o QR code
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, logoSize / 2 + 6, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Borda laranja ao redor do logo
+        ctx.strokeStyle = '#ff5722';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Desenha o logo recortado em círculo
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, logoSize / 2, 0, 2 * Math.PI);
+        ctx.clip();
+        ctx.drawImage(logoImage, x, y, logoSize, logoSize);
+        ctx.restore();
+      }
+
+      // Gera o link de download do PNG composto
+      const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.href = blobUrl;
+      link.href = dataUrl;
       link.download = `qrcode-cardapio-${mode === 'mesa' ? `mesa-${selectedTable}` : 'geral'}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch {
+    } catch (err) {
+      console.error('Erro ao gerar PNG com logo:', err);
+      // Fallback para download simples se houver bloqueio de CORS
       window.open(qrCodeUrl, '_blank');
     } finally {
       setIsDownloading(false);
@@ -158,16 +216,29 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
             .qr-box {
               position: relative;
               display: inline-block;
-              padding: 14px;
+              padding: 12px;
               background: #ffffff;
               border: 2px dashed #ff5722;
-              border-radius: 18px;
+              border-radius: 20px;
               margin-bottom: 20px;
             }
             .qr-img {
               width: 260px;
               height: 260px;
               display: block;
+            }
+            .qr-logo {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 54px;
+              height: 54px;
+              border-radius: 50%;
+              border: 3px solid #ff5722;
+              background: #ffffff;
+              object-fit: cover;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             }
             .steps {
               background: #fff5f0;
@@ -213,6 +284,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
             
             <div class="qr-box">
               <img class="qr-img" src="${qrCodeUrl}" alt="QR Code Cardápio" />
+              <img class="qr-logo" src="${APP_IMAGES.logo}" alt="Logo" />
             </div>
 
             <div class="steps">
@@ -253,7 +325,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
               <h3 className="font-['Montserrat'] font-bold text-base text-white flex items-center gap-1.5">
                 <span>QR Code do Cardápio</span>
                 <span className="text-[10px] bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/30 px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">
-                  Pronto para uso
+                  Com Logo Oficial
                 </span>
               </h3>
               <p className="text-[11px] text-[#b4b5b5]">
@@ -352,7 +424,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
                 {mode === 'mesa' ? `QR Code da Mesa ${selectedTable}` : 'QR Code Oficial do Cardápio'}
               </span>
               <p className="text-[11px] text-[#b4b5b5]">
-                O cliente escaneia com qualquer celular e faz o pedido imediatamente!
+                Baixe a imagem com o logo embutido ou imprima a plaquinha oficial!
               </p>
             </div>
 
@@ -362,7 +434,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
                 type="button"
                 onClick={handlePrintCard}
                 className="w-full bg-[#ff5722] hover:bg-[#ff3d00] text-white py-2.5 px-3 rounded-xl font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95"
-                title="Imprimir plaquinha de mesa ou expositor de balcão"
+                title="Imprimir plaquinha de mesa ou expositor de balcão com logo"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimir Placa</span>
@@ -373,10 +445,10 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
                 onClick={handleDownloadQr}
                 disabled={isDownloading}
                 className="w-full bg-[#262626] hover:bg-[#303030] border border-[#404040] text-white py-2.5 px-3 rounded-xl font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                title="Baixar imagem em PNG para usar em artes, panfletos ou adesivos"
+                title="Baixar imagem em PNG com o logo centralizado"
               >
                 <Download className="w-4 h-4 text-[#ff8a65]" />
-                <span>{isDownloading ? 'Baixando...' : 'Baixar Imagem'}</span>
+                <span>{isDownloading ? 'Gerando Logo...' : 'Baixar Imagem c/ Logo'}</span>
               </button>
             </div>
           </div>
@@ -432,7 +504,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
               href={targetUrl}
               target="_blank"
               rel="noreferrer"
-              className="w-full bg-[#202020] hover:bg-[#2a2a2a] border border-[#383838] text-[#e5e2e1] font-['Montserrat'] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs text-center"
+              className="w-full bg-[#202020] hover:bg-[#2a2a2f] border border-[#383838] text-[#e5e2e1] font-['Montserrat'] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 text-xs text-center"
             >
               <ExternalLink className="w-4 h-4 text-[#ff8a65]" />
               <span>Testar no Navegador</span>
@@ -443,11 +515,9 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
           <div className="p-3 bg-[#151515] border border-[#2a2a2a] rounded-xl space-y-1.5 text-[11px] text-[#8e8f8f]">
             <p className="text-white font-bold flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-[#ff5722]" />
-              Onde usar este QR Code:
+              Dica Pro:
             </p>
-            <p>• <strong>Balcão e Caixa:</strong> Imprima e coloque em um expositor acrílico no balcão para clientes que estão na fila.</p>
-            <p>• <strong>Mesas do Salão:</strong> Selecione "Mesa do Salão", gere o QR Code de cada mesa e cole nas mesas para pedido direto.</p>
-            <p>• <strong>Panfletos, Imãs e Embalagens:</strong> Clique em "Baixar Imagem" para incluir em sacolas térmicas e adesivos.</p>
+            <p>• Ao clicar em <strong>"Baixar Imagem c/ Logo"</strong>, o sistema junta automaticamente o QR Code com o logo oficial da sua hamburgueria em um arquivo PNG perfeito para adesivos e panfletos.</p>
           </div>
         </div>
       </div>
