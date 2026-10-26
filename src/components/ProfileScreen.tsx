@@ -23,6 +23,7 @@ import {
   LogOut,
   Flame,
 } from 'lucide-react';
+import { formatOrderCreationDateTime } from '../utils/orderDateTime';
 
 interface ProfileScreenProps {
   customerProfile: CustomerProfile | null;
@@ -184,8 +185,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <span className="text-white font-semibold block">
                   Status: <strong className="text-amber-400 uppercase">{activeOrders[0].status}</strong>
                 </span>
-                <span className="text-[11px] text-[#8e8f8f]">
-                  Total: R$ {activeOrders[0].total.toFixed(2).replace('.', ',')} • {activeOrders[0].paymentMethod}
+                <span className="text-[11px] text-[#8e8f8f] flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 font-mono text-white bg-[#222] px-1.5 py-0.5 rounded border border-[#444]">
+                    <Clock className="w-3 h-3 text-[#ff5722]" />
+                    <span>{formatOrderCreationDateTime(activeOrders[0])}</span>
+                  </span>
+                  <span>•</span>
+                  <span>Total: R$ {activeOrders[0].total.toFixed(2).replace('.', ',')} • {activeOrders[0].paymentMethod}</span>
                 </span>
               </div>
 
@@ -346,13 +352,18 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   key={order.id}
                   className="bg-[#181818] p-3.5 rounded-xl border border-[#353535] space-y-2.5"
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
+                  <div className="flex justify-between items-center flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-black text-sm text-white">
                         {order.orderNumber}
                       </span>
                       <span className="text-[9px] bg-[#ff5722]/20 text-[#ff8a65] px-1.5 py-0.2 rounded font-bold uppercase">
                         {order.type}
+                      </span>
+                      {/* Data e hora de criação do pedido: DD/MM - HH:mm */}
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-300 bg-[#252525] px-2 py-0.5 rounded border border-[#383838]">
+                        <Clock className="w-3 h-3 text-[#ff5722]" />
+                        <span>{formatOrderCreationDateTime(order)}</span>
                       </span>
                     </div>
 
