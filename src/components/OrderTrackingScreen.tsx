@@ -20,6 +20,8 @@ import {
   Share2,
   Receipt,
   PackageCheck,
+  Calendar,
+  Clock,
 } from 'lucide-react';
 import { mercadoPagoApi } from '../services/mercadoPagoService';
 import { getManagerWhatsAppNotificationUrl } from '../utils/whatsappNotification';
@@ -294,12 +296,18 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
               {getStatusText()}
             </span>
           </div>
-          <p className="text-xs text-[#b4b5b5]">
-            Previsão de entrega:{' '}
-            <span className="text-white font-bold font-['Montserrat']">
-              20-30 min
-            </span>
-          </p>
+          <div className="flex items-center justify-between text-xs text-[#b4b5b5] mt-1 flex-wrap gap-2">
+            <p className="flex items-center gap-1.5 bg-[#1c1b1b] px-2.5 py-1 rounded-md border border-[#353535]">
+              <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
+              <span>Feito em: <strong className="text-white">{order.orderDate || 'Hoje'} às {order.createdAt || 'Agora'}</strong></span>
+            </p>
+            <p className="bg-[#1c1b1b] px-2.5 py-1 rounded-md border border-[#353535]">
+              Previsão:{' '}
+              <span className="text-white font-bold font-['Montserrat']">
+                20-30 min
+              </span>
+            </p>
+          </div>
         </section>
 
         {/* Status Alert Banners */}

@@ -139,6 +139,7 @@ export const PixRecoveryModal: React.FC<PixRecoveryModalProps> = ({
       total: val,
       notes: orderNotes.trim() || 'Pedido criado após confirmação do Pix no banco',
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      orderDate: new Date().toLocaleDateString('pt-BR'),
     };
 
     if (onAddOrder) {

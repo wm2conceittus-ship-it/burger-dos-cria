@@ -276,4 +276,5 @@ export interface Order {
   courierPlate?: string;
   notes?: string;
   createdAt: string;
+  orderDate?: string;
 }

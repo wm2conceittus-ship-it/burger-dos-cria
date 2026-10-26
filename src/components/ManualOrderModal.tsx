@@ -196,6 +196,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
       deliveryFee: effectiveDeliveryFee,
       total,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      orderDate: new Date().toLocaleDateString('pt-BR'),
     };
 
     onAddOrder(newOrder);

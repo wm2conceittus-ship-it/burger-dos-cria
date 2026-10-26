@@ -152,7 +152,11 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
       return [
         order.orderNumber,
-        order.createdAt ? new Date(order.createdAt).toLocaleString('pt-BR') : order.timeAgo || 'Hoje',
+        order.orderDate
+          ? `${order.orderDate} ${order.createdAt || ''}`.trim()
+          : order.createdAt
+          ? `${new Date().toLocaleDateString('pt-BR')} ${order.createdAt}`
+          : order.timeAgo || 'Hoje',
         `"${order.customerName.replace(/"/g, '""')}"`,
         order.customerPhone ? `"${order.customerPhone}"` : '""',
         order.type,
@@ -663,9 +667,14 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" title="Urgente" />
                                   )}
                                 </div>
-                                <span className="text-[10px] text-[#8e8f8f] block mt-0.5">
-                                  {order.timeAgo || 'Hoje'}
-                                </span>
+                                <div className="text-[10px] text-[#8e8f8f] mt-0.5 space-y-0.5">
+                                  <span className="block text-gray-300 font-medium">
+                                    {order.orderDate || 'Hoje'} às {order.createdAt || ''}
+                                  </span>
+                                  <span className="block text-gray-400">
+                                    ({order.timeAgo || 'Agora'})
+                                  </span>
+                                </div>
                               </td>
 
                               {/* Customer */}

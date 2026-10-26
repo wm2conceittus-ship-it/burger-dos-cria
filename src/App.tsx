@@ -822,6 +822,7 @@ export default function App() {
       courierVehicle: assignedCourier?.vehicleModel || (assignedCourier?.vehicle ? `Veículo (${assignedCourier.vehicle})` : undefined),
       courierPlate: assignedCourier?.plate,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      orderDate: new Date().toLocaleDateString('pt-BR'),
     };
 
     setOrders(prev => [newOrder, ...prev]);

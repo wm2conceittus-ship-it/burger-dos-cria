@@ -2866,17 +2866,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         </span>
                                       </span>
 
-                                      {/* Tempo Decorrido */}
+                                      {/* Tempo Decorrido & Horário */}
                                       <span
                                         className={`flex items-center gap-1 px-1.5 py-0.5 rounded font-mono font-medium ${
                                           isOverdue && col.key !== 'concluido'
                                             ? 'bg-red-50 text-red-700 border border-red-300 animate-pulse'
                                             : 'bg-gray-100 text-gray-600 border border-gray-200'
                                         }`}
-                                        title="Tempo decorrido desde a abertura"
+                                        title={`Data do Pedido: ${order.orderDate || 'Hoje'} • Horário: ${order.createdAt || 'Agora'} • Decorrido: ${order.timeAgo || 'Agora'}`}
                                       >
                                         <Clock className="w-2.5 h-2.5" />
-                                        {order.timeAgo || 'Agora'}
+                                        <span>{order.createdAt ? `${order.createdAt}` : (order.timeAgo || 'Agora')}</span>
                                       </span>
                                     </div>
 
@@ -3452,8 +3452,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   </span>
                                 ) : null}
                               </div>
-                              <p className="text-xs text-gray-500">
-                                {order.timeAgo} • {order.type}
+                              <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-gray-700 font-medium bg-gray-100 px-1.5 py-0.5 rounded">
+                                  <Calendar className="w-3 h-3 text-[#ff5722]" />
+                                  <span>{order.orderDate || 'Hoje'} às {order.createdAt || order.timeAgo}</span>
+                                </span>
+                                <span>•</span>
+                                <span>{order.timeAgo}</span>
+                                <span>•</span>
+                                <span>{order.type}</span>
                               </p>
                               {order.type === 'Delivery' && order.address && (
                                 <div className="flex items-center gap-1.5 text-[11px] text-gray-600 mt-1 pt-1 border-t border-gray-200">
@@ -3848,9 +3855,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </span>
                             ) : null}
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {order.timeAgo} • {order.type}
-                          </p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-gray-700 font-medium bg-gray-100 px-1.5 py-0.5 rounded">
+                                  <Calendar className="w-3 h-3 text-[#ff5722]" />
+                                  <span>{order.orderDate || 'Hoje'} às {order.createdAt || order.timeAgo}</span>
+                                </span>
+                                <span>•</span>
+                                <span>{order.timeAgo}</span>
+                                <span>•</span>
+                                <span>{order.type}</span>
+                              </p>
                           {order.type === 'Delivery' && order.address && (
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-600 mt-1 pt-1 border-t border-gray-200">
                               <MapPin className="w-3.5 h-3.5 text-[#ff5722] shrink-0" />
@@ -8268,9 +8282,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           : 'Recusado'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      {order.timeAgo || 'Agora'} • Canal: <strong className="text-gray-800">{order.type}</strong>
-                    </p>
+                    <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-gray-800 font-semibold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                        <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>Data: {order.orderDate || new Date().toLocaleDateString('pt-BR')}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-gray-800 font-semibold bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                        <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>Hora: {order.createdAt || 'Agora'}</span>
+                      </span>
+                      <span>•</span>
+                      <span>{order.timeAgo || 'Agora'}</span>
+                      <span>•</span>
+                      <span>Canal: <strong className="text-gray-800">{order.type}</strong></span>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -8289,7 +8314,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
-                      Dados do Cliente
+                      Dados do Cliente & Pedido
                     </span>
                     {order.customerPhone && (
                       <a
@@ -8303,14 +8328,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </a>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-900">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-gray-900">
                     <div>
-                      <span className="text-gray-500 text-[10px] block">Nome:</span>
+                      <span className="text-gray-500 text-[10px] block">Nome do Cliente:</span>
                       <strong className="text-sm font-bold text-gray-900">{order.customerName}</strong>
                     </div>
                     <div>
                       <span className="text-gray-500 text-[10px] block">Telefone:</span>
                       <strong className="text-sm font-mono text-gray-900">{order.customerPhone || 'Não informado'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10px] block">Data e Horário do Pedido:</span>
+                      <strong className="text-xs font-semibold text-gray-900 flex items-center gap-1 mt-0.5 bg-white p-1 rounded border border-gray-200">
+                        <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>{order.orderDate || new Date().toLocaleDateString('pt-BR')} às {order.createdAt || 'Agora'}</span>
+                      </strong>
                     </div>
                   </div>
 
