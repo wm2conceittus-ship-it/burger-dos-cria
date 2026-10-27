@@ -88,6 +88,8 @@ import {
   Link2,
   Sun,
   Moon,
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -582,6 +584,15 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [viewingReceiptOrder, setViewingReceiptOrder] = useState<Order | null>(null);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null);
 
+  // Estados para Leitura Automática e Validação de Pix via Mercado Pago
+  const [isValidatingPendingPix, setIsValidatingPendingPix] = useState(false);
+  const [pixSyncResult, setPixSyncResult] = useState<string | null>(null);
+  const [manualPixIdInput, setManualPixIdInput] = useState('');
+  const [isValidatingManualPix, setIsValidatingManualPix] = useState(false);
+  const [manualPixValidationResult, setManualPixValidationResult] = useState<any | null>(null);
+  const [recentMpPayments, setRecentMpPayments] = useState<any[]>([]);
+  const [isLoadingRecentMp, setIsLoadingRecentMp] = useState(false);
+
   // Pix Key & QR Code Image state for Manager configuration
   const [pixKeyInput, setPixKeyInput] = useState<string>(() => storeSettings.pixKey ?? '');
   const [pixQrCodeImageUrlInput, setPixQrCodeImageUrlInput] = useState<string>(() => storeSettings.pixQrCodeImageUrl ?? '');
@@ -849,9 +860,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       const res = await mercadoPagoApi.testConnection(storeSettings.mercadoPago?.accessToken);
       setIsTestingMp(false);
       if (res.success) {
+        const validatedTime = new Date().toLocaleString('pt-BR');
         setMpTestStatus(
           `✅ ${res.message || 'Conexão validada com sucesso!'} (${res.methodsCount || 0} métodos de pagamento disponíveis na sua conta Mercado Pago • Modo ${res.mode})`
         );
+        onUpdateStoreSettings({
+          ...storeSettings,
+          mercadoPago: {
+            ...(storeSettings.mercadoPago || {
+              isEnabled: true,
+              publicKey: '',
+              accessToken: '',
+              environment: 'sandbox',
+              allowPix: true,
+              allowCreditCard: true,
+              allowCheckoutPro: true,
+            }),
+            lastValidatedAt: validatedTime,
+          },
+        });
       } else {
         setMpTestStatus(
           `⚠️ ${res.error || 'Não foi possível validar o token na API Mercado Pago.'}`
@@ -860,6 +887,85 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     } catch (err: any) {
       setIsTestingMp(false);
       setMpTestStatus(`❌ Erro ao conectar com o servidor: ${err.message}`);
+    }
+  };
+
+  // Verifica agora todos os pedidos com status Pix pendente via API Mercado Pago
+  const handleCheckAllPendingPix = async () => {
+    setIsValidatingPendingPix(true);
+    setPixSyncResult(null);
+    try {
+      const pendingOrders = orders.filter(
+        o => o.paymentStatus === 'pendente' && o.mercadoPagoPaymentId
+      );
+
+      if (pendingOrders.length === 0) {
+        setPixSyncResult('🔍 Nenhum pedido com Pix pendente do Mercado Pago encontrado no momento.');
+        setIsValidatingPendingPix(false);
+        return;
+      }
+
+      let approvedCount = 0;
+      for (const ord of pendingOrders) {
+        if (!ord.mercadoPagoPaymentId) continue;
+        try {
+          const res = await mercadoPagoApi.checkPaymentStatus(
+            ord.mercadoPagoPaymentId,
+            storeSettings.mercadoPago?.accessToken
+          );
+          if (res.approved && onUpdatePaymentStatus) {
+            onUpdatePaymentStatus(ord.id, 'aprovado');
+            approvedCount++;
+          }
+        } catch (e) {
+          console.error(`Erro ao checar pedido ${ord.orderNumber}:`, e);
+        }
+      }
+
+      if (approvedCount > 0) {
+        playPixConfirmedSound();
+        setPixSyncResult(`🎉 Sucesso! ${approvedCount} de ${pendingOrders.length} pagamentos foram confirmados e recebidos na sua conta Mercado Pago!`);
+      } else {
+        setPixSyncResult(`🔍 ${pendingOrders.length} pedido(s) verificado(s) na API do Mercado Pago: todos continuam aguardando transferência.`);
+      }
+    } catch (err: any) {
+      setPixSyncResult(`❌ Erro ao verificar pagamentos: ${err.message}`);
+    } finally {
+      setIsValidatingPendingPix(false);
+    }
+  };
+
+  // Consulta um ID de pagamento específico no Mercado Pago
+  const handleValidateManualPaymentId = async () => {
+    const id = manualPixIdInput.trim();
+    if (!id) return;
+    setIsValidatingManualPix(true);
+    setManualPixValidationResult(null);
+    try {
+      const res = await mercadoPagoApi.checkPaymentStatus(id, storeSettings.mercadoPago?.accessToken);
+      setManualPixValidationResult(res);
+      if (res.approved) {
+        playPixConfirmedSound();
+      }
+    } catch (err: any) {
+      setManualPixValidationResult({ error: err.message || 'Falha ao buscar ID na API do Mercado Pago.' });
+    } finally {
+      setIsValidatingManualPix(false);
+    }
+  };
+
+  // Busca lista de transações recentes do Mercado Pago
+  const handleFetchRecentPayments = async () => {
+    setIsLoadingRecentMp(true);
+    try {
+      const res = await mercadoPagoApi.getRecentPayments(storeSettings.mercadoPago?.accessToken);
+      if (res.success) {
+        setRecentMpPayments(res.payments || []);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar transações recentes:', err);
+    } finally {
+      setIsLoadingRecentMp(false);
     }
   };
 
@@ -6832,22 +6938,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </label>
                 </div>
 
-                <div className="bg-[#12242e] border border-[#009ee3]/40 rounded-lg p-4 space-y-4">
+                <div className="bg-[#12242e] border border-[#009ee3]/40 rounded-lg p-4 space-y-5">
                   {/* Status Banner */}
-                  <div className="flex items-center justify-between text-xs bg-[#183240] p-2.5 rounded-md border border-[#009ee3]/30">
-                    <span className="flex items-center gap-1.5 text-white font-medium">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Status da Conexão: <strong className="text-emerald-400">Ativa e Pronta</strong>
-                    </span>
-                    <span className="font-mono text-[10px] text-[#009ee3] bg-[#009ee3]/10 px-2 py-0.5 rounded border border-[#009ee3]/30">
-                      Modo {storeSettings.mercadoPago?.environment === 'production' ? 'PRODUÇÃO' : 'SANDBOX / TESTE'}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-[#183240] p-3 rounded-md border border-[#009ee3]/30">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <div>
+                        <span className="text-white font-medium block">
+                          Conexão com Mercado Pago: <strong className="text-emerald-400">Ativa e Monitorando</strong>
+                        </span>
+                        {storeSettings.mercadoPago?.lastValidatedAt && (
+                          <span className="text-[10px] text-[#86cfff] block">
+                            Última validação da API: {storeSettings.mercadoPago.lastValidatedAt}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                      <span className="font-mono text-[10px] text-[#009ee3] bg-[#009ee3]/10 px-2 py-0.5 rounded border border-[#009ee3]/30 font-bold uppercase">
+                        Modo {storeSettings.mercadoPago?.environment === 'production' ? 'PRODUÇÃO (REAL)' : 'SANDBOX (TESTE)'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Environment Selector */}
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-white">
-                      Ambiente de Operação
+                      Ambiente de Operação da API
                     </label>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <button type="button" onClick={() =>
@@ -6868,8 +6985,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         }
                         className={`p-2.5 rounded-md font-bold border transition-all text-center ${
                           (storeSettings.mercadoPago?.environment ?? 'sandbox') === 'sandbox'
-                            ? 'bg-[#009ee3] text-white border-[#009ee3]'
-                            : 'bg-[#1c1b1b] text-[#b4b5b5] border-[#353535]'
+                            ? 'bg-[#009ee3] text-white border-[#009ee3] shadow-md'
+                            : 'bg-[#1c1b1b] text-[#b4b5b5] border-[#353535] hover:text-white'
                         }`}
                       >
                         🧪 Modo Teste (Sandbox)
@@ -6892,58 +7009,34 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         }
                         className={`p-2.5 rounded-md font-bold border transition-all text-center ${
                           storeSettings.mercadoPago?.environment === 'production'
-                            ? 'bg-[#009ee3] text-white border-[#009ee3]'
-                            : 'bg-[#1c1b1b] text-[#b4b5b5] border-[#353535]'
+                            ? 'bg-[#009ee3] text-white border-[#009ee3] shadow-md'
+                            : 'bg-[#1c1b1b] text-[#b4b5b5] border-[#353535] hover:text-white'
                         }`}
                       >
-                        🚀 Produção (Real)
+                        🚀 Produção (Recebimentos Reais)
                       </button>
                     </div>
                   </div>
 
-                  {/* Credentials Fields */}
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-[#e5e2e1] font-semibold">
-                          Public Key (Chave Pública)
-                        </label>
-                        <span className="text-[10px] text-[#b4b5b5]">Visível no checkout</span>
-                      </div>
-                      <input
-                        type="text"
-                        value={
-                          storeSettings.mercadoPago?.publicKey ||
-                          'TEST-98a72b4c-9f82-411a-ba73-1029837465ab'
-                        }
-                        onChange={e =>
-                          onUpdateStoreSettings({
-                            ...storeSettings,
-                            mercadoPago: {
-                              ...(storeSettings.mercadoPago || {
-                                isEnabled: true,
-                                accessToken: 'TEST-8291039847120938-092714-a9f82b7c6d5e4a3b2c1d-19283746',
-                                environment: 'sandbox',
-                                allowPix: true,
-                                allowCreditCard: true,
-                                allowCheckoutPro: true,
-                              }),
-                              publicKey: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="TEST-... ou APP_USR-..."
-                        className="w-full bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#009ee3]"
-                      />
+                  {/* Vínculo de Credenciais e Access Token */}
+                  <div className="space-y-3 text-xs bg-[#152530] p-4 rounded-xl border border-[#009ee3]/30">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#009ee3]/20">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Key className="w-4 h-4 text-[#009ee3]" />
+                        Vínculo de Credenciais da API Mercado Pago
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                        Criptografia Ativa
+                      </span>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[#e5e2e1] font-semibold">
-                          Access Token (Token de Acesso)
+                          Access Token de Produção / Teste (Privado)
                         </label>
-                        <span className="text-[10px] text-amber-400 flex items-center gap-1">
-                          <Lock className="w-3 h-3" /> Privado & Seguro
+                        <span className="text-[10px] text-amber-300 flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Obrigatório para baixa automática
                         </span>
                       </div>
                       <input
@@ -6968,114 +7061,394 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             },
                           })
                         }
-                        placeholder="TEST-... ou APP_USR-..."
+                        placeholder="APP_USR-... ou TEST-..."
+                        className="w-full bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#009ee3]"
+                      />
+                      <p className="text-[10px] text-[#86cfff] mt-1">
+                        Cole aqui o seu Access Token obtido no painel de desenvolvedores do Mercado Pago.
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[#e5e2e1] font-semibold">
+                          Public Key (Chave Pública)
+                        </label>
+                        <span className="text-[10px] text-[#b4b5b5]">Visível aos clientes</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={
+                          storeSettings.mercadoPago?.publicKey ||
+                          'TEST-98a72b4c-9f82-411a-ba73-1029837465ab'
+                        }
+                        onChange={e =>
+                          onUpdateStoreSettings({
+                            ...storeSettings,
+                            mercadoPago: {
+                              ...(storeSettings.mercadoPago || {
+                                isEnabled: true,
+                                accessToken: 'TEST-8291039847120938-092714-a9f82b7c6d5e4a3b2c1d-19283746',
+                                environment: 'sandbox',
+                                allowPix: true,
+                                allowCreditCard: true,
+                                allowCheckoutPro: true,
+                              }),
+                              publicKey: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="APP_USR-... ou TEST-..."
                         className="w-full bg-[#181818] border border-[#353535] rounded-md px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#009ee3]"
                       />
                     </div>
-                  </div>
 
-                  {/* Features checkboxes */}
-                  <div className="pt-2 border-t border-[#353535]/60 space-y-2 text-xs">
-                    <span className="font-semibold text-white block">
-                      Métodos Habilitados no Checkout:
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <label className="flex items-center gap-2 p-2 bg-[#181818] rounded-md border border-[#353535] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={storeSettings.mercadoPago?.allowPix ?? true}
-                          onChange={e =>
-                            onUpdateStoreSettings({
-                              ...storeSettings,
-                              mercadoPago: {
-                                ...(storeSettings.mercadoPago || {
-                                  isEnabled: true,
-                                  publicKey: 'TEST-...',
-                                  accessToken: 'TEST-...',
-                                  environment: 'sandbox',
-                                  allowCreditCard: true,
-                                  allowCheckoutPro: true,
-                                }),
-                                allowPix: e.target.checked,
-                              },
-                            })
-                          }
-                          className="accent-[#009ee3] w-4 h-4 rounded"
-                        />
-                        <span className="text-[#e5e2e1] font-medium">Pix QR Code</span>
-                      </label>
+                    {/* Botão de Validação do Token */}
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        disabled={isTestingMp}
+                        onClick={handleTestMercadoPago}
+                        className="bg-[#009ee3] hover:bg-[#0086c3] text-white py-2.5 px-4 rounded-md font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98 shadow-md"
+                      >
+                        {isTestingMp ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Validando Token na API do Mercado Pago...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Validar & Vincular Access Token com a API</span>
+                          </>
+                        )}
+                      </button>
 
-                      <label className="flex items-center gap-2 p-2 bg-[#181818] rounded-md border border-[#353535] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={storeSettings.mercadoPago?.allowCreditCard ?? true}
-                          onChange={e =>
-                            onUpdateStoreSettings({
-                              ...storeSettings,
-                              mercadoPago: {
-                                ...(storeSettings.mercadoPago || {
-                                  isEnabled: true,
-                                  publicKey: 'TEST-...',
-                                  accessToken: 'TEST-...',
-                                  environment: 'sandbox',
-                                  allowPix: true,
-                                  allowCheckoutPro: true,
-                                }),
-                                allowCreditCard: e.target.checked,
-                              },
-                            })
-                          }
-                          className="accent-[#009ee3] w-4 h-4 rounded"
-                        />
-                        <span className="text-[#e5e2e1] font-medium">Cartão Online</span>
-                      </label>
-
-                      <label className="flex items-center gap-2 p-2 bg-[#181818] rounded-md border border-[#353535] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={storeSettings.mercadoPago?.allowCheckoutPro ?? true}
-                          onChange={e =>
-                            onUpdateStoreSettings({
-                              ...storeSettings,
-                              mercadoPago: {
-                                ...(storeSettings.mercadoPago || {
-                                  isEnabled: true,
-                                  publicKey: 'TEST-...',
-                                  accessToken: 'TEST-...',
-                                  environment: 'sandbox',
-                                  allowPix: true,
-                                  allowCreditCard: true,
-                                }),
-                                allowCheckoutPro: e.target.checked,
-                              },
-                            })
-                          }
-                          className="accent-[#009ee3] w-4 h-4 rounded"
-                        />
-                        <span className="text-[#e5e2e1] font-medium">Checkout Pro</span>
-                      </label>
+                      {mpTestStatus && (
+                        <div className={`p-2.5 rounded-md text-xs font-semibold animate-in fade-in ${
+                          mpTestStatus.startsWith('✅')
+                            ? 'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
+                            : 'bg-amber-950/80 border border-amber-500/40 text-amber-300'
+                        }`}>
+                          {mpTestStatus}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Test Connection Button & Result */}
-                  <div className="pt-1 flex flex-col gap-2">
-                    <button type="button" disabled={isTestingMp} onClick={handleTestMercadoPago} className="bg-[#009ee3] hover:bg-[#0086c3] text-white py-2.5 px-4 rounded-md font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98" >
-                      {isTestingMp ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Testando comunicação com Mercado Pago...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShieldCheck className="w-4 h-4" />
-                          <span>Testar Conexão com Mercado Pago</span>
-                        </>
-                      )}
-                    </button>
+                  {/* SEÇÃO: LEITURA AUTOMÁTICA DE STATUS DE PAGAMENTOS PIX */}
+                  <div className="bg-[#10202a] p-4 rounded-xl border border-[#009ee3]/40 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#009ee3]/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#009ee3]/20 text-[#009ee3] flex items-center justify-center shrink-0 border border-[#009ee3]/40">
+                          <Activity className="w-4 h-4 animate-pulse" />
+                        </div>
+                        <div>
+                          <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                            Leitura Automática de Status Pix
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
+                              Tempo Real
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-[#b4b5b5]">
+                            A consulta contínua na API do Mercado Pago dá baixa no pedido no mesmo segundo em que o cliente paga.
+                          </p>
+                        </div>
+                      </div>
 
-                    {mpTestStatus && (
-                      <div className="p-2.5 bg-emerald-950/80 border border-emerald-500/40 rounded-md text-xs text-emerald-300 font-semibold text-center animate-in fade-in">
-                        {mpTestStatus}
+                      {/* Switch Leitura Automática */}
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={storeSettings.mercadoPago?.autoPixReadEnabled ?? true}
+                          onChange={e =>
+                            onUpdateStoreSettings({
+                              ...storeSettings,
+                              mercadoPago: {
+                                ...(storeSettings.mercadoPago || {
+                                  isEnabled: true,
+                                  publicKey: '',
+                                  accessToken: '',
+                                  environment: 'sandbox',
+                                  allowPix: true,
+                                  allowCreditCard: true,
+                                  allowCheckoutPro: true,
+                                }),
+                                autoPixReadEnabled: e.target.checked,
+                              },
+                            })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+                      </label>
+                    </div>
+
+                    {/* Controles de Intervalo e Resumo de Pedidos Pendentes */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {/* Intervalo de Leitura */}
+                      <div className="bg-[#182833] p-3 rounded-lg border border-[#009ee3]/20 space-y-1.5">
+                        <span className="text-white font-semibold block text-[11px]">
+                          Frequência da Leitura Automática:
+                        </span>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            { sec: 2, label: '2s (Rápido)' },
+                            { sec: 3, label: '3s (Padrão)' },
+                            { sec: 5, label: '5s (Econômico)' },
+                          ].map(item => (
+                            <button
+                              key={item.sec}
+                              type="button"
+                              onClick={() =>
+                                onUpdateStoreSettings({
+                                  ...storeSettings,
+                                  mercadoPago: {
+                                    ...(storeSettings.mercadoPago || {
+                                      isEnabled: true,
+                                      publicKey: '',
+                                      accessToken: '',
+                                      environment: 'sandbox',
+                                      allowPix: true,
+                                      allowCreditCard: true,
+                                      allowCheckoutPro: true,
+                                    }),
+                                    autoPixReadInterval: item.sec,
+                                  },
+                                })
+                              }
+                              className={`py-1.5 px-2 rounded-md font-mono text-[10px] font-bold border transition-all text-center ${
+                                (storeSettings.mercadoPago?.autoPixReadInterval || 3) === item.sec
+                                  ? 'bg-[#009ee3] text-white border-[#009ee3]'
+                                  : 'bg-[#152028] text-[#8e8f8f] border-[#2a3a46] hover:text-white'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Status Atual do Monitor */}
+                      <div className="bg-[#182833] p-3 rounded-lg border border-[#009ee3]/20 flex flex-col justify-between">
+                        <span className="text-white font-semibold block text-[11px]">
+                          Pedidos Pix Pendentes na Cozinha:
+                        </span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-sm font-bold text-amber-400 font-mono">
+                            {orders.filter(o => o.paymentStatus === 'pendente' && o.mercadoPagoPaymentId).length} aguardando baixa
+                          </span>
+                          <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            Auto-Leitor Ativo
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão de Leitura Forçada Imediata */}
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={isValidatingPendingPix}
+                        onClick={handleCheckAllPendingPix}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md"
+                      >
+                        {isValidatingPendingPix ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Consultando API do Mercado Pago em tempo real...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                            <span>Verificar Agora se os Pix Pendentes Foram Recebidos</span>
+                          </>
+                        )}
+                      </button>
+
+                      {pixSyncResult && (
+                        <div className="p-2.5 rounded-lg text-xs font-semibold text-center bg-[#182c38] border border-[#009ee3]/40 text-[#86cfff] animate-in fade-in">
+                          {pixSyncResult}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SEÇÃO: CONSULTA MANUAL DE COMPROVANTE OU ID DE TRANSAÇÃO PIX */}
+                  <div className="bg-[#152530] p-4 rounded-xl border border-[#009ee3]/30 space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#009ee3]/20">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Search className="w-4 h-4 text-[#009ee3]" />
+                        Validar Recebimento por ID de Pagamento do Mercado Pago
+                      </span>
+                      <span className="text-[10px] text-[#86cfff]">
+                        Checagem Individual
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#b4b5b5]">
+                      Se o cliente enviar um comprovante do Mercado Pago ou código de transação, cole o ID abaixo para confirmar se o dinheiro caiu de fato na sua conta.
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={manualPixIdInput}
+                        onChange={e => setManualPixIdInput(e.target.value)}
+                        placeholder="Ex: 9827364510 ou ID do pedido"
+                        className="flex-grow bg-[#181818] border border-[#353535] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#009ee3]"
+                      />
+                      <button
+                        type="button"
+                        disabled={isValidatingManualPix || !manualPixIdInput.trim()}
+                        onClick={handleValidateManualPaymentId}
+                        className="bg-[#009ee3] hover:bg-[#0086c3] disabled:opacity-50 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 active:scale-95 transition-all shrink-0"
+                      >
+                        {isValidatingManualPix ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Search className="w-3.5 h-3.5" />
+                        )}
+                        <span>Consultar na API</span>
+                      </button>
+                    </div>
+
+                    {/* Resultado da Consulta Individual */}
+                    {manualPixValidationResult && (
+                      <div className="p-3 bg-[#182833] rounded-lg border border-[#009ee3]/40 space-y-2 animate-in fade-in">
+                        {manualPixValidationResult.error ? (
+                          <div className="text-amber-400 font-semibold text-xs flex items-center gap-1.5">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>{manualPixValidationResult.error}</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5 text-xs text-white">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold flex items-center gap-1">
+                                ID: <span className="font-mono text-[#009ee3]">{manualPixValidationResult.id}</span>
+                              </span>
+                              <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${
+                                manualPixValidationResult.approved
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                              }`}>
+                                {manualPixValidationResult.approved ? '✓ Pagamento Aprovado e Recebido' : `Status: ${manualPixValidationResult.status}`}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-[#b4b5b5] border-t border-[#353535]">
+                              <div>
+                                <span className="block text-[#8e8f8f]">Valor da Transação:</span>
+                                <strong className="text-white font-mono text-xs">
+                                  R$ {(manualPixValidationResult.transaction_amount || 0).toFixed(2).replace('.', ',')}
+                                </strong>
+                              </div>
+                              <div>
+                                <span className="block text-[#8e8f8f]">Data de Aprovação:</span>
+                                <span className="text-white font-mono">
+                                  {manualPixValidationResult.date_approved
+                                    ? new Date(manualPixValidationResult.date_approved).toLocaleString('pt-BR')
+                                    : 'Aguardando compensação'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {manualPixValidationResult.payer?.email && (
+                              <div className="text-[11px] text-[#8e8f8f]">
+                                Pagador: <span className="text-white">{manualPixValidationResult.payer.email}</span>
+                              </div>
+                            )}
+
+                            {/* Botão de Liberação de Pedido caso corresponda */}
+                            {manualPixValidationResult.approved && (() => {
+                              const matchingOrder = orders.find(
+                                o => String(o.mercadoPagoPaymentId) === String(manualPixValidationResult.id)
+                              );
+                              if (matchingOrder && matchingOrder.paymentStatus !== 'aprovado') {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (onUpdatePaymentStatus) {
+                                        onUpdatePaymentStatus(matchingOrder.id, 'aprovado');
+                                        try {
+                                          playPixConfirmedSound();
+                                        } catch (_) {}
+                                        setPixSyncResult(`🎉 Pedido #${matchingOrder.orderNumber} baixado como pago com sucesso!`);
+                                      }
+                                    }}
+                                    className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-md text-xs flex items-center justify-center gap-1.5"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>Dar Baixa no Pedido {matchingOrder.orderNumber} Agora</span>
+                                  </button>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SEÇÃO: HISTÓRICO DAS ÚLTIMAS LEITURAS DE TRANSAÇÕES DO MERCADO PAGO */}
+                  <div className="bg-[#152530] p-4 rounded-xl border border-[#009ee3]/30 space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b border-[#009ee3]/20">
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <Receipt className="w-4 h-4 text-[#009ee3]" />
+                        Últimos Pagamentos Recebidos na Conta Mercado Pago
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isLoadingRecentMp}
+                        onClick={handleFetchRecentPayments}
+                        className="text-[11px] font-bold text-[#009ee3] hover:text-white flex items-center gap-1 bg-[#102028] px-2 py-1 rounded border border-[#009ee3]/30"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isLoadingRecentMp ? 'animate-spin' : ''}`} />
+                        <span>{isLoadingRecentMp ? 'Consultando...' : 'Carregar Recebimentos'}</span>
+                      </button>
+                    </div>
+
+                    {recentMpPayments.length === 0 ? (
+                      <div className="text-center py-4 text-xs text-[#8e8f8f] bg-[#182833] rounded-lg border border-[#353535]">
+                        Clique em <strong>"Carregar Recebimentos"</strong> para inspecionar as últimas transações Pix diretamente da sua conta Mercado Pago.
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {recentMpPayments.map(pay => (
+                          <div
+                            key={pay.id}
+                            className="bg-[#182833] p-2.5 rounded-lg border border-[#353535] flex items-center justify-between text-xs"
+                          >
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-bold text-white">ID #{pay.id}</span>
+                                <span className="text-[9px] bg-[#009ee3]/20 text-[#009ee3] px-1.5 py-0.2 rounded font-bold uppercase">
+                                  {pay.payment_method_id || 'Pix'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-[#8e8f8f] block mt-0.5">
+                                {pay.date_approved
+                                  ? `Recebido em: ${new Date(pay.date_approved).toLocaleString('pt-BR')}`
+                                  : `Criado em: ${new Date(pay.date_created).toLocaleString('pt-BR')}`}
+                              </span>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="font-mono font-bold text-white text-xs block">
+                                R$ {(pay.transaction_amount || 0).toFixed(2).replace('.', ',')}
+                              </span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                                pay.approved
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-amber-500/20 text-amber-400'
+                              }`}>
+                                {pay.approved ? 'Recebido' : pay.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

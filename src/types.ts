@@ -63,6 +63,10 @@ export interface MercadoPagoConfig {
   allowPix: boolean;
   allowCreditCard: boolean;
   allowCheckoutPro: boolean;
+  autoPixReadEnabled?: boolean;
+  autoPixReadInterval?: number;
+  lastValidatedAt?: string;
+  accountName?: string;
 }
 
 export interface Courier {

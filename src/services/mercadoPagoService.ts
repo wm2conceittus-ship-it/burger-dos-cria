@@ -26,6 +26,25 @@ export interface ConnectionTestResult {
   mode?: string;
 }
 
+export interface PaymentStatusResult {
+  id: string | number;
+  status: string;
+  status_detail?: string;
+  approved: boolean;
+  date_approved?: string;
+  date_created?: string;
+  transaction_amount?: number;
+  payment_method_id?: string;
+  payer?: {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    identification?: { type?: string; number?: string };
+  };
+  description?: string;
+  isRealApi?: boolean;
+}
+
 export const mercadoPagoApi = {
   // Test connection with token
   async testConnection(accessToken?: string): Promise<ConnectionTestResult> {
@@ -107,13 +126,29 @@ export const mercadoPagoApi = {
   async checkPaymentStatus(
     paymentId: string | number,
     customAccessToken?: string
-  ): Promise<{ status: string; approved: boolean }> {
+  ): Promise<PaymentStatusResult> {
     const query = customAccessToken ? `?customAccessToken=${encodeURIComponent(customAccessToken)}` : '';
     const res = await fetch(`/api/mercadopago/payment-status/${paymentId}${query}`);
     if (!res.ok) {
       throw new Error('Falha ao verificar status do pagamento');
     }
     return await res.json();
+  },
+
+  // Get recent payments list from Mercado Pago
+  async getRecentPayments(
+    customAccessToken?: string
+  ): Promise<{ success: boolean; total: number; payments: PaymentStatusResult[] }> {
+    try {
+      const query = customAccessToken ? `?customAccessToken=${encodeURIComponent(customAccessToken)}` : '';
+      const res = await fetch(`/api/mercadopago/payments/recent${query}`);
+      if (!res.ok) {
+        return { success: false, total: 0, payments: [] };
+      }
+      return await res.json();
+    } catch {
+      return { success: false, total: 0, payments: [] };
+    }
   },
 
   // Simulate payment approval (test / sandbox)

@@ -267,25 +267,38 @@ app.get('/api/mercadopago/payment-status/:id', async (req: Request, res: Respons
 
       if (mpResponse.ok) {
         const mpData: any = await mpResponse.json();
-        paymentsDb.set(id, mpData);
+        paymentsDb.set(String(id), mpData);
         return res.json({
           id: mpData.id,
           status: mpData.status,
           status_detail: mpData.status_detail,
           approved: mpData.status === 'approved',
           date_approved: mpData.date_approved,
+          date_created: mpData.date_created,
+          transaction_amount: mpData.transaction_amount,
+          payment_method_id: mpData.payment_method_id,
+          payer: mpData.payer,
+          description: mpData.description,
+          isRealApi: true,
         });
       }
     }
 
     // Check in-memory store
-    const local = paymentsDb.get(id);
+    const local = paymentsDb.get(String(id));
     if (local) {
       return res.json({
         id: local.id,
         status: local.status,
         status_detail: local.status_detail,
         approved: local.status === 'approved',
+        date_approved: local.date_approved || (local.status === 'approved' ? new Date().toISOString() : undefined),
+        date_created: local.date_created || new Date().toISOString(),
+        transaction_amount: local.transaction_amount,
+        payer: local.payer,
+        payment_method_id: local.payment_method_id || 'pix',
+        description: local.description,
+        isRealApi: false,
       });
     }
 
@@ -294,13 +307,82 @@ app.get('/api/mercadopago/payment-status/:id', async (req: Request, res: Respons
       status: 'pending',
       status_detail: 'waiting_transfer',
       approved: false,
+      isRealApi: false,
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
 });
 
-// 5b. POST /api/mercadopago/simulate-approval/:id (Test/Sandbox approval simulation)
+// 5b. GET /api/mercadopago/payments/recent (Fetch recent payments list for manager auto-read validation)
+app.get('/api/mercadopago/payments/recent', async (req: Request, res: Response) => {
+  try {
+    const token = getAccessToken(req.query.customAccessToken as string);
+    const results: any[] = [];
+
+    if (token && (token.startsWith('APP_USR-') || token.startsWith('TEST-'))) {
+      try {
+        const mpRes = await fetch(
+          'https://api.mercadopago.com/v1/payments/search?sort=date_created&criteria=desc&limit=15',
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (mpRes.ok) {
+          const data: any = await mpRes.json();
+          if (Array.isArray(data.results)) {
+            data.results.forEach((p: any) => {
+              results.push({
+                id: p.id,
+                status: p.status,
+                status_detail: p.status_detail,
+                approved: p.status === 'approved',
+                transaction_amount: p.transaction_amount,
+                date_created: p.date_created,
+                date_approved: p.date_approved,
+                payment_method_id: p.payment_method_id,
+                payer: p.payer,
+                description: p.description,
+                isRealApi: true,
+              });
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching recent MP payments from API:', err);
+      }
+    }
+
+    // Merge with in-memory payments store
+    paymentsDb.forEach((p, id) => {
+      if (!results.some(r => String(r.id) === String(id))) {
+        results.push({
+          id,
+          status: p.status || 'approved',
+          status_detail: p.status_detail || 'accredited',
+          approved: p.status === 'approved',
+          transaction_amount: p.transaction_amount || 0,
+          date_created: p.date_created || new Date().toISOString(),
+          date_approved: p.date_approved,
+          payment_method_id: p.payment_method_id || 'pix',
+          payer: p.payer || { email: 'cliente@email.com', first_name: 'Cliente' },
+          description: p.description || 'Pedido - Burguer dos Crias',
+          isRealApi: false,
+        });
+      }
+    });
+
+    return res.json({
+      success: true,
+      total: results.length,
+      payments: results.slice(0, 20),
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// 5c. POST /api/mercadopago/simulate-approval/:id (Test/Sandbox approval simulation)
 app.post('/api/mercadopago/simulate-approval/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const existing = paymentsDb.get(String(id)) || { id };

@@ -1046,12 +1046,17 @@ export default function App() {
     }
   };
 
-  // Polling automático para pedidos Pix gerados via API Mercado Pago com status pendente
+  // Leitura automática e contínua do status de pagamentos Pix via API do Mercado Pago
   useEffect(() => {
+    const isAutoReadEnabled = storeSettings.mercadoPago?.autoPixReadEnabled ?? true;
+    if (!isAutoReadEnabled) return;
+
     const pendingPixOrders = orders.filter(
       o => o.paymentStatus === 'pendente' && o.mercadoPagoPaymentId
     );
     if (pendingPixOrders.length === 0) return;
+
+    const pollInterval = Math.max(2000, (storeSettings.mercadoPago?.autoPixReadInterval || 3) * 1000);
 
     const interval = setInterval(async () => {
       for (const ord of pendingPixOrders) {
@@ -1063,16 +1068,21 @@ export default function App() {
           );
           if (res.approved) {
             handleUpdatePaymentStatus(ord.id, 'aprovado');
-            showToast(`🎉 Pix do Pedido ${ord.orderNumber} Aprovado Automaticamente via API!`);
+            showToast(`🎉 Pix do Pedido ${ord.orderNumber} Validado e Recebido via Mercado Pago!`);
           }
         } catch {
           // ignore transient polling errors
         }
       }
-    }, 3500);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [orders, storeSettings.mercadoPago?.accessToken]);
+  }, [
+    orders,
+    storeSettings.mercadoPago?.accessToken,
+    storeSettings.mercadoPago?.autoPixReadEnabled,
+    storeSettings.mercadoPago?.autoPixReadInterval,
+  ]);
 
   const handleManualOrderAdd = (newOrder: Order) => {
     knownOrderIds.current.add(newOrder.id);
