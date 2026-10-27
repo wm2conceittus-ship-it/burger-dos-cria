@@ -711,7 +711,15 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
                       🟡 Pix em Conferência pela Hamburgueria
                     </span>
                   )
-                ) : null}
+                ) : order.paymentStatus === 'aprovado' ? (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+                    ✓ Pagamento Recebido ({order.paymentMethod})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                    🟡 Pagamento na Entrega ({order.paymentMethod})
+                  </span>
+                )}
               </div>
               <ChevronRight
                 className={`w-5 h-5 text-[#b4b5b5] transition-transform duration-200 ${

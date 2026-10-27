@@ -367,17 +367,28 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       </span>
                     </div>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded capitalize ${
-                        order.status === 'entregue'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : order.status === 'recusado'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-amber-500/20 text-amber-400'
-                      }`}
-                    >
-                      {order.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded capitalize ${
+                          order.status === 'entregue'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : order.status === 'recusado'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-amber-500/20 text-amber-400'
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                      <span
+                        className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded ${
+                          order.paymentStatus === 'aprovado'
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        {order.paymentStatus === 'aprovado' ? '✓ Recebido' : 'Pendente'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Items summary */}
@@ -402,9 +413,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   {/* Footer with total and reorder button */}
                   <div className="flex justify-between items-center pt-2 border-t border-[#353535]/50">
                     <div>
-                      <span className="text-[10px] text-[#8e8f8f] block">Total Pago:</span>
+                      <span className="text-[10px] text-[#8e8f8f] block">
+                        {order.paymentStatus === 'aprovado' ? 'Total Recebido:' : 'Total a Pagar:'}
+                      </span>
                       <span className="font-mono font-bold text-white text-xs">
                         R$ {order.total.toFixed(2).replace('.', ',')}
+                      </span>
+                      <span className="text-[9.5px] text-[#b4b5b5] block">
+                        {order.paymentMethod}
                       </span>
                     </div>
 

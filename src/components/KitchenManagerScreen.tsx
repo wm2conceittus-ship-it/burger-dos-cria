@@ -328,11 +328,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   }, [dispatchOrderTarget]);
 
   const buildCourierWhatsAppMsg = (order: Order, courierName?: string) => {
-    const isOnlinePaid = Boolean(order.mercadoPagoPaymentId || order.paymentStatus === 'aprovado');
+    const isPaid = order.paymentStatus === 'aprovado';
+    const isOnlinePaid = Boolean(order.mercadoPagoPaymentId || (isPaid && !order.paymentMethod?.toLowerCase().includes('dinheiro') && !order.paymentMethod?.toLowerCase().includes('cart') && !order.paymentMethod?.toLowerCase().includes('maquininha')));
     const isNeedMachine = Boolean(
       order.paymentMethod?.toLowerCase().includes('cart') ||
       order.paymentMethod?.toLowerCase().includes('crédito') ||
-      order.paymentMethod?.toLowerCase().includes('débito')
+      order.paymentMethod?.toLowerCase().includes('credito') ||
+      order.paymentMethod?.toLowerCase().includes('débito') ||
+      order.paymentMethod?.toLowerCase().includes('debito') ||
+      order.paymentMethod?.toLowerCase().includes('maquininha') ||
+      order.paymentMethod?.toLowerCase().includes('vale') ||
+      order.paymentMethod?.toLowerCase().includes('vr')
     );
     const isCash = Boolean(order.paymentMethod?.toLowerCase().includes('dinheiro'));
 
@@ -345,7 +351,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       order.address ? `*📍 Rota Google Maps:* ${getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}` : '',
       order.address ? `*🚗 Rota Waze:* ${getWazeRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}` : '',
       `*Total a cobrar/receber:* R$ ${(order.total || 0).toFixed(2).replace('.', ',')}`,
-      isOnlinePaid
+      isPaid
+        ? '✅ *PAGAMENTO:* JÁ RECEBIDO / PAGO (NÃO COBRAR DO CLIENTE)'
+        : isOnlinePaid
         ? '✅ *PAGAMENTO:* PAGO ONLINE (NÃO COBRAR DO CLIENTE)'
         : isNeedMachine
         ? '💳 *PAGAMENTO:* LEVAR MAQUININHA (COBRAR NA ENTREGA)'
@@ -479,7 +487,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       }
     } else if (targetCol === 'concluido') {
       onCompleteOrder(order.id);
-      setKdsToast(`Pedido #${order.orderNumber} finalizado com sucesso! ✅`);
+      if (onUpdatePaymentStatus && order.paymentStatus !== 'aprovado') {
+        onUpdatePaymentStatus(order.id, 'aprovado');
+      }
+      setKdsToast(`Pedido #${order.orderNumber} finalizado e marcado como recebido! ✅`);
     }
 
     setQuickMoveOrderId(null);
@@ -2828,25 +2839,27 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               const isPixApproved = isPix && order.paymentStatus === 'aprovado';
                               const isPixPending = isPix && order.paymentStatus !== 'aprovado';
 
-                              const isOnlinePaid =
-                                (order.paymentStatus === 'aprovado' && !isPix) ||
-                                Boolean(order.mercadoPagoPaymentId) ||
-                                Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix);
-
-                              const isNeedMachine =
-                                Boolean(
-                                  order.paymentMethod &&
-                                    (order.paymentMethod.toLowerCase().includes('maquininha') ||
-                                      order.paymentMethod.toLowerCase().includes('vale') ||
-                                      order.paymentMethod.toLowerCase().includes('vr') ||
-                                      order.paymentMethod.toLowerCase().includes('crédito') ||
-                                      order.paymentMethod.toLowerCase().includes('débito')) &&
-                                    !isOnlinePaid
-                                );
-
                               const isCash = Boolean(
                                 order.paymentMethod && order.paymentMethod.toLowerCase().includes('dinheiro')
                               );
+
+                              const isNeedMachine = Boolean(
+                                order.paymentMethod &&
+                                  (order.paymentMethod.toLowerCase().includes('maquininha') ||
+                                    order.paymentMethod.toLowerCase().includes('vale') ||
+                                    order.paymentMethod.toLowerCase().includes('vr') ||
+                                    order.paymentMethod.toLowerCase().includes('crédito') ||
+                                    order.paymentMethod.toLowerCase().includes('credito') ||
+                                    order.paymentMethod.toLowerCase().includes('débito') ||
+                                    order.paymentMethod.toLowerCase().includes('debito') ||
+                                    order.paymentMethod.toLowerCase().includes('cart')) &&
+                                  !order.paymentMethod.toLowerCase().includes('online')
+                              );
+
+                              const isOnlinePaid =
+                                Boolean(order.mercadoPagoPaymentId) ||
+                                Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix) ||
+                                (!isPix && !isCash && !isNeedMachine && order.paymentStatus === 'aprovado');
 
                               // Elapsed urgency check
                               const tStr = (order.timeAgo || '').toLowerCase();
@@ -3205,6 +3218,46 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           )}
                                         </div>
                                       </div>
+                                    ) : isCash ? (
+                                      order.paymentStatus === 'aprovado' ? (
+                                        <div className="bg-emerald-50 border border-emerald-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-emerald-900 font-bold">
+                                          <span className="flex items-center gap-1 text-emerald-800">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" /> DINHEIRO
+                                          </span>
+                                          <span className="text-[7.5px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded uppercase font-black">
+                                            ✓ RECEBIDO
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-blue-50 border border-blue-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-blue-900 font-bold">
+                                          <span className="flex items-center gap-1">
+                                            <Banknote className="w-2.5 h-2.5 text-blue-600" /> DINHEIRO
+                                          </span>
+                                          <span className="text-[8px] text-blue-800">
+                                            {order.changeFor ? `Troco p/ ${order.changeFor}` : 'Cobrar na Entrega'}
+                                          </span>
+                                        </div>
+                                      )
+                                    ) : isNeedMachine ? (
+                                      order.paymentStatus === 'aprovado' ? (
+                                        <div className="bg-emerald-50 border border-emerald-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-emerald-900 font-bold">
+                                          <span className="flex items-center gap-1 text-emerald-800">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-600" /> MAQUININHA
+                                          </span>
+                                          <span className="text-[7.5px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded uppercase font-black">
+                                            ✓ RECEBIDO
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-amber-50 border border-amber-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-amber-900 font-bold">
+                                          <span className="flex items-center gap-1">
+                                            <CreditCard className="w-2.5 h-2.5 text-amber-600" /> MAQUININHA
+                                          </span>
+                                          <span className="text-[7.5px] bg-amber-100 border border-amber-300 px-1 py-0.2 rounded uppercase">
+                                            COBRAR
+                                          </span>
+                                        </div>
+                                      )
                                     ) : isOnlinePaid ? (
                                       <div className="bg-emerald-50 border border-emerald-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px]">
                                         <span className="text-emerald-800 font-bold flex items-center gap-1">
@@ -3214,28 +3267,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                           NÃO COBRAR
                                         </span>
                                       </div>
-                                    ) : isNeedMachine ? (
-                                      <div className="bg-amber-50 border border-amber-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-amber-900 font-bold">
-                                        <span className="flex items-center gap-1">
-                                          <CreditCard className="w-2.5 h-2.5 text-amber-600" /> MAQUININHA
-                                        </span>
-                                        <span className="text-[7.5px] bg-amber-100 border border-amber-300 px-1 py-0.2 rounded uppercase">
-                                          COBRAR
-                                        </span>
-                                      </div>
-                                    ) : isCash ? (
-                                      <div className="bg-blue-50 border border-blue-300 rounded-md px-1.5 py-0.5 flex items-center justify-between text-[9px] text-blue-900 font-bold">
-                                        <span className="flex items-center gap-1">
-                                          <Banknote className="w-2.5 h-2.5 text-blue-600" /> DINHEIRO
-                                        </span>
-                                        <span className="text-[8px] text-blue-800">
-                                          {order.changeFor ? `Troco p/ ${order.changeFor}` : 'Sem troco'}
-                                        </span>
-                                      </div>
                                     ) : (
                                       <div className="bg-gray-100 border border-gray-200 rounded-md px-1.5 py-0.5 text-[8.5px] text-gray-700 flex justify-between">
                                         <span>Pagamento:</span>
-                                        <span className="text-gray-900 font-medium">{order.paymentMethod || 'A combinar'}</span>
+                                        <span className="text-gray-900 font-medium">
+                                          {order.paymentMethod || 'A combinar'} {order.paymentStatus === 'aprovado' ? '(Recebido)' : ''}
+                                        </span>
                                       </div>
                                     )}
                                   </div>
@@ -3488,25 +3525,27 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 const isPixApproved = isPix && order.paymentStatus === 'aprovado';
                 const isPixPending = isPix && order.paymentStatus !== 'aprovado';
 
-                const isOnlinePaid =
-                  (!isPix && order.paymentStatus === 'aprovado') ||
-                  Boolean(order.mercadoPagoPaymentId) ||
-                  Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix);
-
-                const isNeedMachine =
-                  Boolean(
-                    order.paymentMethod &&
-                      (order.paymentMethod.toLowerCase().includes('maquininha') ||
-                        order.paymentMethod.toLowerCase().includes('vale') ||
-                        order.paymentMethod.toLowerCase().includes('vr') ||
-                        order.paymentMethod.toLowerCase().includes('crédito') ||
-                        order.paymentMethod.toLowerCase().includes('débito')) &&
-                      !isOnlinePaid
-                  );
-
                 const isCash = Boolean(
                   order.paymentMethod && order.paymentMethod.toLowerCase().includes('dinheiro')
                 );
+
+                const isNeedMachine = Boolean(
+                  order.paymentMethod &&
+                    (order.paymentMethod.toLowerCase().includes('maquininha') ||
+                      order.paymentMethod.toLowerCase().includes('vale') ||
+                      order.paymentMethod.toLowerCase().includes('vr') ||
+                      order.paymentMethod.toLowerCase().includes('crédito') ||
+                      order.paymentMethod.toLowerCase().includes('credito') ||
+                      order.paymentMethod.toLowerCase().includes('débito') ||
+                      order.paymentMethod.toLowerCase().includes('debito') ||
+                      order.paymentMethod.toLowerCase().includes('cart')) &&
+                    !order.paymentMethod.toLowerCase().includes('online')
+                );
+
+                const isOnlinePaid =
+                  Boolean(order.mercadoPagoPaymentId) ||
+                  Boolean(order.paymentMethod && order.paymentMethod.toLowerCase().includes('online') && !isPix) ||
+                  (!isPix && !isCash && !isNeedMachine && order.paymentStatus === 'aprovado');
 
                 if (order.isUrgent) {
                   return (
@@ -3545,17 +3584,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
                                     Pix: Conferir Conta
                                   </span>
+                                ) : isCash ? (
+                                  order.paymentStatus === 'aprovado' ? (
+                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                      ✓ Dinheiro Recebido
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                      Dinheiro (Cobrar)
+                                    </span>
+                                  )
+                                ) : isNeedMachine ? (
+                                  order.paymentStatus === 'aprovado' ? (
+                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                      ✓ Maquininha Recebido
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                      Levar Maquininha
+                                    </span>
+                                  )
                                 ) : isOnlinePaid ? (
                                   <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
                                     Pago Online
-                                  </span>
-                                ) : isNeedMachine ? (
-                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
-                                    Levar Maquininha
-                                  </span>
-                                ) : isCash ? (
-                                  <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
-                                    Dinheiro
                                   </span>
                                 ) : null}
                               </div>
@@ -3701,6 +3752,64 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   )}
                                 </div>
                               </div>
+                            ) : isCash ? (
+                              order.paymentStatus === 'aprovado' ? (
+                                <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">DINHEIRO (RECEBIDO)</span>
+                                  </div>
+                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                    ✓ RECEBIDO
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                                  <div className="flex items-center justify-between text-blue-300 font-bold">
+                                    <span className="flex items-center gap-1.5">
+                                      <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                      <span>COBRAR EM DINHEIRO 💵</span>
+                                    </span>
+                                    <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                      NA ENTREGA
+                                    </span>
+                                  </div>
+                                  {order.changeFor ? (
+                                    <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
+                                      ⚠️ Levar troco para: {order.changeFor}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
+                                  )}
+                                </div>
+                              )
+                            ) : isNeedMachine ? (
+                              order.paymentStatus === 'aprovado' ? (
+                                <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">MAQUININHA ({order.paymentMethod})</span>
+                                  </div>
+                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                    ✓ RECEBIDO
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                                  <div className="flex items-center justify-between text-amber-300 font-bold">
+                                    <span className="flex items-center gap-1.5">
+                                      <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                      <span>LEVAR MAQUININHA 💳</span>
+                                    </span>
+                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                      COBRAR NA ENTREGA
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-[#ffdad6] block truncate">
+                                    Forma: {order.paymentMethod}
+                                  </span>
+                                </div>
+                              )
                             ) : isOnlinePaid ? (
                               <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
                                 <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
@@ -3711,44 +3820,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                   NÃO COBRAR
                                 </span>
                               </div>
-                            ) : isNeedMachine ? (
-                              <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
-                                <div className="flex items-center justify-between text-amber-300 font-bold">
-                                  <span className="flex items-center gap-1.5">
-                                    <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                    <span>LEVAR MAQUININHA 💳</span>
-                                  </span>
-                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
-                                    COBRAR NA ENTREGA
-                                  </span>
-                                </div>
-                                <span className="text-[10px] text-[#ffdad6] block truncate">
-                                  Forma: {order.paymentMethod}
-                                </span>
-                              </div>
-                            ) : isCash ? (
-                              <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
-                                <div className="flex items-center justify-between text-blue-300 font-bold">
-                                  <span className="flex items-center gap-1.5">
-                                    <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                    <span>COBRAR EM DINHEIRO 💵</span>
-                                  </span>
-                                  <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
-                                    NA ENTREGA
-                                  </span>
-                                </div>
-                                {order.changeFor ? (
-                                  <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
-                                    ⚠️ Levar troco para: {order.changeFor}
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
-                                )}
-                              </div>
                             ) : (
                               <div className="bg-[#262626] border border-[#383838] rounded-xl p-2 flex items-center justify-between text-[11px] text-[#b4b5b5]">
-                                <span className="truncate">Forma: {order.paymentMethod}</span>
-                                <span className="text-[9px] text-white font-semibold shrink-0">Pagar na Entrega</span>
+                                <span className="truncate">Forma: {order.paymentMethod} {order.paymentStatus === 'aprovado' ? '(Recebido)' : ''}</span>
+                                <span className="text-[9px] text-white font-semibold shrink-0">
+                                  {order.paymentStatus === 'aprovado' ? 'Recebido' : 'Pagar na Entrega'}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -3948,17 +4025,29 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
                                 Pix: Conferir Conta
                               </span>
+                            ) : isCash ? (
+                              order.paymentStatus === 'aprovado' ? (
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                  ✓ Dinheiro Recebido
+                                </span>
+                              ) : (
+                                <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                  Dinheiro (Cobrar)
+                                </span>
+                              )
+                            ) : isNeedMachine ? (
+                              order.paymentStatus === 'aprovado' ? (
+                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                  ✓ Maquininha Recebido
+                                </span>
+                              ) : (
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
+                                  Levar Maquininha
+                                </span>
+                              )
                             ) : isOnlinePaid ? (
                               <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
                                 Pago Online
-                              </span>
-                            ) : isNeedMachine ? (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider animate-pulse">
-                                Levar Maquininha
-                              </span>
-                            ) : isCash ? (
-                              <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
-                                Dinheiro
                               </span>
                             ) : null}
                           </div>
@@ -4112,6 +4201,64 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               )}
                             </div>
                           </div>
+                        ) : isCash ? (
+                          order.paymentStatus === 'aprovado' ? (
+                            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                              <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">DINHEIRO (RECEBIDO)</span>
+                              </div>
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                ✓ RECEBIDO
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                              <div className="flex items-center justify-between text-blue-300 font-bold">
+                                <span className="flex items-center gap-1.5">
+                                  <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  <span>COBRAR EM DINHEIRO 💵</span>
+                                </span>
+                                <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                  NA ENTREGA
+                                </span>
+                              </div>
+                              {order.changeFor ? (
+                                <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
+                                  ⚠️ Levar troco para: {order.changeFor}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
+                              )}
+                            </div>
+                          )
+                        ) : isNeedMachine ? (
+                          order.paymentStatus === 'aprovado' ? (
+                            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
+                              <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
+                                <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">MAQUININHA ({order.paymentMethod})</span>
+                              </div>
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-black uppercase shrink-0">
+                                ✓ RECEBIDO
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
+                              <div className="flex items-center justify-between text-amber-300 font-bold">
+                                <span className="flex items-center gap-1.5">
+                                  <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span>LEVAR MAQUININHA 💳</span>
+                                </span>
+                                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
+                                  COBRAR NA ENTREGA
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-[#ffdad6] block truncate">
+                                Forma: {order.paymentMethod}
+                              </span>
+                            </div>
+                          )
                         ) : isOnlinePaid ? (
                           <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2 flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-1.5 text-emerald-400 font-bold min-w-0">
@@ -4122,44 +4269,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               NÃO COBRAR
                             </span>
                           </div>
-                        ) : isNeedMachine ? (
-                          <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-2 space-y-1 text-[11px]">
-                            <div className="flex items-center justify-between text-amber-300 font-bold">
-                              <span className="flex items-center gap-1.5">
-                                <CreditCard className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span>LEVAR MAQUININHA 💳</span>
-                              </span>
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded font-black uppercase">
-                                COBRAR NA ENTREGA
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-[#ffdad6] block truncate">
-                              Forma: {order.paymentMethod}
-                            </span>
-                          </div>
-                        ) : isCash ? (
-                          <div className="bg-blue-950/40 border border-blue-500/50 rounded-xl p-2 space-y-1 text-[11px]">
-                            <div className="flex items-center justify-between text-blue-300 font-bold">
-                              <span className="flex items-center gap-1.5">
-                                <Banknote className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                <span>COBRAR EM DINHEIRO 💵</span>
-                              </span>
-                              <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded font-black uppercase">
-                                NA ENTREGA
-                              </span>
-                            </div>
-                            {order.changeFor ? (
-                              <div className="text-[10px] text-amber-300 font-bold bg-black/40 px-1.5 py-0.5 rounded">
-                                ⚠️ Levar troco para: {order.changeFor}
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-blue-300/80 block">Não precisa de troco</span>
-                            )}
-                          </div>
                         ) : (
                           <div className="bg-[#262626] border border-[#383838] rounded-xl p-2 flex items-center justify-between text-[11px] text-[#b4b5b5]">
-                            <span className="truncate">Forma: {order.paymentMethod}</span>
-                            <span className="text-[9px] text-white font-semibold shrink-0">Pagar na Entrega</span>
+                            <span className="truncate">Forma: {order.paymentMethod} {order.paymentStatus === 'aprovado' ? '(Recebido)' : ''}</span>
+                            <span className="text-[9px] text-white font-semibold shrink-0">
+                              {order.paymentStatus === 'aprovado' ? 'Recebido' : 'Pagar na Entrega'}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -8831,7 +8946,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           : 'bg-amber-100 text-amber-800 border border-amber-300'
                       }`}>
-                        {order.paymentStatus === 'aprovado' ? '✓ Pago / Confirmado' : '🟡 Pagamento Pendente'}
+                        {order.paymentStatus === 'aprovado' ? '✓ Pago / Recebido' : '🟡 Pagamento Pendente'}
                       </span>
                     </div>
                   </div>
@@ -8867,10 +8982,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  {isPixPend && (
-                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between gap-2">
+                  {order.paymentStatus !== 'aprovado' && (
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between gap-2 flex-wrap">
                       <div className="text-[11px] text-amber-800 font-medium">
-                        O cliente realizou o Pix?
+                        {isPix ? 'O cliente realizou o Pix?' : 'O pagamento foi recebido?'}
                       </div>
                       <div className="flex items-center gap-2">
                         {order.pixReceiptUrl && (
@@ -8895,7 +9010,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           className="px-3 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-xs flex items-center gap-1 transition-colors"
                         >
                           <Check className="w-3 h-3" />
-                          <span>Confirmar Pix</span>
+                          <span>Confirmar como Recebido</span>
                         </button>
                       </div>
                     </div>

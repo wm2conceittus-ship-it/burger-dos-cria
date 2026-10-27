@@ -1009,20 +1009,45 @@ export default function App() {
   };
 
   const handleKitchenCompleteOrder = (orderId: string) => {
+    const target = orders.find(o => o.id === orderId);
+    const shouldMarkReceived = target ? target.paymentStatus !== 'aprovado' : true;
+    const finalPaymentStatus: 'aprovado' | 'pendente' | 'recusado' = shouldMarkReceived ? 'aprovado' : (target?.paymentStatus || 'aprovado');
+
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status: 'entregue' } : o))
+      prev.map(o => (o.id === orderId ? { ...o, status: 'entregue', paymentStatus: finalPaymentStatus } : o))
     );
-    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'entregue' } : prev));
-    updateOrderStatusInFirestore(orderId, 'entregue');
-    showToast('Pedido marcado como Entregue!');
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'entregue', paymentStatus: finalPaymentStatus } : prev));
+    updateOrderInFirestore(orderId, {
+      status: 'entregue',
+      paymentStatus: finalPaymentStatus,
+    });
+    showToast('Pedido finalizado e pagamento marcado como Recebido! ✅');
   };
 
   const handleKitchenUpdateStatus = (orderId: string, newStatus: any) => {
+    const isCompleted = newStatus === 'entregue' || newStatus === 'concluido';
+    const finalStatus = newStatus === 'concluido' ? 'entregue' : newStatus;
+
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o))
+      prev.map(o => {
+        if (o.id === orderId) {
+          const updatedPayment = isCompleted && o.paymentStatus !== 'aprovado' ? 'aprovado' : o.paymentStatus;
+          return { ...o, status: finalStatus, paymentStatus: updatedPayment };
+        }
+        return o;
+      })
     );
-    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
-    updateOrderStatusInFirestore(orderId, newStatus);
+    setActiveTrackingOrder(prev => {
+      if (prev?.id !== orderId) return prev;
+      const updatedPayment = isCompleted && prev.paymentStatus !== 'aprovado' ? 'aprovado' : prev.paymentStatus;
+      return { ...prev, status: finalStatus, paymentStatus: updatedPayment };
+    });
+
+    const payload: any = { status: finalStatus };
+    if (isCompleted) {
+      payload.paymentStatus = 'aprovado';
+    }
+    updateOrderInFirestore(orderId, payload);
   };
 
   const handleUpdatePaymentStatus = (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => {
@@ -1040,7 +1065,24 @@ export default function App() {
           startPixConfirmedTabNotification(targetOrder.orderNumber, targetOrder.total);
         }
       }
-      showToast(targetOrder ? `💰 Pix do Pedido #${targetOrder.orderNumber} Confirmado!` : '✓ Pagamento Pix aprovado!');
+      const isPix = Boolean(targetOrder?.paymentMethod && targetOrder.paymentMethod.toLowerCase().includes('pix'));
+      const isCash = Boolean(targetOrder?.paymentMethod && targetOrder.paymentMethod.toLowerCase().includes('dinheiro'));
+      const isCard = Boolean(targetOrder?.paymentMethod && (
+        targetOrder.paymentMethod.toLowerCase().includes('cart') ||
+        targetOrder.paymentMethod.toLowerCase().includes('créd') ||
+        targetOrder.paymentMethod.toLowerCase().includes('deb') ||
+        targetOrder.paymentMethod.toLowerCase().includes('maquininha')
+      ));
+
+      if (isPix) {
+        showToast(targetOrder ? `💰 Pix do Pedido #${targetOrder.orderNumber} Confirmado!` : '✓ Pagamento Pix aprovado!');
+      } else if (isCash) {
+        showToast(targetOrder ? `💵 Pagamento em Dinheiro do Pedido #${targetOrder.orderNumber} Recebido!` : '✓ Dinheiro recebido!');
+      } else if (isCard) {
+        showToast(targetOrder ? `💳 Pagamento na Maquininha do Pedido #${targetOrder.orderNumber} Recebido!` : '✓ Cartão recebido!');
+      } else {
+        showToast(targetOrder ? `✓ Pagamento do Pedido #${targetOrder.orderNumber} marcado como Recebido!` : '✓ Pagamento recebido!');
+      }
     } else {
       showToast('Status de pagamento atualizado.');
     }
