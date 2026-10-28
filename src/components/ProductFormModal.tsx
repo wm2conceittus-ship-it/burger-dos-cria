@@ -296,7 +296,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-[#20201f] border border-[#353535] rounded-2xl w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_20px_rgba(255,87,34,0.15)] flex flex-col max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-[#20201f] border border-[#353535] rounded-lg w-full max-w-lg shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_20px_rgba(255,87,34,0.15)] flex flex-col max-h-[88vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         <div className="px-5 py-3.5 border-b border-[#353535] flex justify-between items-center bg-[#1c1b1b] flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-lg">

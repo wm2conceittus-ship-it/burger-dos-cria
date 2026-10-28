@@ -40,7 +40,7 @@ export const WeeklyScheduleModal: React.FC<WeeklyScheduleModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-[#353535] flex items-center justify-between bg-[#242323]">
           <div className="flex items-center gap-2.5">

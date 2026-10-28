@@ -227,7 +227,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
         </div>
 
         {/* GPS Action Button Banner */}
-        <div className="bg-gradient-to-r from-[#ff5722]/15 via-[#2a2a2a] to-[#20201f] border border-[#ff5722]/40 rounded-2xl p-3.5 space-y-2.5">
+        <div className="bg-gradient-to-r from-[#ff5722]/15 via-[#2a2a2a] to-[#20201f] border border-[#ff5722]/40 rounded-lg p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-[#ff5722] text-white flex items-center justify-center shadow-md">
@@ -309,7 +309,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
         {/* Input Fields */}
         <div className="space-y-3 text-xs">
           {/* CEP Input (Obrigatório) */}
-          <div className="p-3 bg-[#181818] rounded-2xl border border-[#353535] space-y-1.5">
+          <div className="p-3 bg-[#181818] rounded-lg border border-[#353535] space-y-1.5">
             <div>
               <label className="text-[#ffb5a0] font-bold text-xs flex items-center gap-1.5">
                 <span>CEP <span className="text-[#ff5722]">*</span></span>
@@ -341,7 +341,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
           </div>
 
           {/* Bairro Selector & Badge - Highlighted for neighborhood-based delivery fee */}
-          <div className="p-3 bg-[#181818] rounded-2xl border border-[#ff5722]/30 space-y-2">
+          <div className="p-3 bg-[#181818] rounded-lg border border-[#ff5722]/30 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[#ffb5a0] font-bold text-xs flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-[#ff5722]" />

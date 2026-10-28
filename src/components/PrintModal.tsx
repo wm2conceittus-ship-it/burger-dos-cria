@@ -139,7 +139,7 @@ ${doubleDivider}
       `}</style>
 
       {/* Main Dialog Modal */}
-      <div className="bg-[#1f1e1e] border border-[#353535] rounded-2xl w-full max-w-lg shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh] print:border-none print:shadow-none print:max-h-none print:w-auto print:bg-transparent">
+      <div className="bg-[#1f1e1e] border border-[#353535] rounded-lg w-full max-w-lg shadow-[0_25px_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[92vh] print:border-none print:shadow-none print:max-h-none print:w-auto print:bg-transparent">
         {/* Top Control Bar (Hidden in Print) */}
         <div className="p-3.5 bg-[#171616] border-b border-[#353535] flex items-center justify-between print:hidden flex-shrink-0">
           <div className="flex items-center gap-2">

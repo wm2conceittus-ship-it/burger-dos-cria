@@ -72,7 +72,7 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
       <div
-        className={`bg-[#1c1b1b] border border-[#ff5722]/40 w-full max-w-sm rounded-2xl shadow-2xl p-6 relative overflow-hidden transition-transform ${
+        className={`bg-[#1c1b1b] border border-[#ff5722]/40 w-full max-w-sm rounded-lg shadow-2xl p-6 relative overflow-hidden transition-transform ${
           isShaking ? 'animate-bounce' : ''
         }`}
       >
@@ -89,7 +89,7 @@ export const ManagerPinModal: React.FC<ManagerPinModalProps> = ({
 
         {/* Icon & Header */}
         <div className="text-center pt-2 pb-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#ff5722]/15 border border-[#ff5722]/30 flex items-center justify-center text-[#ff5722] shadow-[0_0_25px_rgba(255,87,34,0.3)] mb-3">
+          <div className="w-16 h-16 mx-auto rounded-lg bg-[#ff5722]/15 border border-[#ff5722]/30 flex items-center justify-center text-[#ff5722] shadow-[0_0_25px_rgba(255,87,34,0.3)] mb-3">
             <Lock className="w-8 h-8" />
           </div>
           <div className="flex items-center justify-center gap-1.5 text-xs uppercase font-extrabold tracking-widest text-[#ff8a65] mb-1 font-['Montserrat']">

@@ -109,9 +109,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
 
           {/* User Card */}
-          <div className="flex items-center gap-4 bg-[#20201f]/80 backdrop-blur-md p-4 rounded-2xl border border-[#ff5722]/30 shadow-lg">
+          <div className="flex items-center gap-4 bg-[#20201f]/80 backdrop-blur-md p-4 rounded-lg border border-[#ff5722]/30 shadow-lg">
             {/* Avatar */}
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#ff5722] to-[#ff8a65] text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-white/20 flex-shrink-0">
+            <div className="w-16 h-16 rounded-lg bg-gradient-to-tr from-[#ff5722] to-[#ff8a65] text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-white/20 flex-shrink-0">
               {getInitials(customerProfile?.name)}
             </div>
 
@@ -169,7 +169,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-6 text-xs">
         {/* Active Order Banner if any */}
         {activeOrders.length > 0 && (
-          <div className="bg-gradient-to-r from-[#2a1712] to-[#20201f] border-2 border-[#ff5722] rounded-2xl p-4 shadow-xl space-y-3 animate-in fade-in">
+          <div className="bg-gradient-to-r from-[#2a1712] to-[#20201f] border-2 border-[#ff5722] rounded-lg p-4 shadow-xl space-y-3 animate-in fade-in">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-white flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
@@ -208,7 +208,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         )}
 
         {/* Section 1: Endereço Padrão de Entrega */}
-        <section className="bg-[#20201f] rounded-2xl p-4 border border-[#353535] space-y-3 shadow-md">
+        <section className="bg-[#20201f] rounded-lg p-4 border border-[#353535] space-y-3 shadow-md">
           <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[#ff5722]" />
@@ -261,7 +261,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </section>
 
         {/* Section 2: Cupons de Desconto Disponíveis */}
-        <section className="bg-[#20201f] rounded-2xl p-4 border border-[#353535] space-y-3 shadow-md">
+        <section className="bg-[#20201f] rounded-lg p-4 border border-[#353535] space-y-3 shadow-md">
           <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
@@ -317,7 +317,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </section>
 
         {/* Section 3: Histórico de Pedidos Anteriores */}
-        <section className="bg-[#20201f] rounded-2xl p-4 border border-[#353535] space-y-3 shadow-md">
+        <section className="bg-[#20201f] rounded-lg p-4 border border-[#353535] space-y-3 shadow-md">
           <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <Receipt className="w-4 h-4 text-[#ff5722]" />
@@ -440,7 +440,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </section>
 
         {/* Section 4: Atendimento & Informações da Loja */}
-        <section className="bg-[#20201f] rounded-2xl p-4 border border-[#353535] space-y-3 shadow-md">
+        <section className="bg-[#20201f] rounded-lg p-4 border border-[#353535] space-y-3 shadow-md">
           <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-emerald-400" />

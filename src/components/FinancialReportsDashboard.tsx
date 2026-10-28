@@ -514,7 +514,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Header Card (Card Branco) */}
-      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4 text-gray-900">
+      <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-4 text-gray-900">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-[#ff5722] flex items-center justify-center shadow-inner shrink-0">
@@ -668,7 +668,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
       {/* KPI Cards Strip (Cards Brancos) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white rounded-2xl p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-[#ff5722]/50 transition-all">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-[#ff5722]/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-['Montserrat']">
               Faturamento {selectedPeriod === 'diario' ? 'do Período' : selectedPeriod === 'semanal' ? 'das Semanas' : selectedPeriod === 'mensal' ? `de ${selectedYear}` : 'Histórico Total'}
@@ -691,7 +691,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-blue-500/50 transition-all">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-blue-500/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-['Montserrat']">
               Ticket Médio por Pedido
@@ -711,7 +711,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-emerald-200 relative overflow-hidden shadow-sm group hover:border-emerald-500 transition-all">
+        <div className="bg-white rounded-lg p-4 border border-emerald-200 relative overflow-hidden shadow-sm group hover:border-emerald-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 font-['Montserrat']">
               Lucro Líquido Estimado (~38%)
@@ -731,7 +731,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-amber-200 relative overflow-hidden shadow-sm group hover:border-amber-500 transition-all">
+        <div className="bg-white rounded-lg p-4 border border-amber-200 relative overflow-hidden shadow-sm group hover:border-amber-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 font-['Montserrat']">
               Maior Faturamento no Período
@@ -755,7 +755,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
       </div>
 
       {/* Main Graph Card (Card Branco) */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
@@ -1031,7 +1031,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
       </div>
 
       {/* Demonstrativo Detalhado de Vendas (Card Branco com Tabela Limpa) */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3.5">
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-3.5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#ff5722] flex items-center justify-center border border-orange-200">
@@ -1149,7 +1149,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
       {/* Two Column Section: Channel & Payment Breakdown + Top Sellers (Cards Brancos) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
             <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
               <PieChart className="w-4 h-4 text-[#ff5722]" />
@@ -1219,7 +1219,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
             <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-emerald-600" />

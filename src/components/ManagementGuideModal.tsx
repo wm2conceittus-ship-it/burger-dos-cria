@@ -81,7 +81,7 @@ export const ManagementGuideModal: React.FC<ManagementGuideModalProps> = ({
             return (
               <div
                 key={step.num}
-                className="bg-[#1c1b1b] border border-[#353535]/60 rounded-2xl p-3.5 flex items-start gap-3 hover:border-[#ff5722]/40 transition-colors"
+                className="bg-[#1c1b1b] border border-[#353535]/60 rounded-lg p-3.5 flex items-start gap-3 hover:border-[#ff5722]/40 transition-colors"
               >
                 <div className="w-7 h-7 rounded-full bg-[#ff5722] text-white font-['Montserrat'] font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                   {step.num}

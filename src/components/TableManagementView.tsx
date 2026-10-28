@@ -738,7 +738,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
                   setSplitCount(table.peopleCount || 1);
                 }
               }}
-              className={`rounded-2xl border p-4 flex flex-col justify-between transition-all cursor-pointer group shadow-lg hover:shadow-2xl relative overflow-hidden ${
+              className={`rounded-lg border p-4 flex flex-col justify-between transition-all cursor-pointer group shadow-lg hover:shadow-2xl relative overflow-hidden ${
                 isBillRequested
                   ? 'bg-gradient-to-br from-[#251e12] to-[#1c1712] border-amber-500/70 hover:border-amber-400 ring-2 ring-amber-500/20'
                   : isOccupied
@@ -967,7 +967,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {selectedTable && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="p-4 sm:p-5 bg-gradient-to-r from-[#201e1d] to-[#1c1b1b] border-b border-[#353535] flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1230,7 +1230,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isOpenNewTableModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-md p-5 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center pb-3 border-b border-[#353535]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center font-bold">
@@ -1386,7 +1386,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isAddProductModalOpen && selectedTable && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-4 bg-[#201e1d] border-b border-[#353535] flex items-center justify-between">
               <div>
                 <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
@@ -1505,7 +1505,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isCloseAccountModalOpen && selectedTable && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-md p-5 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center pb-3 border-b border-[#353535]">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-400" />
@@ -1597,7 +1597,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isQrModalOpen && selectedQrTable && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-center">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-sm p-6 space-y-4 shadow-2xl text-center">
             <div className="flex justify-between items-center pb-2 border-b border-[#353535]">
               <span className="font-['Montserrat'] font-bold text-sm text-white">
                 Mesa {selectedQrTable.number} • Autoatendimento
@@ -1610,7 +1610,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl border-4 border-[#ff5722]/30">
+            <div className="bg-white p-4 rounded-lg inline-block shadow-2xl border-4 border-[#ff5722]/30">
               <div className="relative w-48 h-48 flex items-center justify-center bg-white rounded-xl">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
@@ -1678,7 +1678,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isDeleteModalOpen && tableToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-red-400">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-red-400" />
@@ -1737,7 +1737,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isResetModalOpen && tableToReset && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-amber-400">
               <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                 <XCircle className="w-5 h-5 text-amber-400" />
@@ -1791,7 +1791,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       {/* ============================================================== */}
       {isReservationModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="p-4 bg-[#191e26] border-b border-[#353535] flex items-center justify-between">
               <div className="flex items-center gap-2.5">

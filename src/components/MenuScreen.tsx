@@ -1380,7 +1380,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       {/* Modal de Exclusão de Produto do Cardápio */}
       {productToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />

@@ -399,7 +399,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({
           return (
             <div
               key={emp.id}
-              className={`bg-[#1c1b1b] rounded-2xl border p-4.5 flex flex-col justify-between transition-all shadow-lg hover:shadow-2xl space-y-3 ${
+              className={`bg-[#1c1b1b] rounded-lg border p-4.5 flex flex-col justify-between transition-all shadow-lg hover:shadow-2xl space-y-3 ${
                 emp.active
                   ? 'border-[#353535] hover:border-[#ff5722]/50'
                   : 'border-[#353535]/50 opacity-70 hover:opacity-100 bg-[#161616]'
@@ -548,7 +548,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({
       {/* ============================================================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="p-4 bg-[#201e1d] border-b border-[#353535] flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -772,7 +772,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({
       {/* ============================================================== */}
       {isDeleteModalOpen && employeeToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3 text-red-400">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
                 <Trash2 className="w-5 h-5 text-red-400" />

@@ -258,7 +258,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
           {/* Conditional Delivery / Mesa Fields */}
           {orderType === 'Delivery' && (
-            <div className="space-y-2 p-3 bg-[#1c1b1b] rounded-2xl border border-[#353535]">
+            <div className="space-y-2 p-3 bg-[#1c1b1b] rounded-lg border border-[#353535]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[#ffb5a0] mb-1 font-semibold flex items-center justify-between text-xs">
@@ -358,7 +358,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
           )}
 
           {orderType === 'Mesa' && (
-            <div className="p-3 bg-[#1c1b1b] rounded-2xl border border-[#353535] flex items-center gap-3">
+            <div className="p-3 bg-[#1c1b1b] rounded-lg border border-[#353535] flex items-center gap-3">
               <label className="text-[#ffb5a0] font-semibold whitespace-nowrap">Número da Mesa:</label>
               <input
                 type="number"
@@ -372,7 +372,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
           )}
 
           {/* SEÇÃO FORMA DE RECEBIMENTO / PAGAMENTO */}
-          <div className="bg-[#1c1b1b] p-3 rounded-2xl border border-[#353535]/80 space-y-3">
+          <div className="bg-[#1c1b1b] p-3 rounded-lg border border-[#353535]/80 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-['Montserrat'] font-bold text-white flex items-center gap-1.5 text-xs">
                 <Wallet className="w-4 h-4 text-[#ff5722]" /> Forma de Pagamento / Recebimento
@@ -448,7 +448,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
           </div>
 
           {/* Add Product Line */}
-          <div className="bg-[#1c1b1b] p-3 rounded-2xl border border-[#353535]/60 space-y-2.5">
+          <div className="bg-[#1c1b1b] p-3 rounded-lg border border-[#353535]/60 space-y-2.5">
             <span className="font-['Montserrat'] font-bold text-white block">Adicionar Item</span>
             <div className="grid grid-cols-3 gap-2">
               <div className="col-span-2">

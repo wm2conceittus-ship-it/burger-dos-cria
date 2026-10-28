@@ -313,7 +313,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
 
         {/* Status Alert Banners */}
         {(order.status === 'novo' || order.status === 'recebido') && (
-          <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-lg animate-in fade-in space-y-1.5">
+          <div className="bg-amber-950/40 border border-amber-500/50 rounded-lg p-4 shadow-lg animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
               <span className="font-['Montserrat'] font-black text-xs text-amber-300 uppercase tracking-wide">
@@ -327,7 +327,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {order.status === 'preparando' && (
-          <div className="bg-gradient-to-r from-[#ff5722]/20 via-[#ff5722]/10 to-amber-500/10 border-2 border-[#ff5722] rounded-2xl p-4 shadow-xl shadow-[#ff5722]/10 animate-in fade-in space-y-1.5">
+          <div className="bg-gradient-to-r from-[#ff5722]/20 via-[#ff5722]/10 to-amber-500/10 border-2 border-[#ff5722] rounded-lg p-4 shadow-xl shadow-[#ff5722]/10 animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
               <span className="font-['Montserrat'] font-black text-sm text-[#ff8a65] uppercase tracking-wide">
@@ -341,7 +341,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {order.status === 'pronto' && (
-          <div className="bg-sky-950/50 border-2 border-sky-500/60 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+          <div className="bg-sky-950/50 border-2 border-sky-500/60 rounded-lg p-4 shadow-xl animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping" />
               <span className="font-['Montserrat'] font-black text-sm text-sky-300 uppercase tracking-wide">
@@ -355,7 +355,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {order.status === 'em_entrega' && (
-          <div className="bg-blue-950/50 border-2 border-[#019ad8] rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+          <div className="bg-blue-950/50 border-2 border-[#019ad8] rounded-lg p-4 shadow-xl animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#019ad8] animate-ping" />
               <span className="font-['Montserrat'] font-black text-sm text-[#86cfff] uppercase tracking-wide">
@@ -371,7 +371,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {order.status === 'entregue' && (
-          <div className="bg-emerald-950/60 border-2 border-emerald-500/70 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+          <div className="bg-emerald-950/60 border-2 border-emerald-500/70 rounded-lg p-4 shadow-xl animate-in fade-in space-y-1.5">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <span className="font-['Montserrat'] font-black text-sm text-emerald-300 uppercase tracking-wide">
@@ -385,7 +385,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {order.status === 'recusado' && (
-          <div className="bg-red-950/60 border-2 border-red-500/80 rounded-2xl p-4 shadow-xl animate-in fade-in space-y-1.5">
+          <div className="bg-red-950/60 border-2 border-red-500/80 rounded-lg p-4 shadow-xl animate-in fade-in space-y-1.5">
             <span className="font-['Montserrat'] font-black text-xs text-red-400 uppercase tracking-wide flex items-center gap-2">
               ❌ Pedido Não Pôde Ser Aceito
             </span>
@@ -396,7 +396,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {/* Card de Alerta no WhatsApp do Gestor */}
-        <div className="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-2xl p-3.5 space-y-2.5 shadow-xl">
+        <div className="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-lg p-3.5 space-y-2.5 shadow-xl">
           <div className="flex items-start justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center shrink-0">
@@ -478,7 +478,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {/* Visual Timeline / Stepper (5 Etapas: Recebido, Em Preparo, Pronto, Em Rota, Entregue) */}
-        <section className="bg-[#1c1b1b] rounded-2xl p-4 sm:p-5 border border-[#353535] shadow-xl relative overflow-hidden space-y-3.5">
+        <section className="bg-[#1c1b1b] rounded-lg p-4 sm:p-5 border border-[#353535] shadow-xl relative overflow-hidden space-y-3.5">
           {/* Header do Stepper com indicador de etapa atual */}
           <div className="flex items-center justify-between pb-2 border-b border-[#353535]/60">
             <div className="flex items-center gap-2">

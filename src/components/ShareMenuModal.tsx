@@ -314,7 +314,7 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in overflow-y-auto">
-      <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 my-auto">
+      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 my-auto">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-[#353535] flex items-center justify-between bg-[#242424]">
           <div className="flex items-center gap-2.5">
@@ -399,8 +399,8 @@ export const ShareMenuModal: React.FC<ShareMenuModalProps> = ({
           )}
 
           {/* QR Code Preview Card */}
-          <div className="bg-[#141414] border border-[#353535] rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center space-y-3">
-            <div className="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center group">
+          <div className="bg-[#141414] border border-[#353535] rounded-lg p-4 sm:p-5 flex flex-col items-center justify-center text-center space-y-3">
+            <div className="relative p-3 bg-white rounded-lg shadow-xl flex items-center justify-center group">
               <img
                 src={qrCodeUrl}
                 alt="QR Code do Cardápio Digital"

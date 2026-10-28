@@ -128,7 +128,7 @@ export const ContactDriverModal: React.FC<ContactDriverModalProps> = ({
               }`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-md ${
+                className={`max-w-[80%] rounded-lg px-4 py-2.5 text-xs shadow-md ${
                   msg.sender === 'user'
                     ? 'bg-[#ff5722] text-white rounded-br-none'
                     : 'bg-[#2a2a2a] text-[#e5e2e1] rounded-bl-none border border-[#353535]'

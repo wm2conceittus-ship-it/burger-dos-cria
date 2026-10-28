@@ -466,7 +466,7 @@ export const DeliveryRadiusControl: React.FC<DeliveryRadiusControlProps> = ({
           </div>
 
           {/* Interactive Radar Box */}
-          <div className="relative bg-gradient-to-b from-[#121212] to-[#181717] border border-[#353535] rounded-2xl h-80 flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="relative bg-gradient-to-b from-[#121212] to-[#181717] border border-[#353535] rounded-lg h-80 flex items-center justify-center overflow-hidden shadow-inner">
             {/* Concentric distance rings scaling with radius */}
             <div
               className="absolute rounded-full border border-dashed border-[#ff5722]/20 pointer-events-none transition-all duration-300"

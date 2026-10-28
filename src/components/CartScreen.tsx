@@ -1593,7 +1593,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                   )}
 
                   {/* QR Code Container */}
-                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30 relative">
+                  <div className="flex flex-col items-center justify-center p-4 bg-white rounded-lg max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30 relative">
                     {isLoadingAutoPix ? (
                       <div className="w-36 h-36 flex flex-col items-center justify-center gap-2 text-zinc-600">
                         <Clock className="w-8 h-8 animate-spin text-[#ff5722]" />
@@ -1789,7 +1789,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                   {cardMode === 'online' ? (
                     <div className="space-y-3.5 animate-in fade-in">
                       {/* Interactive Card Preview */}
-                      <div className="bg-gradient-to-br from-[#241713] via-[#1a120f] to-[#ff5722]/35 border border-[#ff5722]/40 rounded-2xl p-4 shadow-xl relative overflow-hidden text-white font-mono space-y-3">
+                      <div className="bg-gradient-to-br from-[#241713] via-[#1a120f] to-[#ff5722]/35 border border-[#ff5722]/40 rounded-lg p-4 shadow-xl relative overflow-hidden text-white font-mono space-y-3">
                         <div className="flex justify-between items-center">
                           <div className="w-10 h-7 rounded-md bg-gradient-to-tr from-amber-300 via-amber-200 to-amber-400 flex items-center justify-center shadow-inner opacity-90">
                             <div className="w-6 h-4 border border-amber-600/40 rounded-[2px]" />
@@ -1828,7 +1828,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                       )}
 
                       {/* Card Inputs Form */}
-                      <div className="bg-[#20201f] border border-[#353535] rounded-2xl p-4 space-y-3">
+                      <div className="bg-[#20201f] border border-[#353535] rounded-lg p-4 space-y-3">
                         {/* Número do Cartão */}
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-[#8e8f8f] uppercase tracking-wider block">
@@ -1961,7 +1961,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     </div>
                   ) : (
                     /* Opção Maquininha na Entrega */
-                    <div className="bg-[#20201f] rounded-2xl p-4 border border-[#ff5722]/30 space-y-3 animate-in fade-in">
+                    <div className="bg-[#20201f] rounded-lg p-4 border border-[#ff5722]/30 space-y-3 animate-in fade-in">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center shrink-0">
                           <CreditCard className="w-6 h-6" />
@@ -2003,7 +2003,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               {/* === CASO 3: DINHEIRO === */}
               {paymentMethod.toLowerCase().includes('dinheiro') && (
                 <div className="space-y-4 animate-in fade-in">
-                  <div className="bg-[#20201f] rounded-2xl p-4 border border-emerald-500/30 space-y-3">
+                  <div className="bg-[#20201f] rounded-lg p-4 border border-emerald-500/30 space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                         <Banknote className="w-6 h-6" />
@@ -2062,7 +2062,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
               {/* === CASO 4: VALE REFEIÇÃO / OUTROS === */}
               {(!paymentMethod.toLowerCase().includes('pix') && !paymentMethod.toLowerCase().includes('cartão') && !paymentMethod.toLowerCase().includes('crédito') && !paymentMethod.toLowerCase().includes('débito') && !paymentMethod.toLowerCase().includes('dinheiro')) && (
                 <div className="space-y-4 animate-in fade-in">
-                  <div className="bg-[#20201f] rounded-2xl p-4 border border-[#ff5722]/30 space-y-3">
+                  <div className="bg-[#20201f] rounded-lg p-4 border border-[#ff5722]/30 space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center shrink-0">
                         <Wallet className="w-6 h-6" />

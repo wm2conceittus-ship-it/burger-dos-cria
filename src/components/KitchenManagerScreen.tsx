@@ -2030,7 +2030,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
       {/* Floating Banner: Notificação em tempo real de PIX Aprovado pelo Banco */}
       {recentPixConfirmedOrder && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-lg bg-emerald-950/95 border-2 border-emerald-400 text-white p-3.5 rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-bounce">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-lg bg-emerald-950/95 border-2 border-emerald-400 text-white p-3.5 rounded-lg shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-bounce">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-6 h-6 text-emerald-400" />
@@ -2154,7 +2154,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           <div className="space-y-6">
             {/* Banner de Ativação de Notificações Nativas do Navegador */}
             {webNotificationPerm === 'default' && showNotificationBanner && (
-              <div className="bg-gradient-to-r from-blue-950/60 via-[#182338] to-[#1a1a1a] border border-blue-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
+              <div className="bg-gradient-to-r from-blue-950/60 via-[#182338] to-[#1a1a1a] border border-blue-500/40 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
                 <div className="flex items-center gap-3.5">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
                     <BellRing className="w-5 h-5 animate-pulse" />
@@ -2197,7 +2197,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             )}
 
             {/* Header Summary & Operational Toolbar */}
-            <section className="bg-[#181818] border border-[#353535] rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
+            <section className="bg-[#181818] border border-[#353535] rounded-lg p-4 md:p-5 shadow-lg space-y-4">
               {/* Linha Superior: Título & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -2307,7 +2307,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {/* Barra de Filtros e Seletor de Modo (Carrossel vs Kanban vs Grade) */}
             {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
               /* Toolbar Dedicada do Modo Carrossel & Kanban */
-              <section className="bg-[#181818] border border-[#353535] rounded-2xl p-3 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-md">
+              <section className="bg-[#181818] border border-[#353535] rounded-lg p-3 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-md">
                 {/* Esquerda: Busca rápida e Filtro por Canal de Atendimento */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
                   {/* Campo de Busca Rápida */}
@@ -2525,7 +2525,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <div className="space-y-3.5">
                 {/* Banner de Alerta para Pedidos Pix Pendentes de Conferência */}
                 {pendingPixOrdersCount > 0 && (
-                  <div className="bg-amber-500/10 border-2 border-amber-500/40 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
+                  <div className="bg-amber-500/10 border-2 border-amber-500/40 p-3.5 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm animate-in fade-in">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
                         <Zap className="w-5 h-5" />
@@ -2549,7 +2549,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 )}
 
                 {/* Banner Informativo & Resumo Operacional */}
-                <div className="bg-[#1b1a19] border border-[#353535] px-4 py-3 rounded-2xl shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="bg-[#1b1a19] border border-[#353535] px-4 py-3 rounded-lg shadow-inner flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center shrink-0">
                       {ordersLayoutMode === 'carousel' ? (
@@ -2600,7 +2600,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Barra de Navegação Dedicada do Carrossel (Abas & Setas) */}
                 {ordersLayoutMode === 'carousel' && (
-                  <div className="bg-[#181716] border border-[#353535] rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-inner">
+                  <div className="bg-[#181716] border border-[#353535] rounded-lg p-2 sm:p-2.5 flex items-center justify-between gap-2 shadow-inner">
                     {/* Botão Anterior */}
                     <button type="button" data-drop-column={safeCarouselIndex > 0 ? kanbanColumns[safeCarouselIndex - 1].key : undefined}
                       disabled={safeCarouselIndex === 0}
@@ -2772,7 +2772,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         left: `${touchDrag.currentX}px`,
                         top: `${touchDrag.currentY}px`,
                       }}
-                      className="fixed pointer-events-none z-[99999] -translate-x-1/2 -translate-y-full -mt-6 w-[260px] sm:w-[280px] bg-[#1e1d1c]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-2xl p-3 shadow-2xl shadow-black/90 text-white select-none transition-transform rotate-2 scale-105 ring-4 ring-[#ff5722]/30"
+                      className="fixed pointer-events-none z-[99999] -translate-x-1/2 -translate-y-full -mt-6 w-[260px] sm:w-[280px] bg-[#1e1d1c]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-lg p-3 shadow-2xl shadow-black/90 text-white select-none transition-transform rotate-2 scale-105 ring-4 ring-[#ff5722]/30"
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-2">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -2816,7 +2816,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Dock Flutuante de Destino Rápido (Perfeito para celular e toque com os dedos) */}
                   {draggedOrderId && (
-                    <div className="fixed bottom-3 left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:w-[620px] z-50 bg-[#161615]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-2xl p-2 sm:p-2.5 shadow-2xl shadow-black/90 flex flex-col gap-1.5 animate-in slide-in-from-bottom duration-200">
+                    <div className="fixed bottom-3 left-2 right-2 sm:left-1/2 sm:-translate-x-1/2 sm:w-[620px] z-50 bg-[#161615]/95 backdrop-blur-xl border-2 border-[#ff5722] rounded-lg p-2 sm:p-2.5 shadow-2xl shadow-black/90 flex flex-col gap-1.5 animate-in slide-in-from-bottom duration-200">
                       <div className="flex items-center justify-between text-[11px] font-bold text-white px-1">
                         <span className="flex items-center gap-1.5 text-[#ff8a65]">
                           <span className="w-2 h-2 rounded-full bg-[#ff5722] animate-ping" />
@@ -2913,7 +2913,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           e.preventDefault();
                           handleDropOnColumn(col.key);
                         }}
-                        className={`rounded-2xl border transition-all flex flex-col shadow-xl overflow-hidden ${
+                        className={`rounded-lg border transition-all flex flex-col shadow-xl overflow-hidden ${
                           ordersLayoutMode === 'carousel'
                             ? cardDensity === 'compact'
                               ? 'w-[86vw] sm:w-[320px] md:w-[340px] lg:w-[350px] shrink-0 snap-center shadow-xl'
@@ -3641,7 +3641,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Barra Inferior com Métricas Operacionais e Novo Pedido Manual */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  <div className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 flex items-center justify-between shadow-md">
+                  <div className="bg-[#1b1a19] border border-[#353535] rounded-lg p-4 flex items-center justify-between shadow-md">
                     <div>
                       <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Ticket Médio</span>
                       <span className="font-['Montserrat'] font-black text-lg text-[#ff5722]">
@@ -3654,7 +3654,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="bg-[#1b1a19] border border-[#353535] rounded-2xl p-4 flex items-center justify-between shadow-md">
+                  <div className="bg-[#1b1a19] border border-[#353535] rounded-lg p-4 flex items-center justify-between shadow-md">
                     <div>
                       <span className="text-[11px] text-[#8e8f8f] block uppercase tracking-wider font-bold">Pedidos em Produção</span>
                       <span className="font-['Montserrat'] font-black text-lg text-white">
@@ -3669,7 +3669,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
-                  <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] hover:bg-[#252525] border border-[#ff5722]/50 hover:border-[#ff5722] rounded-2xl p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 group" >
+                  <button onClick={onOpenManualOrder} className="bg-[#1c1b1b] hover:bg-[#252525] border border-[#ff5722]/50 hover:border-[#ff5722] rounded-lg p-4 flex items-center justify-center gap-2.5 text-white font-['Montserrat'] font-bold text-xs transition-all active:scale-98 group" >
                     <div className="w-8 h-8 rounded-full bg-[#ff5722]/15 border border-[#ff5722]/40 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Plus className="w-4 h-4 text-[#ff5722]" />
                     </div>
@@ -6679,7 +6679,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             {configTab === 'cupons' && (
               <div className="space-y-4">
                 {/* Header Card */}
-                <div className="bg-[#20201f] rounded-2xl p-5 border border-[#353535]/50 shadow-md">
+                <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-md">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center shrink-0">
@@ -6742,7 +6742,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {showAddCouponModal && (
                   <form
                     onSubmit={handleSaveCoupon}
-                    className="bg-[#242322] rounded-2xl p-5 border-2 border-[#ff5722]/50 shadow-2xl space-y-4 animate-in fade-in"
+                    className="bg-[#242322] rounded-lg p-5 border-2 border-[#ff5722]/50 shadow-2xl space-y-4 animate-in fade-in"
                   >
                     <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
                       <div className="flex items-center gap-2">
@@ -6870,7 +6870,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 {/* Coupons List Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {(!storeSettings.coupons || storeSettings.coupons.length === 0) ? (
-                    <div className="col-span-full bg-[#20201f] rounded-2xl p-8 text-center border border-[#353535] text-[#b4b5b5] space-y-2">
+                    <div className="col-span-full bg-[#20201f] rounded-lg p-8 text-center border border-[#353535] text-[#b4b5b5] space-y-2">
                       <Ticket className="w-8 h-8 text-[#ff5722] mx-auto opacity-60" />
                       <p className="font-bold text-white text-sm">Nenhum cupom cadastrado ainda</p>
                       <p className="text-xs">Clique no botão acima para criar seu primeiro cupom de desconto!</p>
@@ -6887,7 +6887,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       return (
                         <div
                           key={coupon.id}
-                          className={`bg-[#20201f] rounded-2xl p-4 border transition-all space-y-3 shadow-md ${
+                          className={`bg-[#20201f] rounded-lg p-4 border transition-all space-y-3 shadow-md ${
                             coupon.active
                               ? 'border-[#353535] hover:border-[#ff5722]/50'
                               : 'border-[#2d2d2d] opacity-60'
@@ -7956,7 +7956,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal: Confirmar Zerar Todas as Despesas */}
       {showClearExpensesConfirm && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
@@ -7988,7 +7988,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal: Confirmar Zerar Pedidos / Faturamento */}
       {showClearOrdersConfirm && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-md w-full p-5 shadow-2xl animate-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
@@ -8697,7 +8697,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Confirmação para Recusar Pedido */}
       {rejectOrderTarget && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#20201f] border border-[#353535] rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#20201f] border border-[#353535] rounded-lg w-full max-w-sm p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-red-400">
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 border border-red-500/40">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -8794,7 +8794,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Confirmação de Exclusão de Produto */}
       {productToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-md w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
@@ -8852,7 +8852,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Confirmação de Exclusão de Entregador */}
       {courierToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
@@ -8883,7 +8883,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Confirmação de Exclusão de Cupom */}
       {couponToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-2xl max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#1c1b1b] border border-red-500/40 rounded-lg max-w-sm w-full p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5 mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
                 <Trash2 className="w-5 h-5" />
@@ -8914,7 +8914,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Visualização do Comprovante Pix Anexado */}
       {viewingReceiptOrder && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+          <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-[#353535] flex items-center justify-between bg-[#151515]">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
@@ -8994,7 +8994,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               {/* Header do Modal */}
               <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50/80">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center border border-[#ff5722]/30 shadow-xs">
+                  <div className="w-10 h-10 rounded-lg bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center border border-[#ff5722]/30 shadow-xs">
                     <Receipt className="w-5 h-5" />
                   </div>
                   <div>
@@ -9053,7 +9053,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               {/* Corpo com Scroll */}
               <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-xs">
                 {/* Dados do Cliente e Contato */}
-                <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200 space-y-2">
+                <div className="bg-gray-50 rounded-lg p-3.5 border border-gray-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
                       Dados do Cliente & Pedido
@@ -9128,7 +9128,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <span className="text-gray-500 text-[10px]">Quantidades & Observações</span>
                   </div>
 
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 bg-white">
+                  <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100 bg-white">
                     {(order.items || []).map((item, idx) => {
                       const itemName = item.name || (item as any).product?.name || (item as any).title || (item as any).productName || 'Item sem descrição';
                       const itemQty = item.quantity || 1;
@@ -9181,7 +9181,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Observações Gerais do Pedido */}
                 {order.notes && (
-                  <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 space-y-1">
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg p-3.5 space-y-1">
                     <span className="font-bold text-amber-900 text-[10px] uppercase tracking-wider block">
                       Observação Geral do Pedido
                     </span>
@@ -9192,7 +9192,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 )}
 
                 {/* Resumo Financeiro & Pagamento */}
-                <div className="bg-gray-50 rounded-2xl p-3.5 border border-gray-200 space-y-2">
+                <div className="bg-gray-50 rounded-lg p-3.5 border border-gray-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">
                       Pagamento & Valores
@@ -9276,7 +9276,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Motoboy Atribuído */}
                 {order.courierName && (
-                  <div className="bg-sky-50 rounded-2xl p-3.5 border border-sky-200 space-y-1">
+                  <div className="bg-sky-50 rounded-lg p-3.5 border border-sky-200 space-y-1">
                     <span className="font-bold text-sky-900 text-[10px] uppercase tracking-wider block">
                       Entregador Responsável
                     </span>

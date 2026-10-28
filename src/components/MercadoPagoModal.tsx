@@ -241,7 +241,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
 
           <div className="flex items-center gap-3">
             {/* Mercado Pago Badge */}
-            <div className="w-10 h-10 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-lg bg-white p-1.5 flex items-center justify-center shadow-md">
               <svg viewBox="0 0 100 70" className="w-full h-full fill-[#009ee3]">
                 <path d="M72.5 15.5c-4.2 0-8.1 1.7-11 4.5-2.9-2.8-6.8-4.5-11-4.5-8.8 0-16 7.2-16 16 0 4.2 1.7 8.1 4.5 11l22.5 22.5 22.5-22.5c2.8-2.9 4.5-6.8 4.5-11 0-8.8-7.2-16-16-16zm-22 25.5l-17-17c-2.3-2.3-3.5-5.3-3.5-8.5 0-6.6 5.4-12 12-12s12 5.4 12 12c0 3.2-1.2 6.2-3.5 8.5zm22 0l-5-5 5-5c2.3-2.3 5.3-3.5 8.5-3.5 6.6 0 12 5.4 12 12 0 3.2-1.2 6.2-3.5 8.5l-17 17z" />
               </svg>
@@ -297,7 +297,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
         ) : (
           <div className="p-4 sm:p-5 space-y-4">
             {/* Tabs */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#20201f] rounded-2xl border border-[#353535]">
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#20201f] rounded-lg border border-[#353535]">
               <button
                 type="button"
                 onClick={() => setTab('pix')}
@@ -371,7 +371,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
                 </div>
 
                 {/* QR Code Graphic Card */}
-                <div className="bg-white rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-inner relative max-w-[220px] mx-auto border-4 border-[#009ee3]/30">
+                <div className="bg-white rounded-lg p-4 flex flex-col items-center justify-center text-center shadow-inner relative max-w-[220px] mx-auto border-4 border-[#009ee3]/30">
                   {isLoadingPix ? (
                     <div className="w-40 h-40 flex flex-col items-center justify-center gap-2 text-[#009ee3]">
                       <RefreshCw className="w-8 h-8 animate-spin" />
@@ -494,7 +494,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             {tab === 'card' && (
               <form onSubmit={handleCardSubmit} className="space-y-3.5 animate-in fade-in">
                 {/* Visual Card Preview */}
-                <div className="bg-gradient-to-tr from-[#009ee3] via-[#00699b] to-[#0f2b38] rounded-2xl p-4 text-white shadow-xl relative overflow-hidden border border-white/20">
+                <div className="bg-gradient-to-tr from-[#009ee3] via-[#00699b] to-[#0f2b38] rounded-lg p-4 text-white shadow-xl relative overflow-hidden border border-white/20">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-9 h-7 rounded bg-amber-400/90 border border-amber-300 flex items-center justify-center shadow-inner">
                       <div className="w-6 h-4 border border-black/30 rounded-sm" />
@@ -633,8 +633,8 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             {/* TAB 3: CHECKOUT PRO MERCADO PAGO */}
             {tab === 'pro' && (
               <div className="space-y-4 py-2 animate-in fade-in text-center">
-                <div className="bg-[#20201f] border border-[#353535] rounded-2xl p-5 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#009ee3]/15 border border-[#009ee3]/40 text-[#009ee3] flex items-center justify-center mx-auto">
+                <div className="bg-[#20201f] border border-[#353535] rounded-lg p-5 space-y-3">
+                  <div className="w-12 h-12 rounded-lg bg-[#009ee3]/15 border border-[#009ee3]/40 text-[#009ee3] flex items-center justify-center mx-auto">
                     <ExternalLink className="w-6 h-6" />
                   </div>
                   <div>
