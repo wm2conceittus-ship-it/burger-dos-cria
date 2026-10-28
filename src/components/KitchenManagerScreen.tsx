@@ -1825,7 +1825,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   localStorage.setItem('burger_manager_theme_v7', next);
                 } catch {}
               }}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
+              className={`p-2 rounded-lg border transition-all active:scale-95 ${
                 managerTheme === 'light'
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 shadow-sm'
                   : 'bg-[#252525] hover:bg-[#303030] text-amber-300 border-[#404040]'
@@ -1833,15 +1833,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               title={managerTheme === 'light' ? 'Alternar para Fundo Escuro' : 'Alternar para Fundo Branco Gelo'}
             >
               {managerTheme === 'light' ? (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  <span className="hidden sm:inline">Branco Gelo</span>
-                </>
+                <Sun className="w-4 h-4 text-amber-500 fill-amber-500" />
               ) : (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="hidden sm:inline">Fundo Escuro</span>
-                </>
+                <Moon className="w-4 h-4 text-blue-400" />
               )}
             </button>
 
