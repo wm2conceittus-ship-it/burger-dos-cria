@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Order, StoreSettings } from '../types';
 import { APP_IMAGES } from '../data/mockData';
+import { formatOrderCreationDateTime, getOrderDate, getOrderTime } from '../utils/orderDateTime';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 import {
@@ -152,11 +153,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
       return [
         order.orderNumber,
-        order.orderDate
-          ? `${order.orderDate} ${order.createdAt || ''}`.trim()
-          : order.createdAt
-          ? `${new Date().toLocaleDateString('pt-BR')} ${order.createdAt}`
-          : order.timeAgo || 'Hoje',
+        formatOrderCreationDateTime(order),
         `"${order.customerName.replace(/"/g, '""')}"`,
         order.customerPhone ? `"${order.customerPhone}"` : '""',
         order.type,
@@ -668,8 +665,9 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
                                   )}
                                 </div>
                                 <div className="text-[10px] text-[#8e8f8f] mt-0.5 space-y-0.5">
-                                  <span className="block text-gray-300 font-medium">
-                                    {order.orderDate || 'Hoje'} às {order.createdAt || ''}
+                                  <span className="text-gray-200 font-mono font-medium flex items-center gap-1">
+                                    <Calendar className="w-3 h-3 text-[#ff5722] shrink-0" />
+                                    <span>{formatOrderCreationDateTime(order)}</span>
                                   </span>
                                   <span className="block text-gray-400">
                                     ({order.timeAgo || 'Agora'})

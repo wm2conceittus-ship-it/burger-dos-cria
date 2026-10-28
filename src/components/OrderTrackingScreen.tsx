@@ -299,8 +299,8 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           </div>
           <div className="flex items-center justify-between text-xs text-[#b4b5b5] mt-1 flex-wrap gap-2">
             <p className="flex items-center gap-1.5 bg-[#1c1b1b] px-2.5 py-1 rounded-md border border-[#353535]">
-              <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
-              <span>Pedido feito em: <strong className="text-white font-mono">{formatOrderCreationDateTime(order)}</strong></span>
+              <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
+              <span>Data do Pedido: <strong className="text-white font-mono">{formatOrderCreationDateTime(order)}</strong></span>
             </p>
             <p className="bg-[#1c1b1b] px-2.5 py-1 rounded-md border border-[#353535]">
               Previsão:{' '}

@@ -3168,7 +3168,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                                         }`}
                                         title={`Criado em: ${formatOrderCreationDateTime(order)} • Decorrido: ${order.timeAgo || 'Agora'}`}
                                       >
-                                        <Clock className="w-2.5 h-2.5 text-[#ff5722]" />
+                                        <Calendar className="w-2.5 h-2.5 text-[#ff5722]" />
                                         <span>{formatOrderCreationDateTime(order)}</span>
                                       </span>
                                     </div>
@@ -3785,7 +3785,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               </div>
                               <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-gray-800 font-bold font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                                  <Clock className="w-3 h-3 text-[#ff5722]" />
+                                  <Calendar className="w-3 h-3 text-[#ff5722]" />
                                   <span>{formatOrderCreationDateTime(order)}</span>
                                 </span>
                                 <span>•</span>
@@ -4226,7 +4226,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           </div>
                           <p className="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                             <span className="inline-flex items-center gap-1 text-gray-800 font-bold font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                              <Clock className="w-3 h-3 text-[#ff5722]" />
+                              <Calendar className="w-3 h-3 text-[#ff5722]" />
                               <span>{formatOrderCreationDateTime(order)}</span>
                             </span>
                             <span>•</span>
@@ -9030,8 +9030,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                     <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1 text-gray-800 font-bold font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                        <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
-                        <span>Criado em: {formatOrderCreationDateTime(order)}</span>
+                        <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <span>Data do Pedido: {formatOrderCreationDateTime(order)}</span>
                       </span>
                       <span>•</span>
                       <span>{order.timeAgo || 'Agora'}</span>
@@ -9082,7 +9082,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <div>
                       <span className="text-gray-500 text-[10px] block">Data e Horário de Criação:</span>
                       <strong className="text-xs font-mono font-bold text-gray-900 flex items-center gap-1 mt-0.5 bg-white p-1 rounded border border-gray-200">
-                        <Clock className="w-3.5 h-3.5 text-[#ff5722]" />
+                        <Calendar className="w-3.5 h-3.5 text-[#ff5722]" />
                         <span>{formatOrderCreationDateTime(order)}</span>
                       </strong>
                     </div>

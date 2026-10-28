@@ -3,6 +3,7 @@ import { X, Printer, Download, FileText, Loader2, CheckCircle2 } from 'lucide-re
 import { Order, StoreSettings } from '../types';
 import { ExpenseItem } from './KitchenManagerScreen';
 import { APP_IMAGES } from '../data/mockData';
+import { formatOrderCreationDateTime } from '../utils/orderDateTime';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 
@@ -383,6 +384,7 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
                 <thead>
                   <tr className="bg-gray-100 text-gray-600 font-bold uppercase text-[10px]">
                     <th className="p-2 border border-gray-200 w-16">Nº</th>
+                    <th className="p-2 border border-gray-200">Data / Hora</th>
                     <th className="p-2 border border-gray-200">Cliente</th>
                     <th className="p-2 border border-gray-200">Tipo</th>
                     <th className="p-2 border border-gray-200">Pagamento</th>
@@ -394,6 +396,7 @@ export const FinancialPdfModal: React.FC<FinancialPdfModalProps> = ({
                   {validOrders.map(order => (
                     <tr key={order.id} className="border-b border-gray-200">
                       <td className="p-2 border border-gray-200 font-mono font-bold">{order.orderNumber}</td>
+                      <td className="p-2 border border-gray-200 font-mono text-[11px] whitespace-nowrap">{formatOrderCreationDateTime(order)}</td>
                       <td className="p-2 border border-gray-200 font-medium">{order.customerName}</td>
                       <td className="p-2 border border-gray-200 uppercase text-[10px] text-gray-600">
                         {order.type}

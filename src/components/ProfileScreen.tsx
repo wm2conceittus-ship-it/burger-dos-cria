@@ -5,6 +5,7 @@ import {
   Phone,
   MapPin,
   Clock,
+  Calendar,
   Bike,
   Receipt,
   Edit2,
@@ -187,7 +188,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 </span>
                 <span className="text-[11px] text-[#8e8f8f] flex items-center gap-1.5 mt-0.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 font-mono text-white bg-[#222] px-1.5 py-0.5 rounded border border-[#444]">
-                    <Clock className="w-3 h-3 text-[#ff5722]" />
+                    <Calendar className="w-3 h-3 text-[#ff5722]" />
                     <span>{formatOrderCreationDateTime(activeOrders[0])}</span>
                   </span>
                   <span>•</span>
@@ -362,7 +363,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       </span>
                       {/* Data e hora de criação do pedido: DD/MM - HH:mm */}
                       <span className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-300 bg-[#252525] px-2 py-0.5 rounded border border-[#383838]">
-                        <Clock className="w-3 h-3 text-[#ff5722]" />
+                        <Calendar className="w-3 h-3 text-[#ff5722]" />
                         <span>{formatOrderCreationDateTime(order)}</span>
                       </span>
                     </div>

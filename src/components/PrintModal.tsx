@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Order, StoreSettings } from '../types';
 import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
+import { getOrderDate, getOrderTime, formatOrderCreationDateTime } from '../utils/orderDateTime';
 
 interface PrintModalProps {
   order: Order | null;
@@ -97,7 +98,7 @@ ${divider}
        (CUPOM NÃO FISCAL)
 ${divider}
 PEDIDO: ${order.orderNumber}
-DATA: ${new Date().toLocaleDateString('pt-BR')}  HORA: ${order.createdAt || 'Agora'}
+DATA: ${getOrderDate(order)}  HORA: ${getOrderTime(order)}
 TIPO: ${order.type.toUpperCase()}
 CLIENTE: ${order.customerName}
 FONE: ${order.customerPhone}
@@ -253,8 +254,8 @@ ${doubleDivider}
                   </span>
                 </div>
                 <div className="flex justify-between text-[10px] text-gray-700">
-                  <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
-                  <span>Hora: {order.createdAt || '19:20'}</span>
+                  <span>Data: {getOrderDate(order)}</span>
+                  <span>Hora: {getOrderTime(order)}</span>
                 </div>
                 <div className="text-[10px] pt-0.5">
                   <p className="font-bold truncate">CLIENTE: {order.customerName}</p>
@@ -431,7 +432,7 @@ ${doubleDivider}
 
                 <div className="flex justify-between text-gray-800 pt-1">
                   <span><strong>Cliente:</strong> {order.customerName}</span>
-                  <span><strong>Horário:</strong> {order.createdAt || 'Agora'}</span>
+                  <span><strong>Data:</strong> {getOrderDate(order)} • <strong>Hora:</strong> {getOrderTime(order)}</span>
                 </div>
 
                 <div className="text-gray-800">

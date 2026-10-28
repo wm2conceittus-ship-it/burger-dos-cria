@@ -19,6 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Order, StoreSettings, Product } from '../types';
+import { formatOrderCreationDateTime } from '../utils/orderDateTime';
 
 interface PixRecoveryModalProps {
   isOpen: boolean;
@@ -362,7 +363,7 @@ export const PixRecoveryModal: React.FC<PixRecoveryModalProps> = ({
                               <strong>Itens:</strong> {(order.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ') || 'Nenhum item listado'}
                             </div>
                             <div className="text-[10px] text-[#8e8f8f] flex items-center gap-2">
-                              <span>Horário: {order.createdAt || 'Hoje'}</span>
+                              <span>Data do Pedido: <strong className="text-gray-300 font-mono">{formatOrderCreationDateTime(order)}</strong></span>
                               <span>•</span>
                               <span>Local: {order.type} {order.tableNumber ? `(Mesa ${order.tableNumber})` : ''}</span>
                               <span>•</span>

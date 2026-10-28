@@ -322,6 +322,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
         deliveryFee: 0,
         total: product.price * productQuantity,
         createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        orderDate: new Date().toLocaleDateString('pt-BR'),
         notes: `Comanda Mesa ${selectedTable.number}: ${productNotes || 'Pedido lançado pelo salão'}`,
       };
       onAddOrder(kitchenOrder);
@@ -423,6 +424,7 @@ export const TableManagementView: React.FC<TableManagementViewProps> = ({
       deliveryFee: serviceFee,
       total,
       createdAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      orderDate: new Date().toLocaleDateString('pt-BR'),
       notes: `Pré-conta da Mesa ${table.number} • ${table.peopleCount || 1} pessoas • Garçom: ${table.waiterName || 'Salão'}`,
     };
 
