@@ -32,6 +32,10 @@ import {
   startPixConfirmedTabNotification,
   unlockAudioContext,
 } from './utils/audioAlert';
+import {
+  sendOrderWebNotification,
+  sendPixWebNotification,
+} from './utils/webNotification';
 import { getManagerWhatsAppNotificationUrl, getCustomerRejectedWhatsAppUrl, openWhatsAppLink } from './utils/whatsappNotification';
 import { MenuScreen } from './components/MenuScreen';
 import { ProductDetailScreen } from './components/ProductDetailScreen';
@@ -97,6 +101,7 @@ export default function App() {
     estimatedDeliveryTime: '20-30 min',
     autoPrintReceipts: true,
     soundAlerts: true,
+    webNotifications: true,
     allowManualOrders: true,
     autoAcceptOrders: false,
     allowTableOrders: true,
@@ -442,6 +447,13 @@ export default function App() {
             playNewOrderSound();
             startTabNotificationBlink(incomingOrders[0].orderNumber);
           }
+          if (storeSettings.webNotifications !== false) {
+            incomingOrders.forEach(order => {
+              sendOrderWebNotification(order, () => {
+                handleOpenKitchen();
+              });
+            });
+          }
           showToast(`🔔 Novo pedido #${incomingOrders[0].orderNumber} recebido na cozinha!`);
         }
 
@@ -455,6 +467,11 @@ export default function App() {
             if (storeSettings.soundAlerts !== false) {
               playPixConfirmedSound();
               startPixConfirmedTabNotification(o.orderNumber, o.total);
+            }
+            if (storeSettings.webNotifications !== false) {
+              sendPixWebNotification(o, () => {
+                handleOpenKitchen();
+              });
             }
             showToast(`💰 PIX CONFIRMADO PELO BANCO! Pedido #${o.orderNumber} (R$ ${(o.total || 0).toFixed(2).replace('.', ',')})`);
           }

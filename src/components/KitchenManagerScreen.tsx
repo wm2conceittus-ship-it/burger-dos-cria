@@ -68,6 +68,9 @@ import {
   CheckCheck,
   Volume2,
   VolumeX,
+  Bell,
+  BellRing,
+  BellOff,
   Globe,
   Upload,
   Camera,
@@ -99,6 +102,13 @@ import {
   startPixConfirmedTabNotification,
   unlockAudioContext,
 } from '../utils/audioAlert';
+import {
+  isWebNotificationSupported,
+  getWebNotificationPermission,
+  requestWebNotificationPermission,
+  sendTestWebNotification,
+  WebNotificationState,
+} from '../utils/webNotification';
 import { ManagementGuideModal } from './ManagementGuideModal';
 import jsPDF from 'jspdf';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
@@ -214,13 +224,56 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [showPixRecoveryModal, setShowPixRecoveryModal] = useState(false);
 
+  // Web Notifications State (HTML5 Browser Notifications)
+  const [webNotificationPerm, setWebNotificationPerm] = useState<WebNotificationState>(() => {
+    return getWebNotificationPermission();
+  });
+  const [showNotificationBanner, setShowNotificationBanner] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('dismiss_notif_banner') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    setWebNotificationPerm(getWebNotificationPermission());
+  }, []);
+
+  const handleRequestWebNotification = async () => {
+    const result = await requestWebNotificationPermission();
+    setWebNotificationPerm(result);
+    if (result === 'granted') {
+      if (storeSettings.webNotifications === false) {
+        onUpdateStoreSettings({
+          ...storeSettings,
+          webNotifications: true,
+        });
+      }
+      sendTestWebNotification();
+      setFinancialToast('🔔 Notificações do navegador ativadas com sucesso! Teste disparado.');
+    } else if (result === 'denied') {
+      setFinancialToast('⚠️ Notificações foram bloqueadas no navegador. Para liberar, clique no ícone de cadeado na barra de endereços.');
+    }
+    setTimeout(() => setFinancialToast(null), 4500);
+  };
+
+  const handleTestWebNotification = () => {
+    if (webNotificationPerm !== 'granted') {
+      handleRequestWebNotification();
+      return;
+    }
+    sendTestWebNotification();
+    setFinancialToast('🔔 Notificação de teste disparada! Verifique se apareceu no seu sistema operacional.');
+    setTimeout(() => setFinancialToast(null), 3000);
+  };
+
   // Theme state for the manager screen: 'light' (fundo branco gelo) | 'dark' (fundo escuro)
   const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>(() => {
     try {
-      const saved = localStorage.getItem('burger_manager_theme_v7');
-      if (saved === 'dark' || saved === 'light') return saved;
+      localStorage.removeItem('burger_manager_theme_v7');
     } catch {}
-    return 'light'; // Default: FUNDO BRANCO GELO (#F4F6F9) conforme solicitado pelo usuário!
+    return 'dark'; // Default: FUNDO ESCURO ativo
   });
 
   // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
@@ -1849,6 +1902,88 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </button>
             </div>
 
+            {/* Botão Rápido de Notificações Nativas do Navegador (Segundo Plano) */}
+            <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
+              managerTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-[#1c1b1b] border-[#353535]'
+            }`}>
+              {webNotificationPerm === 'granted' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = storeSettings.webNotifications === false ? true : false;
+                      onUpdateStoreSettings({
+                        ...storeSettings,
+                        webNotifications: next,
+                      });
+                      if (next) {
+                        sendTestWebNotification();
+                        setFinancialToast('🔔 Notificações na tela em segundo plano ativadas!');
+                      } else {
+                        setFinancialToast('🔕 Notificações na tela em segundo plano pausadas.');
+                      }
+                      setTimeout(() => setFinancialToast(null), 3000);
+                    }}
+                    className={`px-2 py-1.5 rounded-md transition-all flex items-center gap-1.5 text-xs font-['Montserrat'] font-bold active:scale-95 ${
+                      storeSettings.webNotifications !== false
+                        ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25'
+                        : 'bg-zinc-500/15 text-zinc-400 hover:bg-zinc-500/25'
+                    }`}
+                    title={
+                      storeSettings.webNotifications !== false
+                        ? 'Notificações na tela ativas (alerta mesmo com o app em segundo plano). Clique para pausar.'
+                        : 'Notificações na tela pausadas. Clique para ativar.'
+                    }
+                  >
+                    {storeSettings.webNotifications !== false ? (
+                      <>
+                        <BellRing className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                        <span className="hidden sm:inline text-[11px]">Notif. Tela</span>
+                      </>
+                    ) : (
+                      <>
+                        <BellOff className="w-3.5 h-3.5 text-zinc-400" />
+                        <span className="hidden sm:inline text-[11px]">Notif. Off</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestWebNotification}
+                    className="px-2 py-1.5 rounded-md text-[10.5px] font-bold text-blue-300 hover:text-white hover:bg-blue-500/20 transition-all flex items-center gap-1 active:scale-95"
+                    title="Disparar notificação de teste no navegador/sistema agora"
+                  >
+                    <Bell className="w-3 h-3 text-blue-400" />
+                    <span className="hidden md:inline">Testar</span>
+                  </button>
+                </>
+              ) : webNotificationPerm === 'denied' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinancialToast('⚠️ Notificações bloqueadas nas permissões do navegador. Clique no ícone de cadeado na barra de endereços para permitir.');
+                    setTimeout(() => setFinancialToast(null), 5000);
+                  }}
+                  className="px-2 py-1.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all flex items-center gap-1.5 active:scale-95"
+                  title="Notificações bloqueadas pelo navegador. Clique para saber como permitir."
+                >
+                  <BellOff className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Notif. Bloqueada</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRequestWebNotification}
+                  className="px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-blue-500/20 hover:bg-blue-500/35 text-blue-300 hover:text-white border border-blue-500/40 transition-all flex items-center gap-1.5 active:scale-95 animate-pulse"
+                  title="Ativar Notificações do Navegador para alertar sobre pedidos em segundo plano"
+                >
+                  <BellRing className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Ativar Alertas Tela</span>
+                </button>
+              )}
+            </div>
+
             {/* Botão para Gerar e Imprimir QR Code do Cardápio */}
             <button
               onClick={() => setShowShareModal(true)}
@@ -2023,6 +2158,50 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         {/* ================= ABA 1: PEDIDOS (KDS) ================= */}
         {activeTab === 'pedidos' && (
           <div className="space-y-6">
+            {/* Banner de Ativação de Notificações Nativas do Navegador */}
+            {webNotificationPerm === 'default' && showNotificationBanner && (
+              <div className="bg-gradient-to-r from-blue-950/60 via-[#182338] to-[#1a1a1a] border border-blue-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-fade-in">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
+                    <BellRing className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                      <span>Ativar Notificações do Navegador em Segundo Plano?</span>
+                      <span className="text-[10px] bg-blue-500/25 text-blue-300 px-2 py-0.5 rounded-full font-bold border border-blue-500/30">
+                        Web Notifications
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
+                      Seja alertado com avisos sonoros e pop-ups na tela mesmo se estiver no WhatsApp, em outra aba ou com o navegador minimizado.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotificationBanner(false);
+                      try {
+                        sessionStorage.setItem('dismiss_notif_banner', 'true');
+                      } catch {}
+                    }}
+                    className="text-[11px] text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Agora não
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRequestWebNotification}
+                    className="text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>Ativar Alertas</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Header Summary & Operational Toolbar */}
             <section className="bg-[#181818] border border-[#353535] rounded-2xl p-4 md:p-5 shadow-lg space-y-4">
               {/* Linha Superior: Título & Status */}
@@ -4836,7 +5015,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 }`}
               >
                 <BarChart3 className="w-4 h-4" />
-                <span>📊 Painel de Gráficos (Diário, Semanal & Mensal)</span>
+                <span>📊 Vendas & Faturamento (Semana, Mês & Ano)</span>
               </button>
 
               <button type="button" onClick={() => setFinancialSubTab('dre')}
@@ -5681,6 +5860,90 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       className="h-5 w-5 accent-[#ff5722] cursor-pointer"
                     />
                   </div>
+                </div>
+
+                {/* Notificações Nativas do Navegador (HTML5 Web Notifications - Área de Trabalho / Fundo) */}
+                <div className="p-3.5 rounded-xl bg-[#141414] border border-[#353535] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <div className="font-semibold text-white text-xs flex flex-wrap items-center gap-2">
+                        <BellRing className="w-4 h-4 text-blue-400" />
+                        <span>Notificações do Navegador (Web Notifications)</span>
+                        {webNotificationPerm === 'granted' && (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
+                            Autorizado no Navegador
+                          </span>
+                        )}
+                        {webNotificationPerm === 'denied' && (
+                          <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full font-bold border border-red-500/30">
+                            Bloqueado no Navegador
+                          </span>
+                        )}
+                        {webNotificationPerm === 'default' && (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-500/30">
+                            Aguardando Permissão
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                        Exibe pop-ups nativos do sistema operacional no canto da tela sobre novos pedidos e Pix confirmado, mesmo se você estiver em outra aba ou com o navegador minimizado.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {webNotificationPerm === 'granted' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleTestWebNotification}
+                            className="px-2.5 py-1 rounded-md bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-bold border border-blue-500/40 flex items-center gap-1 active:scale-95 transition-all"
+                            title="Disparar notificação de teste agora"
+                          >
+                            <Bell className="w-3.5 h-3.5" />
+                            <span>Testar Alerta</span>
+                          </button>
+                          <input
+                            type="checkbox"
+                            checked={storeSettings.webNotifications !== false}
+                            onChange={e =>
+                              onUpdateStoreSettings({
+                                ...storeSettings,
+                                webNotifications: e.target.checked,
+                              })
+                            }
+                            className="h-5 w-5 accent-blue-500 cursor-pointer"
+                          />
+                        </>
+                      ) : webNotificationPerm === 'default' ? (
+                        <button
+                          type="button"
+                          onClick={handleRequestWebNotification}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md flex items-center gap-1.5 active:scale-95 transition-all"
+                        >
+                          <BellRing className="w-3.5 h-3.5 animate-pulse" />
+                          <span>Autorizar Notificações</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFinancialToast('⚠️ Notificações estão bloqueadas no navegador. Clique no ícone de cadeado na barra de endereços para desbloquear.');
+                            setTimeout(() => setFinancialToast(null), 5000);
+                          }}
+                          className="px-2.5 py-1 rounded-md bg-red-500/20 text-red-300 text-xs font-bold border border-red-500/30 flex items-center gap-1"
+                        >
+                          <BellOff className="w-3.5 h-3.5" />
+                          <span>Como Desbloquear</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {webNotificationPerm === 'denied' && (
+                    <div className="p-2.5 rounded-lg bg-red-950/30 border border-red-500/30 text-[11px] text-red-200">
+                      💡 <strong>Como permitir:</strong> Clique no ícone de configurações / cadeado ao lado do endereço (URL) na barra do seu navegador, procure por <em>"Notificações"</em> e mude de "Bloquear" para "Permitir". Depois recarregue a página.
+                    </div>
+                  )}
                 </div>
               </div>
 

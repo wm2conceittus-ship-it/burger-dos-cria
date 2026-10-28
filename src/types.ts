@@ -169,6 +169,7 @@ export interface StoreSettings {
   estimatedDeliveryTime: string;
   autoPrintReceipts: boolean;
   soundAlerts: boolean;
+  webNotifications?: boolean;
   allowManualOrders: boolean;
   autoAcceptOrders?: boolean;
   allowTableOrders?: boolean;

@@ -21,6 +21,9 @@ import {
   Receipt,
   Download,
   Filter,
+  FileSpreadsheet,
+  FileText,
+  Table,
 } from 'lucide-react';
 
 interface FinancialReportsDashboardProps {
@@ -29,12 +32,13 @@ interface FinancialReportsDashboardProps {
   products?: Product[];
 }
 
-type PeriodType = 'diario' | 'semanal' | 'mensal';
-type ChannelType = 'todos' | 'delivery' | 'mesas';
+export type PeriodType = 'diario' | 'semanal' | 'mensal' | 'anual';
+export type ChannelType = 'todos' | 'delivery' | 'mesas' | 'retirada';
 
-interface DataPoint {
+export interface DataPoint {
   label: string;
   shortLabel: string;
+  dateKey?: string;
   deliveryRevenue: number;
   dineInRevenue: number;
   takeawayRevenue: number;
@@ -42,129 +46,271 @@ interface DataPoint {
   orderCount: number;
   averageTicket: number;
   profitEstimate: number;
+  displayRevenue?: number;
 }
+
+// Extrai a data real do pedido com segurança
+function parseOrderDate(order: Order): Date {
+  if (order.id && order.id.startsWith('ord-')) {
+    const rawNum = parseInt(order.id.replace('ord-', ''), 10);
+    if (!isNaN(rawNum) && rawNum > 1500000000000 && rawNum < 2500000000000) {
+      return new Date(rawNum);
+    }
+  }
+  if (order.orderDate && typeof order.orderDate === 'string') {
+    const parts = order.orderDate.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+  }
+  return new Date();
+}
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+const MONTH_SHORT = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+];
 
 export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps> = ({
   orders,
   storeSettings,
   products = [],
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('diario');
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('mensal');
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<number | 'todos'>('todos');
   const [selectedChannel, setSelectedChannel] = useState<ChannelType>('todos');
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'linha' | 'barras'>('linha');
 
-  // Calculate live numbers from current orders
-  const currentTurnover = useMemo(() => {
-    return orders
-      .filter(o => o.status !== 'recusado')
-      .reduce((sum, o) => sum + (o.total || 0), 0);
+  // Descobre todos os anos presentes nos pedidos
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    years.add(currentYear);
+    years.add(currentYear - 1);
+    orders.forEach(o => {
+      const d = parseOrderDate(o);
+      if (!isNaN(d.getFullYear())) {
+        years.add(d.getFullYear());
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [orders, currentYear]);
+
+  // Pedidos válidos (não recusados)
+  const validOrders = useMemo(() => {
+    return orders.filter(o => o.status !== 'recusado');
   }, [orders]);
 
-  const currentOrderCount = useMemo(() => {
-    return orders.filter(o => o.status !== 'recusado').length;
-  }, [orders]);
-
-  // Daily Data: Last 7 Days (Seg a Dom)
+  // 1. DADOS DIÁRIOS (Últimos 7 dias ou todos os dias do mês selecionado)
   const dailyData: DataPoint[] = useMemo(() => {
-    const validOrders = orders.filter(o => o.status !== 'recusado');
-    const deliveryOrders = validOrders.filter(o => o.type === 'Delivery');
-    const dineInOrders = validOrders.filter(o => o.type === 'Mesa');
-    const takeawayOrders = validOrders.filter(o => o.type === 'Retirada');
+    const points: DataPoint[] = [];
 
-    const deliveryTotal = deliveryOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const dineInTotal = dineInOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const takeawayTotal = takeawayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    if (selectedMonth !== 'todos') {
+      // Todos os dias do mês específico selecionado
+      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayOrders = validOrders.filter(o => {
+          const d = parseOrderDate(o);
+          return (
+            d.getFullYear() === selectedYear &&
+            d.getMonth() === selectedMonth &&
+            d.getDate() === day
+          );
+        });
 
-    const days = [
-      { label: 'Segunda-feira', shortLabel: 'Seg' },
-      { label: 'Terça-feira', shortLabel: 'Ter' },
-      { label: 'Quarta-feira', shortLabel: 'Qua' },
-      { label: 'Quinta-feira', shortLabel: 'Qui' },
-      { label: 'Sexta-feira', shortLabel: 'Sex' },
-      { label: 'Sábado', shortLabel: 'Sáb' },
-      { label: 'Hoje', shortLabel: 'Hoje' },
-    ];
+        const delivery = dayOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+        const dineIn = dayOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+        const takeaway = dayOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+        const total = delivery + dineIn + takeaway;
+        const count = dayOrders.length;
 
-    return days.map((d, idx) => {
-      const isToday = idx === days.length - 1;
-      const delivery = isToday ? deliveryTotal : 0;
-      const dineIn = isToday ? dineInTotal : 0;
-      const takeaway = isToday ? takeawayTotal : 0;
-      const total = delivery + dineIn + takeaway;
-      const count = isToday ? validOrders.length : 0;
+        const dayStr = String(day).padStart(2, '0');
+        const monthStr = String(selectedMonth + 1).padStart(2, '0');
 
-      return {
-        label: d.label,
-        shortLabel: d.shortLabel,
-        deliveryRevenue: delivery,
-        dineInRevenue: dineIn,
-        takeawayRevenue: takeaway,
-        totalRevenue: total,
-        orderCount: count,
-        averageTicket: count > 0 ? total / count : 0,
-        profitEstimate: total * 0.38,
-      };
-    });
-  }, [orders]);
+        points.push({
+          label: `Dia ${dayStr}/${monthStr}/${selectedYear}`,
+          shortLabel: `${dayStr}/${monthStr}`,
+          dateKey: `${selectedYear}-${monthStr}-${dayStr}`,
+          deliveryRevenue: delivery,
+          dineInRevenue: dineIn,
+          takeawayRevenue: takeaway,
+          totalRevenue: total,
+          orderCount: count,
+          averageTicket: count > 0 ? total / count : 0,
+          profitEstimate: total * 0.38,
+        });
+      }
+    } else {
+      // Últimos 7 dias corridos
+      for (let i = 6; i >= 0; i--) {
+        const targetDate = new Date();
+        targetDate.setDate(now.getDate() - i);
+        targetDate.setHours(0, 0, 0, 0);
 
-  // Weekly Data: Last 4 Weeks
+        const y = targetDate.getFullYear();
+        const m = targetDate.getMonth();
+        const d = targetDate.getDate();
+
+        const dayOrders = validOrders.filter(o => {
+          const orderDate = parseOrderDate(o);
+          return (
+            orderDate.getFullYear() === y &&
+            orderDate.getMonth() === m &&
+            orderDate.getDate() === d
+          );
+        });
+
+        const delivery = dayOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+        const dineIn = dayOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+        const takeaway = dayOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+        const total = delivery + dineIn + takeaway;
+        const count = dayOrders.length;
+
+        const dayStr = String(d).padStart(2, '0');
+        const monthStr = String(m + 1).padStart(2, '0');
+        const weekDayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const weekDay = weekDayNames[targetDate.getDay()];
+        const isToday = i === 0;
+
+        points.push({
+          label: `${isToday ? 'Hoje • ' : ''}${weekDay} (${dayStr}/${monthStr})`,
+          shortLabel: isToday ? 'Hoje' : `${weekDay} ${dayStr}`,
+          dateKey: `${y}-${monthStr}-${dayStr}`,
+          deliveryRevenue: delivery,
+          dineInRevenue: dineIn,
+          takeawayRevenue: takeaway,
+          totalRevenue: total,
+          orderCount: count,
+          averageTicket: count > 0 ? total / count : 0,
+          profitEstimate: total * 0.38,
+        });
+      }
+    }
+
+    return points;
+  }, [validOrders, selectedYear, selectedMonth]);
+
+  // 2. DADOS SEMANAIS (Semanas do mês ou últimas 8 semanas)
   const weeklyData: DataPoint[] = useMemo(() => {
-    const validOrders = orders.filter(o => o.status !== 'recusado');
-    const deliveryTotal = validOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
-    const dineInTotal = validOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
-    const takeawayTotal = validOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+    const points: DataPoint[] = [];
 
-    const weeks = [
-      { label: 'Semana 1', shortLabel: 'Sem 1', isCurrent: false },
-      { label: 'Semana 2', shortLabel: 'Sem 2', isCurrent: false },
-      { label: 'Semana 3', shortLabel: 'Sem 3', isCurrent: false },
-      { label: 'Semana Atual', shortLabel: 'Sem Atual', isCurrent: true },
-    ];
+    if (selectedMonth !== 'todos') {
+      // 4 a 5 semanas dentro do mês selecionado
+      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const monthName = MONTH_NAMES[selectedMonth];
 
-    return weeks.map(w => {
-      const delivery = w.isCurrent ? deliveryTotal : 0;
-      const dineIn = w.isCurrent ? dineInTotal : 0;
-      const takeaway = w.isCurrent ? takeawayTotal : 0;
-      const total = delivery + dineIn + takeaway;
-      const count = w.isCurrent ? validOrders.length : 0;
+      const weekDefs = [
+        { name: 'Semana 1', short: 'Sem 1', start: 1, end: 7 },
+        { name: 'Semana 2', short: 'Sem 2', start: 8, end: 14 },
+        { name: 'Semana 3', short: 'Sem 3', start: 15, end: 21 },
+        { name: 'Semana 4', short: 'Sem 4', start: 22, end: 28 },
+        ...(daysInMonth > 28 ? [{ name: 'Semana 5', short: 'Sem 5', start: 29, end: daysInMonth }] : []),
+      ];
 
-      return {
-        label: w.label,
-        shortLabel: w.shortLabel,
-        deliveryRevenue: delivery,
-        dineInRevenue: dineIn,
-        takeawayRevenue: takeaway,
-        totalRevenue: total,
-        orderCount: count,
-        averageTicket: count > 0 ? total / count : 0,
-        profitEstimate: total * 0.38,
-      };
-    });
-  }, [orders]);
+      weekDefs.forEach(w => {
+        const weekOrders = validOrders.filter(o => {
+          const d = parseOrderDate(o);
+          return (
+            d.getFullYear() === selectedYear &&
+            d.getMonth() === selectedMonth &&
+            d.getDate() >= w.start &&
+            d.getDate() <= w.end
+          );
+        });
 
-  // Monthly Data: Recent Months
+        const delivery = weekOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+        const dineIn = weekOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+        const takeaway = weekOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+        const total = delivery + dineIn + takeaway;
+        const count = weekOrders.length;
+
+        points.push({
+          label: `${w.name} de ${monthName} (${String(w.start).padStart(2, '0')} a ${String(w.end).padStart(2, '0')})`,
+          shortLabel: w.short,
+          deliveryRevenue: delivery,
+          dineInRevenue: dineIn,
+          takeawayRevenue: takeaway,
+          totalRevenue: total,
+          orderCount: count,
+          averageTicket: count > 0 ? total / count : 0,
+          profitEstimate: total * 0.38,
+        });
+      });
+    } else {
+      // Últimas 8 semanas corridas
+      for (let i = 7; i >= 0; i--) {
+        const endDay = new Date();
+        endDay.setDate(now.getDate() - i * 7);
+        const startDay = new Date(endDay);
+        startDay.setDate(endDay.getDate() - 6);
+
+        startDay.setHours(0, 0, 0, 0);
+        endDay.setHours(23, 59, 59, 999);
+
+        const weekOrders = validOrders.filter(o => {
+          const d = parseOrderDate(o);
+          return d >= startDay && d <= endDay;
+        });
+
+        const delivery = weekOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+        const dineIn = weekOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+        const takeaway = weekOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+        const total = delivery + dineIn + takeaway;
+        const count = weekOrders.length;
+
+        const sStr = `${String(startDay.getDate()).padStart(2, '0')}/${String(startDay.getMonth() + 1).padStart(2, '0')}`;
+        const eStr = `${String(endDay.getDate()).padStart(2, '0')}/${String(endDay.getMonth() + 1).padStart(2, '0')}`;
+        const isCurrent = i === 0;
+
+        points.push({
+          label: `${isCurrent ? 'Semana Atual' : `Semana ${8 - i}`} (${sStr} a ${eStr})`,
+          shortLabel: isCurrent ? 'Sem. Atual' : sStr,
+          deliveryRevenue: delivery,
+          dineInRevenue: dineIn,
+          takeawayRevenue: takeaway,
+          totalRevenue: total,
+          orderCount: count,
+          averageTicket: count > 0 ? total / count : 0,
+          profitEstimate: total * 0.38,
+        });
+      }
+    }
+
+    return points;
+  }, [validOrders, selectedYear, selectedMonth]);
+
+  // 3. DADOS MENSAIS (Os 12 meses do ano selecionado: Jan a Dez)
   const monthlyData: DataPoint[] = useMemo(() => {
-    const validOrders = orders.filter(o => o.status !== 'recusado');
-    const deliveryTotal = validOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
-    const dineInTotal = validOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
-    const takeawayTotal = validOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+    return MONTH_NAMES.map((mName, mIdx) => {
+      const monthOrders = validOrders.filter(o => {
+        const d = parseOrderDate(o);
+        return d.getFullYear() === selectedYear && d.getMonth() === mIdx;
+      });
 
-    const months = [
-      { label: 'Mês Anterior', shortLabel: 'Mês Ant', isCurrent: false },
-      { label: 'Mês Atual', shortLabel: 'Atual', isCurrent: true },
-    ];
-
-    return months.map(m => {
-      const delivery = m.isCurrent ? deliveryTotal : 0;
-      const dineIn = m.isCurrent ? dineInTotal : 0;
-      const takeaway = m.isCurrent ? takeawayTotal : 0;
+      const delivery = monthOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+      const dineIn = monthOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+      const takeaway = monthOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
       const total = delivery + dineIn + takeaway;
-      const count = m.isCurrent ? validOrders.length : 0;
+      const count = monthOrders.length;
 
       return {
-        label: m.label,
-        shortLabel: m.shortLabel,
+        label: `${mName} de ${selectedYear}`,
+        shortLabel: MONTH_SHORT[mIdx],
         deliveryRevenue: delivery,
         dineInRevenue: dineIn,
         takeawayRevenue: takeaway,
@@ -174,32 +320,61 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         profitEstimate: total * 0.38,
       };
     });
-  }, [orders]);
+  }, [validOrders, selectedYear]);
 
-  // Current active series based on period and channel
+  // 4. DADOS ANUAIS (Consolidado por Ano: 2024, 2025, 2026...)
+  const annualData: DataPoint[] = useMemo(() => {
+    const yearsToShow = [...availableYears].sort((a, b) => a - b);
+    return yearsToShow.map(y => {
+      const yearOrders = validOrders.filter(o => {
+        const d = parseOrderDate(o);
+        return d.getFullYear() === y;
+      });
+
+      const delivery = yearOrders.filter(o => o.type === 'Delivery').reduce((sum, o) => sum + (o.total || 0), 0);
+      const dineIn = yearOrders.filter(o => o.type === 'Mesa').reduce((sum, o) => sum + (o.total || 0), 0);
+      const takeaway = yearOrders.filter(o => o.type === 'Retirada').reduce((sum, o) => sum + (o.total || 0), 0);
+      const total = delivery + dineIn + takeaway;
+      const count = yearOrders.length;
+
+      return {
+        label: `Ano de ${y}`,
+        shortLabel: String(y),
+        deliveryRevenue: delivery,
+        dineInRevenue: dineIn,
+        takeawayRevenue: takeaway,
+        totalRevenue: total,
+        orderCount: count,
+        averageTicket: count > 0 ? total / count : 0,
+        profitEstimate: total * 0.38,
+      };
+    });
+  }, [validOrders, availableYears]);
+
+  // Série ativa no momento baseada no período e canal selecionados
   const activeSeries = useMemo(() => {
-    const rawData =
-      selectedPeriod === 'diario'
-        ? dailyData
-        : selectedPeriod === 'semanal'
-        ? weeklyData
-        : monthlyData;
+    let rawData: DataPoint[];
+    if (selectedPeriod === 'diario') rawData = dailyData;
+    else if (selectedPeriod === 'semanal') rawData = weeklyData;
+    else if (selectedPeriod === 'mensal') rawData = monthlyData;
+    else rawData = annualData;
 
     return rawData.map(d => {
       let revenue = d.totalRevenue;
       if (selectedChannel === 'delivery') revenue = d.deliveryRevenue;
-      if (selectedChannel === 'mesas') revenue = d.dineInRevenue;
+      else if (selectedChannel === 'mesas') revenue = d.dineInRevenue;
+      else if (selectedChannel === 'retirada') revenue = d.takeawayRevenue;
 
       return {
         ...d,
         displayRevenue: revenue,
       };
     });
-  }, [selectedPeriod, selectedChannel, dailyData, weeklyData, monthlyData]);
+  }, [selectedPeriod, selectedChannel, dailyData, weeklyData, monthlyData, annualData]);
 
-  // Aggregated KPIs for selected period
+  // KPIs consolidados do período selecionado
   const totalPeriodRevenue = useMemo(() => {
-    return activeSeries.reduce((sum, d) => sum + d.displayRevenue, 0);
+    return activeSeries.reduce((sum, d) => sum + (d.displayRevenue || 0), 0);
   }, [activeSeries]);
 
   const totalPeriodOrders = useMemo(() => {
@@ -216,45 +391,48 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
   const periodGrowth = useMemo(() => {
     if (activeSeries.length < 2) return 0;
-    const last = activeSeries[activeSeries.length - 1].displayRevenue;
-    const prev = activeSeries[activeSeries.length - 2].displayRevenue;
+    const last = activeSeries[activeSeries.length - 1].displayRevenue || 0;
+    const prev = activeSeries[activeSeries.length - 2].displayRevenue || 0;
     if (prev === 0) return last > 0 ? 100 : 0;
     return ((last - prev) / prev) * 100;
   }, [activeSeries]);
 
-  // Best performing point
   const bestPoint = useMemo(() => {
     if (activeSeries.length === 0) return null;
-    return [...activeSeries].sort((a, b) => b.displayRevenue - a.displayRevenue)[0];
+    return [...activeSeries].sort((a, b) => (b.displayRevenue || 0) - (a.displayRevenue || 0))[0];
   }, [activeSeries]);
 
-  // Chart dimensions & scaling
-  const chartWidth = 820;
-  const chartHeight = 260;
+  // Configuração SVG do Gráfico
+  const chartHeight = 240;
+  const chartWidth = 720;
   const paddingLeft = 65;
-  const paddingRight = 30;
-  const paddingTop = 30;
-  const paddingBottom = 45;
-
+  const paddingRight = 35;
+  const paddingTop = 25;
+  const paddingBottom = 40;
   const innerWidth = chartWidth - paddingLeft - paddingRight;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
   const maxRevenue = useMemo(() => {
-    const maxVal = Math.max(...activeSeries.map(d => d.displayRevenue), 100);
-    return Math.ceil((maxVal * 1.15) / 1000) * 1000;
+    const maxVal = Math.max(...activeSeries.map(d => d.displayRevenue || 0), 100);
+    return Math.ceil(maxVal * 1.15);
   }, [activeSeries]);
 
-  // Generate SVG points
   const points = useMemo(() => {
     if (activeSeries.length === 0) return [];
+    if (activeSeries.length === 1) {
+      const d = activeSeries[0];
+      const x = paddingLeft + innerWidth / 2;
+      const y = paddingTop + innerHeight - ((d.displayRevenue || 0) / maxRevenue) * innerHeight;
+      return [{ x, y, data: d, index: 0 }];
+    }
     return activeSeries.map((d, index) => {
       const x = paddingLeft + (index / (activeSeries.length - 1)) * innerWidth;
-      const y = paddingTop + innerHeight - (d.displayRevenue / maxRevenue) * innerHeight;
+      const y = paddingTop + innerHeight - ((d.displayRevenue || 0) / maxRevenue) * innerHeight;
       return { x, y, data: d, index };
     });
   }, [activeSeries, innerWidth, innerHeight, maxRevenue]);
 
-  // Generate smooth SVG path (Curved line)
+  // Linha curva SVG
   const linePathD = useMemo(() => {
     if (points.length < 2) return '';
     return points.reduce((acc, point, i, arr) => {
@@ -268,7 +446,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     }, '');
   }, [points]);
 
-  // Area under curve with baseline
+  // Área preenchida sob a curva
   const areaPathD = useMemo(() => {
     if (points.length < 2) return '';
     const first = points[0];
@@ -277,9 +455,8 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return `${linePathD} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
   }, [linePathD, points, innerHeight]);
 
-  // Payment Breakdown Statistics (real calculations from orders)
+  // Estatísticas de formas de pagamento
   const paymentBreakdown = useMemo(() => {
-    const validOrders = orders.filter(o => o.status !== 'recusado');
     const pixOrders = validOrders.filter(o => o.paymentMethod?.toLowerCase().includes('pix'));
     const creditOrders = validOrders.filter(
       o => o.paymentMethod?.toLowerCase().includes('crédito') || o.paymentMethod?.toLowerCase().includes('credito')
@@ -293,29 +470,28 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     const creditSum = creditOrders.reduce((sum, o) => sum + (o.total || 0), 0);
     const debitSum = debitOrders.reduce((sum, o) => sum + (o.total || 0), 0);
     const cashSum = cashOrders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const total = totalPeriodRevenue > 0 ? totalPeriodRevenue : 1;
+    const total = totalPeriodRevenue > 0 ? totalPeriodRevenue : (pixSum + creditSum + debitSum + cashSum || 1);
 
     return [
-      { method: 'Pix (Imediato)', percentage: totalPeriodRevenue > 0 ? Math.round((pixSum / total) * 100) : 0, amount: pixSum, color: 'text-emerald-400', bg: 'bg-emerald-500' },
-      { method: 'Cartão de Crédito', percentage: totalPeriodRevenue > 0 ? Math.round((creditSum / total) * 100) : 0, amount: creditSum, color: 'text-blue-400', bg: 'bg-blue-500' },
-      { method: 'Cartão de Débito', percentage: totalPeriodRevenue > 0 ? Math.round((debitSum / total) * 100) : 0, amount: debitSum, color: 'text-amber-400', bg: 'bg-amber-500' },
-      { method: 'Dinheiro na Entrega', percentage: totalPeriodRevenue > 0 ? Math.round((cashSum / total) * 100) : 0, amount: cashSum, color: 'text-zinc-400', bg: 'bg-zinc-500' },
+      { method: 'Pix (Imediato)', percentage: total > 0 ? Math.round((pixSum / total) * 100) : 0, amount: pixSum, color: 'text-emerald-400', bg: 'bg-emerald-500' },
+      { method: 'Cartão de Crédito', percentage: total > 0 ? Math.round((creditSum / total) * 100) : 0, amount: creditSum, color: 'text-blue-400', bg: 'bg-blue-500' },
+      { method: 'Cartão de Débito', percentage: total > 0 ? Math.round((debitSum / total) * 100) : 0, amount: debitSum, color: 'text-amber-400', bg: 'bg-amber-500' },
+      { method: 'Dinheiro na Entrega / Balcão', percentage: total > 0 ? Math.round((cashSum / total) * 100) : 0, amount: cashSum, color: 'text-zinc-400', bg: 'bg-zinc-500' },
     ];
-  }, [orders, totalPeriodRevenue]);
+  }, [validOrders, totalPeriodRevenue]);
 
-  // Channel Share
+  // Canais de Venda
   const totalDeliverySum = activeSeries.reduce((s, p) => s + p.deliveryRevenue, 0);
   const totalDineInSum = activeSeries.reduce((s, p) => s + p.dineInRevenue, 0);
   const totalTakeawaySum = activeSeries.reduce((s, p) => s + p.takeawayRevenue, 0);
   const grandTotalChannels = totalDeliverySum + totalDineInSum + totalTakeawaySum || 1;
 
-  const deliveryPercent = totalPeriodRevenue > 0 ? Math.round((totalDeliverySum / grandTotalChannels) * 100) : 0;
-  const dineInPercent = totalPeriodRevenue > 0 ? Math.round((totalDineInSum / grandTotalChannels) * 100) : 0;
-  const takeawayPercent = totalPeriodRevenue > 0 ? Math.round((totalTakeawaySum / grandTotalChannels) * 100) : 0;
+  const deliveryPercent = Math.round((totalDeliverySum / grandTotalChannels) * 100);
+  const dineInPercent = Math.round((totalDineInSum / grandTotalChannels) * 100);
+  const takeawayPercent = Math.round((totalTakeawaySum / grandTotalChannels) * 100);
 
-  // Top Selling Items in revenue (real calculations from orders)
+  // Top 5 Produtos mais vendidos
   const topSellers = useMemo(() => {
-    const validOrders = orders.filter(o => o.status !== 'recusado');
     const itemsMap = new Map<string, { name: string; category: string; sales: number; revenue: number }>();
 
     validOrders.forEach(o => {
@@ -340,52 +516,83 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
       ...item,
       percent: maxRev > 0 ? Math.round((item.revenue / maxRev) * 100) : 0,
     }));
-  }, [orders]);
+  }, [validOrders]);
 
-  // Hovered data point detail
+  // Exportar PDF em Paisagem (Horizontal)
+  const handleExportPDFLandscape = () => {
+    const style = document.createElement('style');
+    style.innerHTML = '@media print { @page { size: landscape; margin: 10mm; } }';
+    document.head.appendChild(style);
+    window.print();
+    setTimeout(() => {
+      document.head.removeChild(style);
+    }, 1500);
+  };
+
   const currentHoveredPoint = hoveredPointIndex !== null ? points[hoveredPointIndex] : null;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Header Card */}
-      <div className="bg-gradient-to-r from-[#201e1d] via-[#24201c] to-[#1c1a18] p-5 rounded-2xl border border-[#ff5722]/30 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#ff5722]/20 border border-[#ff5722]/40 text-[#ff5722] flex items-center justify-center shadow-inner">
-              <BarChart3 className="w-5 h-5" />
+      {/* Top Header Card com Seletores de Período, Ano e Mês (Card Branco) */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4 text-gray-900">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-[#ff5722] flex items-center justify-center shadow-inner shrink-0">
+              <BarChart3 className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="font-['Montserrat'] text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-                <span>Relatórios Financeiros & Faturamento</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-extrabold uppercase">
-                  Tempo Real
+              <h2 className="font-['Montserrat'] text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
+                <span>Controle de Vendas por Período</span>
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-extrabold uppercase">
+                  Semana • Mês • Ano
                 </span>
               </h2>
-              <p className="text-xs text-[#b4b5b5] mt-0.5">
-                Acompanhe o faturamento diário, semanal e mensal com gráficos analíticos e métricas de lucro.
+              <p className="text-xs text-gray-600 mt-0.5">
+                Consulte o faturamento detalhado por semana, mês ou ano com comparativos, ticket médio e exportação em PDF.
               </p>
             </div>
           </div>
+
+          {/* Botões de Ação Topo */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleExportPDFLandscape}
+              className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              title="Salvar PDF em modo paisagem (horizontal)"
+            >
+              <FileText className="w-4 h-4 text-emerald-600" />
+              <span>Exportar PDF (Horizontal)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-gray-700 hover:text-gray-900 transition-all shadow-sm"
+              title="Imprimir Relatório Gráfico"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Period Selector Tabs */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Period Pills */}
-          <div className="bg-[#141414] p-1 rounded-xl border border-[#353535] flex items-center gap-1">
+        {/* Linha de Filtros: Abas de Período + Seletor de Ano + Seletor de Mês */}
+        <div className="pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+          {/* Abas Principais: Diário, Semanal, Mensal, Anual */}
+          <div className="bg-gray-100 p-1 rounded-xl border border-gray-200 flex items-center gap-1 flex-wrap">
             <button
               type="button"
               onClick={() => {
                 setSelectedPeriod('diario');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'diario'
                   ? 'bg-[#ff5722] text-white shadow-md'
-                  : 'text-[#8e8f8f] hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Diário (7 Dias)</span>
+              Diário
             </button>
 
             <button
@@ -394,14 +601,13 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 setSelectedPeriod('semanal');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'semanal'
                   ? 'bg-[#ff5722] text-white shadow-md'
-                  : 'text-[#8e8f8f] hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Semanal (8 Semanas)</span>
+              Por Semana
             </button>
 
             <button
@@ -410,26 +616,79 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 setSelectedPeriod('mensal');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'mensal'
                   ? 'bg-[#ff5722] text-white shadow-md'
-                  : 'text-[#8e8f8f] hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Mensal (12 Meses)</span>
+              Por Mês (Jan a Dez)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPeriod('anual');
+                setHoveredPointIndex(null);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
+                selectedPeriod === 'anual'
+                  ? 'bg-[#ff5722] text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Por Ano
             </button>
           </div>
 
-          {/* Print/Export Button */}
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="p-2 bg-[#20201f] hover:bg-[#2c2b29] border border-[#353535] rounded-xl text-[#b4b5b5] hover:text-white transition-all shadow-sm"
-            title="Imprimir Relatório Gráfico"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
+          {/* Seletores de Contexto (Ano e Mês) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Seletor de Mês (quando em Semanal ou Diário) */}
+            {(selectedPeriod === 'semanal' || selectedPeriod === 'diario') && (
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
+                <span className="text-gray-600 text-[11px] font-bold">Mês:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={e => {
+                    const val = e.target.value === 'todos' ? 'todos' : parseInt(e.target.value, 10);
+                    setSelectedMonth(val);
+                    setHoveredPointIndex(null);
+                  }}
+                  className="bg-transparent text-gray-900 font-bold outline-none cursor-pointer text-xs"
+                >
+                  <option value="todos" className="bg-white text-gray-900">
+                    {selectedPeriod === 'semanal' ? 'Últimas 8 Semanas' : 'Últimos 7 Dias'}
+                  </option>
+                  {MONTH_NAMES.map((name, idx) => (
+                    <option key={idx} value={idx} className="bg-white text-gray-900">
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Seletor de Ano */}
+            {selectedPeriod !== 'anual' && (
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
+                <span className="text-gray-600 text-[11px] font-bold">Ano:</span>
+                <select
+                  value={selectedYear}
+                  onChange={e => {
+                    setSelectedYear(parseInt(e.target.value, 10));
+                    setHoveredPointIndex(null);
+                  }}
+                  className="bg-transparent text-gray-900 font-bold outline-none cursor-pointer text-xs font-mono"
+                >
+                  {availableYears.map(yr => (
+                    <option key={yr} value={yr} className="bg-white text-gray-900 font-mono">
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -439,7 +698,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-[#353535] relative overflow-hidden shadow-lg group hover:border-[#ff5722]/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#8e8f8f] font-['Montserrat']">
-              Faturamento {selectedPeriod === 'diario' ? 'da Semana' : selectedPeriod === 'semanal' ? 'das 8 Semanas' : 'do Ano'}
+              Faturamento {selectedPeriod === 'diario' ? 'do Período' : selectedPeriod === 'semanal' ? 'das Semanas' : selectedPeriod === 'mensal' ? `de ${selectedYear}` : 'Histórico Total'}
             </span>
             <div className="w-8 h-8 rounded-lg bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
@@ -455,7 +714,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               {periodGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
               {Math.abs(periodGrowth).toFixed(1)}%
             </span>
-            <span className="text-[#8e8f8f] text-[11px]">vs período anterior</span>
+            <span className="text-[#8e8f8f] text-[11px]">vs intervalo anterior</span>
           </div>
         </div>
 
@@ -476,7 +735,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
           <div className="mt-2 text-xs text-[#8e8f8f] flex items-center justify-between">
             <span>Volume Total:</span>
-            <strong className="text-white font-mono">{totalPeriodOrders} pedidos</strong>
+            <strong className="text-white font-mono">{totalPeriodOrders} pedidos faturados</strong>
           </div>
         </div>
 
@@ -484,7 +743,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-emerald-500/30 relative overflow-hidden shadow-lg group hover:border-emerald-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 font-['Montserrat']">
-              Lucro Líquido Estimado
+              Lucro Líquido Estimado (~38%)
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
@@ -497,15 +756,15 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
           <div className="mt-2 text-xs text-[#8e8f8f] flex items-center justify-between">
             <span>Margem Operacional:</span>
-            <strong className="text-emerald-400 font-bold font-mono">~39% Real</strong>
+            <strong className="text-emerald-400 font-bold font-mono">Alta Rentabilidade</strong>
           </div>
         </div>
 
-        {/* Card 4: Melhor Período / Recorde */}
+        {/* Card 4: Pico de Vendas / Recorde */}
         <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-amber-500/30 relative overflow-hidden shadow-lg group hover:border-amber-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-['Montserrat']">
-              Pico de Vendas
+              Maior Faturamento no Período
             </span>
             <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
@@ -513,14 +772,14 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
           <div className="truncate">
             <span className="font-['Montserrat'] font-bold text-lg text-white block truncate">
-              {bestPoint ? bestPoint.label.split('(')[0] : 'Sábado à noite'}
+              {bestPoint && bestPoint.totalRevenue > 0 ? bestPoint.label.split('(')[0] : 'Sem vendas'}
             </span>
             <span className="font-mono text-xs text-amber-300 font-bold mt-0.5 block">
-              R$ {bestPoint ? bestPoint.displayRevenue.toFixed(2).replace('.', ',') : '0,00'}
+              R$ {bestPoint ? (bestPoint.displayRevenue || bestPoint.totalRevenue).toFixed(2).replace('.', ',') : '0,00'}
             </span>
           </div>
           <div className="mt-2 text-[11px] text-[#8e8f8f] truncate">
-            {bestPoint ? `${bestPoint.orderCount} pedidos concluídos` : 'Maior movimento'}
+            {bestPoint && bestPoint.orderCount > 0 ? `${bestPoint.orderCount} pedidos concluídos` : 'Aguardando faturamento'}
           </div>
         </div>
       </div>
@@ -533,7 +792,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
               <span>Curva de Evolução do Faturamento</span>
               <span className="text-xs text-[#8e8f8f] font-normal">
-                ({selectedPeriod === 'diario' ? 'Segunda a Domingo' : selectedPeriod === 'semanal' ? 'Últimas 8 Semanas' : 'Últimos 12 Meses'})
+                ({selectedPeriod === 'diario' ? 'Diário' : selectedPeriod === 'semanal' ? 'Por Semana' : selectedPeriod === 'mensal' ? `Meses de ${selectedYear}` : 'Ano a Ano'})
               </span>
             </h3>
           </div>
@@ -550,7 +809,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                     : 'text-[#8e8f8f] hover:text-white'
                 }`}
               >
-                Todos os Canais
+                Todos
               </button>
               <button
                 type="button"
@@ -575,6 +834,18 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               >
                 <UtensilsCrossed className="w-3 h-3" />
                 <span>Salão</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedChannel('retirada')}
+                className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                  selectedChannel === 'retirada'
+                    ? 'bg-[#ff5722] text-white shadow'
+                    : 'text-[#8e8f8f] hover:text-white'
+                }`}
+              >
+                <ShoppingBag className="w-3 h-3" />
+                <span>Balcão</span>
               </button>
             </div>
 
@@ -612,7 +883,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               className="w-full h-auto overflow-visible select-none"
             >
               <defs>
-                {/* Flame Gradient Fill */}
                 <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#ff5722" stopOpacity="0.45" />
                   <stop offset="60%" stopColor="#ff5722" stopOpacity="0.10" />
@@ -630,7 +900,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 </filter>
               </defs>
 
-              {/* Horizontal Grid Lines */}
+              {/* Linhas de Grade Horizontais */}
               {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                 const y = paddingTop + innerHeight - pct * innerHeight;
                 const valueLabel = (maxRevenue * pct).toFixed(0);
@@ -660,23 +930,20 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 );
               })}
 
-              {/* VIEW MODE 1: AREA & LINE */}
+              {/* MODO 1: LINHA & ÁREA */}
               {activeViewMode === 'linha' && (
                 <>
-                  {/* Area fill */}
-                  <path d={areaPathD} fill="url(#revenueGradient)" />
-
-                  {/* Main Line */}
-                  <path
-                    d={linePathD}
-                    fill="none"
-                    stroke="#ff5722"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    filter="url(#glow)"
-                  />
-
-                  {/* Dots on line */}
+                  {areaPathD && <path d={areaPathD} fill="url(#revenueGradient)" />}
+                  {linePathD && (
+                    <path
+                      d={linePathD}
+                      fill="none"
+                      stroke="#ff5722"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      filter="url(#glow)"
+                    />
+                  )}
                   {points.map((p, idx) => {
                     const isHovered = hoveredPointIndex === idx;
                     return (
@@ -690,7 +957,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                           strokeWidth="2.5"
                           className="transition-all duration-150"
                         />
-                        {/* Invisible larger hit area for easy hover/touch */}
                         <circle
                           cx={p.x}
                           cy={p.y}
@@ -705,12 +971,12 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 </>
               )}
 
-              {/* VIEW MODE 2: BARS */}
+              {/* MODO 2: BARRAS */}
               {activeViewMode === 'barras' && (
                 <g>
                   {points.map((p, idx) => {
                     const isHovered = hoveredPointIndex === idx;
-                    const barWidth = Math.max(16, Math.min(38, (innerWidth / activeSeries.length) * 0.55));
+                    const barWidth = Math.max(14, Math.min(36, (innerWidth / activeSeries.length) * 0.55));
                     const barHeight = Math.max(4, innerHeight - (p.y - paddingTop));
                     const x = p.x - barWidth / 2;
                     const y = p.y;
@@ -727,11 +993,10 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                           y={y}
                           width={barWidth}
                           height={barHeight}
-                          rx="5"
+                          rx="4"
                           fill={isHovered ? '#ff8a65' : 'url(#barGradient)'}
                           className="transition-all duration-200"
                         />
-                        {/* Bar Top Value Label */}
                         <text
                           x={p.x}
                           y={y - 8}
@@ -741,7 +1006,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                           textAnchor="middle"
                           fontFamily="monospace"
                         >
-                          R$ {Math.round(p.data.displayRevenue)}
+                          R$ {Math.round(p.data.displayRevenue || p.data.totalRevenue)}
                         </text>
                       </g>
                     );
@@ -749,7 +1014,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 </g>
               )}
 
-              {/* X Axis Labels */}
+              {/* Rótulos do Eixo X */}
               {points.map((p, idx) => {
                 const isHovered = hoveredPointIndex === idx;
                 return (
@@ -758,7 +1023,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                     x={p.x}
                     y={chartHeight - 12}
                     fill={isHovered ? '#ff5722' : '#8e8f8f'}
-                    fontSize="11"
+                    fontSize="10"
                     fontWeight={isHovered ? 'bold' : 'normal'}
                     textAnchor="middle"
                     fontFamily="Montserrat, sans-serif"
@@ -773,7 +1038,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        {/* Dynamic Tooltip / Detail Card when point is hovered or clicked */}
+        {/* Tooltip Dinâmico de Detalhamento ao passar mouse ou tocar */}
         {currentHoveredPoint ? (
           <div className="bg-[#141414] border border-[#ff5722]/40 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in">
             <div className="space-y-0.5">
@@ -782,15 +1047,15 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-black text-white font-mono">
-                  R$ {currentHoveredPoint.data.displayRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {(currentHoveredPoint.data.displayRevenue || currentHoveredPoint.data.totalRevenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
                 <span className="text-xs text-[#8e8f8f]">
-                  ({currentHoveredPoint.data.orderCount} pedidos)
+                  ({currentHoveredPoint.data.orderCount} pedidos faturados)
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-mono">
+            <div className="flex items-center gap-3 text-xs font-mono flex-wrap">
               <div className="bg-[#20201f] px-3 py-1.5 rounded-lg border border-[#353535]">
                 <span className="text-[9px] block text-[#8e8f8f] uppercase font-sans">Delivery</span>
                 <strong className="text-[#ff8a65]">R$ {currentHoveredPoint.data.deliveryRevenue.toFixed(2).replace('.', ',')}</strong>
@@ -807,9 +1072,126 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         ) : (
           <div className="bg-[#141414] border border-[#353535] rounded-xl p-3 text-center text-xs text-[#8e8f8f]">
-            💡 Passe o mouse ou clique nos pontos do gráfico acima para ver o detalhamento por delivery, salão e ticket daquele dia.
+            💡 Clique ou passe o cursor sobre qualquer ponto ou barra do gráfico para inspecionar os valores exatos de delivery, salão e ticket médio daquele período.
           </div>
         )}
+      </div>
+
+      {/* NOVO: TABELA ANALÍTICA DE VENDAS POR PERÍODO */}
+      <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl p-5 shadow-2xl space-y-3.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#353535]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/15 text-[#ff5722] flex items-center justify-center">
+              <Table className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                Demonstrativo Detalhado de Vendas ({selectedPeriod === 'diario' ? 'Diário' : selectedPeriod === 'semanal' ? 'Semanal' : selectedPeriod === 'mensal' ? 'Mensal' : 'Anual'})
+              </h3>
+              <p className="text-[11px] text-[#8e8f8f]">
+                Tabela analítica consolidada com faturamento bruto, canais e ticket médio.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExportPDFLandscape}
+            className="px-3 py-1.5 bg-[#252525] hover:bg-[#333] border border-[#444] rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Exportar PDF (Horizontal)</span>
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-[#141414] text-[#8e8f8f] uppercase text-[10px] font-['Montserrat'] font-bold border-b border-[#333]">
+                <th className="py-2.5 px-3">Período / Referência</th>
+                <th className="py-2.5 px-3 text-center">Qtd Pedidos</th>
+                <th className="py-2.5 px-3 text-right">Delivery</th>
+                <th className="py-2.5 px-3 text-right">Salão (Mesas)</th>
+                <th className="py-2.5 px-3 text-right">Balcão</th>
+                <th className="py-2.5 px-3 text-right text-white">Total Faturado</th>
+                <th className="py-2.5 px-3 text-right">Ticket Médio</th>
+                <th className="py-2.5 px-3 text-right text-emerald-400">Lucro Estimado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#2a2a2a] text-[#e5e2e1] font-mono">
+              {activeSeries.map((d, idx) => {
+                const total = d.displayRevenue !== undefined ? d.displayRevenue : d.totalRevenue;
+                return (
+                  <tr
+                    key={idx}
+                    className="hover:bg-[#252525] transition-colors cursor-pointer"
+                    onClick={() => setHoveredPointIndex(idx)}
+                  >
+                    <td className="py-2.5 px-3 font-sans font-medium text-white flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#ff5722]" />
+                      <span>{d.label}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-bold">
+                      {d.orderCount > 0 ? (
+                        <span className="bg-[#20201f] px-2 py-0.5 rounded text-amber-300 font-bold">
+                          {d.orderCount}
+                        </span>
+                      ) : (
+                        <span className="text-gray-600">0</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-[#ff8a65]">
+                      R$ {d.deliveryRevenue.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-blue-400">
+                      R$ {d.dineInRevenue.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-emerald-300">
+                      R$ {d.takeawayRevenue.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-black text-white bg-black/20">
+                      R$ {total.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-zinc-300">
+                      R$ {d.averageTicket.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-bold text-emerald-400">
+                      R$ {d.profitEstimate.toFixed(2).replace('.', ',')}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-[#141414] font-bold text-white border-t-2 border-[#ff5722] font-mono">
+                <td className="py-3 px-3 font-sans font-black uppercase text-[#ff5722] text-xs">
+                  TOTAL DO PERÍODO
+                </td>
+                <td className="py-3 px-3 text-center text-amber-300 font-black">
+                  {totalPeriodOrders}
+                </td>
+                <td className="py-3 px-3 text-right text-[#ff8a65]">
+                  R$ {totalDeliverySum.toFixed(2).replace('.', ',')}
+                </td>
+                <td className="py-3 px-3 text-right text-blue-400">
+                  R$ {totalDineInSum.toFixed(2).replace('.', ',')}
+                </td>
+                <td className="py-3 px-3 text-right text-emerald-300">
+                  R$ {totalTakeawaySum.toFixed(2).replace('.', ',')}
+                </td>
+                <td className="py-3 px-3 text-right font-black text-lg text-[#ff5722] bg-black/40 font-['Montserrat']">
+                  R$ {totalPeriodRevenue.toFixed(2).replace('.', ',')}
+                </td>
+                <td className="py-3 px-3 text-right text-zinc-200">
+                  R$ {periodAverageTicket.toFixed(2).replace('.', ',')}
+                </td>
+                <td className="py-3 px-3 text-right font-black text-emerald-400">
+                  R$ {totalPeriodProfit.toFixed(2).replace('.', ',')}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {/* Two Column Section: Channel & Payment Breakdown + Top Sellers */}
