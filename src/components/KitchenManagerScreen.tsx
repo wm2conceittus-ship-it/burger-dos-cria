@@ -2913,25 +2913,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           e.preventDefault();
                           handleDropOnColumn(col.key);
                         }}
-                        className={`rounded-lg border transition-all flex flex-col shadow-xl overflow-hidden ${
+                        className={`rounded-md border transition-all flex flex-col shadow-sm overflow-hidden ${
                           ordersLayoutMode === 'carousel'
                             ? cardDensity === 'compact'
-                              ? 'w-[86vw] sm:w-[320px] md:w-[340px] lg:w-[350px] shrink-0 snap-center shadow-xl'
-                              : 'w-[90vw] sm:w-[380px] md:w-[410px] lg:w-[430px] shrink-0 snap-center shadow-2xl'
+                              ? 'w-[86vw] sm:w-[320px] md:w-[340px] lg:w-[350px] shrink-0 snap-center shadow-md'
+                              : 'w-[90vw] sm:w-[380px] md:w-[410px] lg:w-[430px] shrink-0 snap-center shadow-md'
                             : cardDensity === 'compact'
                               ? 'w-[260px] sm:w-[275px] xl:w-[285px] shrink-0 snap-start'
                               : 'w-[295px] sm:w-[310px] xl:w-[320px] shrink-0 snap-start'
                         } ${
-                          isDragOver ? col.activeRing : `${col.borderColor} bg-[#181716]`
+                          isDragOver ? col.activeRing : `${col.borderColor} bg-slate-50`
                         }`}
                       >
                         {/* Top Line Accent */}
                         <div className={`h-1.5 w-full ${col.topBar}`} />
 
                         {/* Cabeçalho da Coluna */}
-                        <div className={`p-2.5 sm:p-3 border-b border-[#353535] ${col.headerBg} flex items-center justify-between`}>
+                        <div className={`p-2.5 sm:p-3 border-b border-slate-200 bg-slate-100 flex items-center justify-between`}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-md bg-slate-200 border border-slate-300 flex items-center justify-center shrink-0">
                               <col.icon className={`w-3.5 h-3.5 ${col.colorText}`} />
                             </div>
                             <div className="min-w-0">
