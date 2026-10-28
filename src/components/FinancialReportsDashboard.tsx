@@ -49,7 +49,6 @@ export interface DataPoint {
   displayRevenue?: number;
 }
 
-// Extrai a data real do pedido com segurança
 function parseOrderDate(order: Order): Date {
   if (order.id && order.id.startsWith('ord-')) {
     const rawNum = parseInt(order.id.replace('ord-', ''), 10);
@@ -97,7 +96,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'linha' | 'barras'>('linha');
 
-  // Descobre todos os anos presentes nos pedidos
   const availableYears = useMemo(() => {
     const years = new Set<number>();
     years.add(currentYear);
@@ -111,17 +109,14 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return Array.from(years).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  // Pedidos válidos (não recusados)
   const validOrders = useMemo(() => {
     return orders.filter(o => o.status !== 'recusado');
   }, [orders]);
 
-  // 1. DADOS DIÁRIOS (Últimos 7 dias ou todos os dias do mês selecionado)
   const dailyData: DataPoint[] = useMemo(() => {
     const points: DataPoint[] = [];
 
     if (selectedMonth !== 'todos') {
-      // Todos os dias do mês específico selecionado
       const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
       for (let day = 1; day <= daysInMonth; day++) {
         const dayOrders = validOrders.filter(o => {
@@ -156,7 +151,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         });
       }
     } else {
-      // Últimos 7 dias corridos
       for (let i = 6; i >= 0; i--) {
         const targetDate = new Date();
         targetDate.setDate(now.getDate() - i);
@@ -205,12 +199,10 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return points;
   }, [validOrders, selectedYear, selectedMonth]);
 
-  // 2. DADOS SEMANAIS (Semanas do mês ou últimas 8 semanas)
   const weeklyData: DataPoint[] = useMemo(() => {
     const points: DataPoint[] = [];
 
     if (selectedMonth !== 'todos') {
-      // 4 a 5 semanas dentro do mês selecionado
       const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
       const monthName = MONTH_NAMES[selectedMonth];
 
@@ -252,7 +244,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         });
       });
     } else {
-      // Últimas 8 semanas corridas
       for (let i = 7; i >= 0; i--) {
         const endDay = new Date();
         endDay.setDate(now.getDate() - i * 7);
@@ -294,7 +285,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return points;
   }, [validOrders, selectedYear, selectedMonth]);
 
-  // 3. DADOS MENSAIS (Os 12 meses do ano selecionado: Jan a Dez)
   const monthlyData: DataPoint[] = useMemo(() => {
     return MONTH_NAMES.map((mName, mIdx) => {
       const monthOrders = validOrders.filter(o => {
@@ -322,7 +312,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     });
   }, [validOrders, selectedYear]);
 
-  // 4. DADOS ANUAIS (Consolidado por Ano: 2024, 2025, 2026...)
   const annualData: DataPoint[] = useMemo(() => {
     const yearsToShow = [...availableYears].sort((a, b) => a - b);
     return yearsToShow.map(y => {
@@ -351,7 +340,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     });
   }, [validOrders, availableYears]);
 
-  // Série ativa no momento baseada no período e canal selecionados
   const activeSeries = useMemo(() => {
     let rawData: DataPoint[];
     if (selectedPeriod === 'diario') rawData = dailyData;
@@ -372,7 +360,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     });
   }, [selectedPeriod, selectedChannel, dailyData, weeklyData, monthlyData, annualData]);
 
-  // KPIs consolidados do período selecionado
   const totalPeriodRevenue = useMemo(() => {
     return activeSeries.reduce((sum, d) => sum + (d.displayRevenue || 0), 0);
   }, [activeSeries]);
@@ -402,7 +389,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return [...activeSeries].sort((a, b) => (b.displayRevenue || 0) - (a.displayRevenue || 0))[0];
   }, [activeSeries]);
 
-  // Configuração SVG do Gráfico
   const chartHeight = 240;
   const chartWidth = 720;
   const paddingLeft = 65;
@@ -432,7 +418,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     });
   }, [activeSeries, innerWidth, innerHeight, maxRevenue]);
 
-  // Linha curva SVG
   const linePathD = useMemo(() => {
     if (points.length < 2) return '';
     return points.reduce((acc, point, i, arr) => {
@@ -446,7 +431,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     }, '');
   }, [points]);
 
-  // Área preenchida sob a curva
   const areaPathD = useMemo(() => {
     if (points.length < 2) return '';
     const first = points[0];
@@ -455,7 +439,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return `${linePathD} L ${last.x} ${baselineY} L ${first.x} ${baselineY} Z`;
   }, [linePathD, points, innerHeight]);
 
-  // Estatísticas de formas de pagamento
   const paymentBreakdown = useMemo(() => {
     const pixOrders = validOrders.filter(o => o.paymentMethod?.toLowerCase().includes('pix'));
     const creditOrders = validOrders.filter(
@@ -473,14 +456,13 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     const total = totalPeriodRevenue > 0 ? totalPeriodRevenue : (pixSum + creditSum + debitSum + cashSum || 1);
 
     return [
-      { method: 'Pix (Imediato)', percentage: total > 0 ? Math.round((pixSum / total) * 100) : 0, amount: pixSum, color: 'text-emerald-400', bg: 'bg-emerald-500' },
-      { method: 'Cartão de Crédito', percentage: total > 0 ? Math.round((creditSum / total) * 100) : 0, amount: creditSum, color: 'text-blue-400', bg: 'bg-blue-500' },
-      { method: 'Cartão de Débito', percentage: total > 0 ? Math.round((debitSum / total) * 100) : 0, amount: debitSum, color: 'text-amber-400', bg: 'bg-amber-500' },
-      { method: 'Dinheiro na Entrega / Balcão', percentage: total > 0 ? Math.round((cashSum / total) * 100) : 0, amount: cashSum, color: 'text-zinc-400', bg: 'bg-zinc-500' },
+      { method: 'Pix (Imediato)', percentage: total > 0 ? Math.round((pixSum / total) * 100) : 0, amount: pixSum, color: 'text-emerald-600', bg: 'bg-emerald-500' },
+      { method: 'Cartão de Crédito', percentage: total > 0 ? Math.round((creditSum / total) * 100) : 0, amount: creditSum, color: 'text-blue-600', bg: 'bg-blue-500' },
+      { method: 'Cartão de Débito', percentage: total > 0 ? Math.round((debitSum / total) * 100) : 0, amount: debitSum, color: 'text-amber-600', bg: 'bg-amber-500' },
+      { method: 'Dinheiro na Entrega / Balcão', percentage: total > 0 ? Math.round((cashSum / total) * 100) : 0, amount: cashSum, color: 'text-gray-600', bg: 'bg-gray-500' },
     ];
   }, [validOrders, totalPeriodRevenue]);
 
-  // Canais de Venda
   const totalDeliverySum = activeSeries.reduce((s, p) => s + p.deliveryRevenue, 0);
   const totalDineInSum = activeSeries.reduce((s, p) => s + p.dineInRevenue, 0);
   const totalTakeawaySum = activeSeries.reduce((s, p) => s + p.takeawayRevenue, 0);
@@ -490,7 +472,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   const dineInPercent = Math.round((totalDineInSum / grandTotalChannels) * 100);
   const takeawayPercent = Math.round((totalTakeawaySum / grandTotalChannels) * 100);
 
-  // Top 5 Produtos mais vendidos
   const topSellers = useMemo(() => {
     const itemsMap = new Map<string, { name: string; category: string; sales: number; revenue: number }>();
 
@@ -518,7 +499,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     }));
   }, [validOrders]);
 
-  // Exportar PDF em Paisagem (Horizontal)
   const handleExportPDFLandscape = () => {
     const style = document.createElement('style');
     style.innerHTML = '@media print { @page { size: landscape; margin: 10mm; } }';
@@ -533,7 +513,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Header Card com Seletores de Período, Ano e Mês (Card Branco) */}
+      {/* Top Header Card (Card Branco) */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4 text-gray-900">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -553,7 +533,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             </div>
           </div>
 
-          {/* Botões de Ação Topo */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
@@ -576,9 +555,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        {/* Linha de Filtros: Abas de Período + Seletor de Ano + Seletor de Mês */}
         <div className="pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
-          {/* Abas Principais: Diário, Semanal, Mensal, Anual */}
           <div className="bg-gray-100 p-1 rounded-xl border border-gray-200 flex items-center gap-1 flex-wrap">
             <button
               type="button"
@@ -641,9 +618,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             </button>
           </div>
 
-          {/* Seletores de Contexto (Ano e Mês) */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Seletor de Mês (quando em Semanal ou Diário) */}
             {(selectedPeriod === 'semanal' || selectedPeriod === 'diario') && (
               <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
                 <span className="text-gray-600 text-[11px] font-bold">Mês:</span>
@@ -656,11 +631,11 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                   }}
                   className="bg-transparent text-gray-900 font-bold outline-none cursor-pointer text-xs"
                 >
-                  <option value="todos" className="bg-white text-gray-900">
+                  <option value="todos">
                     {selectedPeriod === 'semanal' ? 'Últimas 8 Semanas' : 'Últimos 7 Dias'}
                   </option>
                   {MONTH_NAMES.map((name, idx) => (
-                    <option key={idx} value={idx} className="bg-white text-gray-900">
+                    <option key={idx} value={idx}>
                       {name}
                     </option>
                   ))}
@@ -668,7 +643,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               </div>
             )}
 
-            {/* Seletor de Ano */}
             {selectedPeriod !== 'anual' && (
               <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
                 <span className="text-gray-600 text-[11px] font-bold">Ano:</span>
@@ -681,7 +655,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                   className="bg-transparent text-gray-900 font-bold outline-none cursor-pointer text-xs font-mono"
                 >
                   {availableYears.map(yr => (
-                    <option key={yr} value={yr} className="bg-white text-gray-900 font-mono">
+                    <option key={yr} value={yr} className="font-mono">
                       {yr}
                     </option>
                   ))}
@@ -692,121 +666,115 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         </div>
       </div>
 
-      {/* KPI Cards Strip */}
+      {/* KPI Cards Strip (Cards Brancos) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* Card 1: Faturamento do Período */}
-        <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-[#353535] relative overflow-hidden shadow-lg group hover:border-[#ff5722]/50 transition-all">
+        <div className="bg-white rounded-2xl p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-[#ff5722]/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8e8f8f] font-['Montserrat']">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-['Montserrat']">
               Faturamento {selectedPeriod === 'diario' ? 'do Período' : selectedPeriod === 'semanal' ? 'das Semanas' : selectedPeriod === 'mensal' ? `de ${selectedYear}` : 'Histórico Total'}
             </span>
-            <div className="w-8 h-8 rounded-lg bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#ff5722] flex items-center justify-center border border-orange-200">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-['Montserrat'] font-black text-2xl text-white font-mono">
+            <span className="font-['Montserrat'] font-black text-2xl text-gray-900 font-mono">
               R$ {totalPeriodRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-xs">
-            <span className={`inline-flex items-center gap-0.5 font-bold ${periodGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className={`inline-flex items-center gap-0.5 font-bold ${periodGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {periodGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
               {Math.abs(periodGrowth).toFixed(1)}%
             </span>
-            <span className="text-[#8e8f8f] text-[11px]">vs intervalo anterior</span>
+            <span className="text-gray-500 text-[11px]">vs intervalo anterior</span>
           </div>
         </div>
 
-        {/* Card 2: Ticket Médio */}
-        <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-[#353535] relative overflow-hidden shadow-lg group hover:border-blue-500/50 transition-all">
+        <div className="bg-white rounded-2xl p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-blue-500/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8e8f8f] font-['Montserrat']">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-['Montserrat']">
               Ticket Médio por Pedido
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
               <Receipt className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-['Montserrat'] font-black text-2xl text-blue-300 font-mono">
+            <span className="font-['Montserrat'] font-black text-2xl text-blue-700 font-mono">
               R$ {periodAverageTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="mt-2 text-xs text-[#8e8f8f] flex items-center justify-between">
+          <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
             <span>Volume Total:</span>
-            <strong className="text-white font-mono">{totalPeriodOrders} pedidos faturados</strong>
+            <strong className="text-gray-900 font-mono">{totalPeriodOrders} pedidos faturados</strong>
           </div>
         </div>
 
-        {/* Card 3: Lucro Operacional Estimado */}
-        <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-emerald-500/30 relative overflow-hidden shadow-lg group hover:border-emerald-500 transition-all">
+        <div className="bg-white rounded-2xl p-4 border border-emerald-200 relative overflow-hidden shadow-sm group hover:border-emerald-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 font-['Montserrat']">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 font-['Montserrat']">
               Lucro Líquido Estimado (~38%)
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
               <Wallet className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-['Montserrat'] font-black text-2xl text-emerald-400 font-mono">
+            <span className="font-['Montserrat'] font-black text-2xl text-emerald-700 font-mono">
               R$ {totalPeriodProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="mt-2 text-xs text-[#8e8f8f] flex items-center justify-between">
+          <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
             <span>Margem Operacional:</span>
-            <strong className="text-emerald-400 font-bold font-mono">Alta Rentabilidade</strong>
+            <strong className="text-emerald-700 font-bold font-mono">Alta Rentabilidade</strong>
           </div>
         </div>
 
-        {/* Card 4: Pico de Vendas / Recorde */}
-        <div className="bg-[#1c1b1b] rounded-2xl p-4 border border-amber-500/30 relative overflow-hidden shadow-lg group hover:border-amber-500 transition-all">
+        <div className="bg-white rounded-2xl p-4 border border-amber-200 relative overflow-hidden shadow-sm group hover:border-amber-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 font-['Montserrat']">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 font-['Montserrat']">
               Maior Faturamento no Período
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
           <div className="truncate">
-            <span className="font-['Montserrat'] font-bold text-lg text-white block truncate">
+            <span className="font-['Montserrat'] font-bold text-lg text-gray-900 block truncate">
               {bestPoint && bestPoint.totalRevenue > 0 ? bestPoint.label.split('(')[0] : 'Sem vendas'}
             </span>
-            <span className="font-mono text-xs text-amber-300 font-bold mt-0.5 block">
+            <span className="font-mono text-xs text-amber-800 font-bold mt-0.5 block">
               R$ {bestPoint ? (bestPoint.displayRevenue || bestPoint.totalRevenue).toFixed(2).replace('.', ',') : '0,00'}
             </span>
           </div>
-          <div className="mt-2 text-[11px] text-[#8e8f8f] truncate">
+          <div className="mt-2 text-[11px] text-gray-500 truncate">
             {bestPoint && bestPoint.orderCount > 0 ? `${bestPoint.orderCount} pedidos concluídos` : 'Aguardando faturamento'}
           </div>
         </div>
       </div>
 
-      {/* Main Graph Card */}
-      <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl p-5 shadow-2xl space-y-4">
-        {/* Graph Header: Channel Filter & View Type Switcher */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-[#353535]/60">
+      {/* Main Graph Card (Card Branco) */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
+            <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
               <span>Curva de Evolução do Faturamento</span>
-              <span className="text-xs text-[#8e8f8f] font-normal">
+              <span className="text-xs text-gray-500 font-normal">
                 ({selectedPeriod === 'diario' ? 'Diário' : selectedPeriod === 'semanal' ? 'Por Semana' : selectedPeriod === 'mensal' ? `Meses de ${selectedYear}` : 'Ano a Ano'})
               </span>
             </h3>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Filter by Channel */}
-            <div className="flex items-center gap-1 bg-[#141414] p-1 rounded-xl border border-[#353535] text-xs">
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
               <button
                 type="button"
                 onClick={() => setSelectedChannel('todos')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
                   selectedChannel === 'todos'
                     ? 'bg-[#ff5722] text-white shadow'
-                    : 'text-[#8e8f8f] hover:text-white'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Todos
@@ -817,7 +785,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
                   selectedChannel === 'delivery'
                     ? 'bg-[#ff5722] text-white shadow'
-                    : 'text-[#8e8f8f] hover:text-white'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Bike className="w-3 h-3" />
@@ -829,7 +797,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
                   selectedChannel === 'mesas'
                     ? 'bg-[#ff5722] text-white shadow'
-                    : 'text-[#8e8f8f] hover:text-white'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <UtensilsCrossed className="w-3 h-3" />
@@ -841,7 +809,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition-all ${
                   selectedChannel === 'retirada'
                     ? 'bg-[#ff5722] text-white shadow'
-                    : 'text-[#8e8f8f] hover:text-white'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <ShoppingBag className="w-3 h-3" />
@@ -849,15 +817,13 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               </button>
             </div>
 
-            {/* Toggle Line vs Bar */}
-            <div className="flex items-center bg-[#141414] p-1 rounded-xl border border-[#353535] text-xs">
+            <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
               <button
                 type="button"
                 onClick={() => setActiveViewMode('linha')}
                 className={`px-2 py-1 rounded-lg font-bold ${
-                  activeViewMode === 'linha' ? 'bg-[#353535] text-white' : 'text-[#8e8f8f]'
+                  activeViewMode === 'linha' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                 }`}
-                title="Gráfico em Linha"
               >
                 Linha
               </button>
@@ -865,9 +831,8 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 type="button"
                 onClick={() => setActiveViewMode('barras')}
                 className={`px-2 py-1 rounded-lg font-bold ${
-                  activeViewMode === 'barras' ? 'bg-[#353535] text-white' : 'text-[#8e8f8f]'
+                  activeViewMode === 'barras' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
                 }`}
-                title="Gráfico em Barras"
               >
                 Barras
               </button>
@@ -875,7 +840,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        {/* SVG Interactive Chart Canvas */}
         <div className="relative w-full overflow-x-auto">
           <div className="min-w-[650px] w-full">
             <svg
@@ -884,8 +848,8 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             >
               <defs>
                 <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff5722" stopOpacity="0.45" />
-                  <stop offset="60%" stopColor="#ff5722" stopOpacity="0.10" />
+                  <stop offset="0%" stopColor="#ff5722" stopOpacity="0.25" />
+                  <stop offset="60%" stopColor="#ff5722" stopOpacity="0.06" />
                   <stop offset="100%" stopColor="#ff5722" stopOpacity="0.0" />
                 </linearGradient>
 
@@ -893,14 +857,8 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                   <stop offset="0%" stopColor="#ff7043" />
                   <stop offset="100%" stopColor="#d84315" />
                 </linearGradient>
-
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="4" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
               </defs>
 
-              {/* Linhas de Grade Horizontais */}
               {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                 const y = paddingTop + innerHeight - pct * innerHeight;
                 const valueLabel = (maxRevenue * pct).toFixed(0);
@@ -911,14 +869,14 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                       y1={y}
                       x2={chartWidth - paddingRight}
                       y2={y}
-                      stroke="#2e2e2e"
+                      stroke="#e5e7eb"
                       strokeDasharray={pct === 0 ? 'none' : '4 4'}
                       strokeWidth={pct === 0 ? '1.5' : '1'}
                     />
                     <text
                       x={paddingLeft - 10}
                       y={y + 4}
-                      fill="#8e8f8f"
+                      fill="#6b7280"
                       fontSize="10"
                       textAnchor="end"
                       fontFamily="monospace"
@@ -930,7 +888,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 );
               })}
 
-              {/* MODO 1: LINHA & ÁREA */}
               {activeViewMode === 'linha' && (
                 <>
                   {areaPathD && <path d={areaPathD} fill="url(#revenueGradient)" />}
@@ -941,7 +898,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                       stroke="#ff5722"
                       strokeWidth="3.5"
                       strokeLinecap="round"
-                      filter="url(#glow)"
                     />
                   )}
                   {points.map((p, idx) => {
@@ -952,10 +908,10 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                           cx={p.x}
                           cy={p.y}
                           r={isHovered ? 7 : 4.5}
-                          fill={isHovered ? '#ffffff' : '#ff5722'}
-                          stroke="#1c1b1b"
+                          fill={isHovered ? '#111827' : '#ff5722'}
+                          stroke="#ffffff"
                           strokeWidth="2.5"
-                          className="transition-all duration-150"
+                          className="transition-all duration-150 shadow"
                         />
                         <circle
                           cx={p.x}
@@ -971,7 +927,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 </>
               )}
 
-              {/* MODO 2: BARRAS */}
               {activeViewMode === 'barras' && (
                 <g>
                   {points.map((p, idx) => {
@@ -1000,7 +955,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                         <text
                           x={p.x}
                           y={y - 8}
-                          fill={isHovered ? '#ff8a65' : '#e5e2e1'}
+                          fill={isHovered ? '#ff5722' : '#4b5563'}
                           fontSize="9"
                           fontWeight="bold"
                           textAnchor="middle"
@@ -1014,7 +969,6 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 </g>
               )}
 
-              {/* Rótulos do Eixo X */}
               {points.map((p, idx) => {
                 const isHovered = hoveredPointIndex === idx;
                 return (
@@ -1022,7 +976,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                     key={idx}
                     x={p.x}
                     y={chartHeight - 12}
-                    fill={isHovered ? '#ff5722' : '#8e8f8f'}
+                    fill={isHovered ? '#ff5722' : '#6b7280'}
                     fontSize="10"
                     fontWeight={isHovered ? 'bold' : 'normal'}
                     textAnchor="middle"
@@ -1038,57 +992,56 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        {/* Tooltip Dinâmico de Detalhamento ao passar mouse ou tocar */}
         {currentHoveredPoint ? (
-          <div className="bg-[#141414] border border-[#ff5722]/40 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in">
             <div className="space-y-0.5">
-              <span className="text-[10px] uppercase font-bold text-[#ff8a65] tracking-wider font-['Montserrat']">
+              <span className="text-[10px] uppercase font-bold text-[#ff5722] tracking-wider font-['Montserrat']">
                 {currentHoveredPoint.data.label}
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black text-white font-mono">
+                <span className="text-xl font-black text-gray-900 font-mono">
                   R$ {(currentHoveredPoint.data.displayRevenue || currentHoveredPoint.data.totalRevenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
-                <span className="text-xs text-[#8e8f8f]">
+                <span className="text-xs text-gray-600">
                   ({currentHoveredPoint.data.orderCount} pedidos faturados)
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 text-xs font-mono flex-wrap">
-              <div className="bg-[#20201f] px-3 py-1.5 rounded-lg border border-[#353535]">
-                <span className="text-[9px] block text-[#8e8f8f] uppercase font-sans">Delivery</span>
-                <strong className="text-[#ff8a65]">R$ {currentHoveredPoint.data.deliveryRevenue.toFixed(2).replace('.', ',')}</strong>
+              <div className="bg-white px-3 py-1.5 rounded-lg border border-orange-200 shadow-sm">
+                <span className="text-[9px] block text-gray-500 uppercase font-sans">Delivery</span>
+                <strong className="text-[#ff5722]">R$ {currentHoveredPoint.data.deliveryRevenue.toFixed(2).replace('.', ',')}</strong>
               </div>
-              <div className="bg-[#20201f] px-3 py-1.5 rounded-lg border border-[#353535]">
-                <span className="text-[9px] block text-[#8e8f8f] uppercase font-sans">Salão (Mesas)</span>
-                <strong className="text-blue-400">R$ {currentHoveredPoint.data.dineInRevenue.toFixed(2).replace('.', ',')}</strong>
+              <div className="bg-white px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm">
+                <span className="text-[9px] block text-gray-500 uppercase font-sans">Salão (Mesas)</span>
+                <strong className="text-blue-600">R$ {currentHoveredPoint.data.dineInRevenue.toFixed(2).replace('.', ',')}</strong>
               </div>
-              <div className="bg-[#20201f] px-3 py-1.5 rounded-lg border border-[#353535]">
-                <span className="text-[9px] block text-[#8e8f8f] uppercase font-sans">Ticket Médio</span>
-                <strong className="text-emerald-400">R$ {currentHoveredPoint.data.averageTicket.toFixed(2).replace('.', ',')}</strong>
+              <div className="bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm">
+                <span className="text-[9px] block text-gray-500 uppercase font-sans">Ticket Médio</span>
+                <strong className="text-emerald-600">R$ {currentHoveredPoint.data.averageTicket.toFixed(2).replace('.', ',')}</strong>
               </div>
             </div>
           </div>
         ) : (
-          <div className="bg-[#141414] border border-[#353535] rounded-xl p-3 text-center text-xs text-[#8e8f8f]">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center text-xs text-gray-600">
             💡 Clique ou passe o cursor sobre qualquer ponto ou barra do gráfico para inspecionar os valores exatos de delivery, salão e ticket médio daquele período.
           </div>
         )}
       </div>
 
-      {/* NOVO: TABELA ANALÍTICA DE VENDAS POR PERÍODO */}
-      <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl p-5 shadow-2xl space-y-3.5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[#353535]">
+      {/* Demonstrativo Detalhado de Vendas (Card Branco com Tabela Limpa) */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-3.5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/15 text-[#ff5722] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#ff5722] flex items-center justify-center border border-orange-200">
               <Table className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+              <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900">
                 Demonstrativo Detalhado de Vendas ({selectedPeriod === 'diario' ? 'Diário' : selectedPeriod === 'semanal' ? 'Semanal' : selectedPeriod === 'mensal' ? 'Mensal' : 'Anual'})
               </h3>
-              <p className="text-[11px] text-[#8e8f8f]">
+              <p className="text-[11px] text-gray-500">
                 Tabela analítica consolidada com faturamento bruto, canais e ticket médio.
               </p>
             </div>
@@ -1097,9 +1050,9 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           <button
             type="button"
             onClick={handleExportPDFLandscape}
-            className="px-3 py-1.5 bg-[#252525] hover:bg-[#333] border border-[#444] rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            <FileText className="w-3.5 h-3.5 text-emerald-600" />
             <span>Exportar PDF (Horizontal)</span>
           </button>
         </div>
@@ -1107,55 +1060,55 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[#141414] text-[#8e8f8f] uppercase text-[10px] font-['Montserrat'] font-bold border-b border-[#333]">
+              <tr className="bg-gray-100 text-gray-600 uppercase text-[10px] font-['Montserrat'] font-bold border-b border-gray-200">
                 <th className="py-2.5 px-3">Período / Referência</th>
                 <th className="py-2.5 px-3 text-center">Qtd Pedidos</th>
                 <th className="py-2.5 px-3 text-right">Delivery</th>
                 <th className="py-2.5 px-3 text-right">Salão (Mesas)</th>
                 <th className="py-2.5 px-3 text-right">Balcão</th>
-                <th className="py-2.5 px-3 text-right text-white">Total Faturado</th>
+                <th className="py-2.5 px-3 text-right text-gray-900">Total Faturado</th>
                 <th className="py-2.5 px-3 text-right">Ticket Médio</th>
-                <th className="py-2.5 px-3 text-right text-emerald-400">Lucro Estimado</th>
+                <th className="py-2.5 px-3 text-right text-emerald-600">Lucro Estimado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#2a2a2a] text-[#e5e2e1] font-mono">
+            <tbody className="divide-y divide-gray-100 text-gray-800 font-mono">
               {activeSeries.map((d, idx) => {
                 const total = d.displayRevenue !== undefined ? d.displayRevenue : d.totalRevenue;
                 return (
                   <tr
                     key={idx}
-                    className="hover:bg-[#252525] transition-colors cursor-pointer"
+                    className="hover:bg-orange-50/50 transition-colors cursor-pointer"
                     onClick={() => setHoveredPointIndex(idx)}
                   >
-                    <td className="py-2.5 px-3 font-sans font-medium text-white flex items-center gap-2">
+                    <td className="py-2.5 px-3 font-sans font-medium text-gray-900 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#ff5722]" />
                       <span>{d.label}</span>
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold">
                       {d.orderCount > 0 ? (
-                        <span className="bg-[#20201f] px-2 py-0.5 rounded text-amber-300 font-bold">
+                        <span className="bg-orange-50 border border-orange-200 px-2 py-0.5 rounded text-orange-800 font-bold">
                           {d.orderCount}
                         </span>
                       ) : (
-                        <span className="text-gray-600">0</span>
+                        <span className="text-gray-400">0</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-[#ff8a65]">
+                    <td className="py-2.5 px-3 text-right text-[#ff5722]">
                       R$ {d.deliveryRevenue.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-blue-400">
+                    <td className="py-2.5 px-3 text-right text-blue-600">
                       R$ {d.dineInRevenue.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-emerald-300">
+                    <td className="py-2.5 px-3 text-right text-emerald-600">
                       R$ {d.takeawayRevenue.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-black text-white bg-black/20">
+                    <td className="py-2.5 px-3 text-right font-black text-gray-900 bg-gray-50">
                       R$ {total.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-zinc-300">
+                    <td className="py-2.5 px-3 text-right text-gray-600">
                       R$ {d.averageTicket.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-emerald-400">
+                    <td className="py-2.5 px-3 text-right font-bold text-emerald-600">
                       R$ {d.profitEstimate.toFixed(2).replace('.', ',')}
                     </td>
                   </tr>
@@ -1163,29 +1116,29 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-[#141414] font-bold text-white border-t-2 border-[#ff5722] font-mono">
+              <tr className="bg-gray-100 font-bold text-gray-900 border-t-2 border-[#ff5722] font-mono">
                 <td className="py-3 px-3 font-sans font-black uppercase text-[#ff5722] text-xs">
                   TOTAL DO PERÍODO
                 </td>
-                <td className="py-3 px-3 text-center text-amber-300 font-black">
+                <td className="py-3 px-3 text-center text-orange-800 font-black">
                   {totalPeriodOrders}
                 </td>
-                <td className="py-3 px-3 text-right text-[#ff8a65]">
+                <td className="py-3 px-3 text-right text-[#ff5722]">
                   R$ {totalDeliverySum.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="py-3 px-3 text-right text-blue-400">
+                <td className="py-3 px-3 text-right text-blue-600">
                   R$ {totalDineInSum.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="py-3 px-3 text-right text-emerald-300">
+                <td className="py-3 px-3 text-right text-emerald-600">
                   R$ {totalTakeawaySum.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="py-3 px-3 text-right font-black text-lg text-[#ff5722] bg-black/40 font-['Montserrat']">
+                <td className="py-3 px-3 text-right font-black text-lg text-[#ff5722] bg-orange-50 font-['Montserrat'] border border-orange-200">
                   R$ {totalPeriodRevenue.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="py-3 px-3 text-right text-zinc-200">
+                <td className="py-3 px-3 text-right text-gray-700">
                   R$ {periodAverageTicket.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="py-3 px-3 text-right font-black text-emerald-400">
+                <td className="py-3 px-3 text-right font-black text-emerald-600">
                   R$ {totalPeriodProfit.toFixed(2).replace('.', ',')}
                 </td>
               </tr>
@@ -1194,24 +1147,22 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         </div>
       </div>
 
-      {/* Two Column Section: Channel & Payment Breakdown + Top Sellers */}
+      {/* Two Column Section: Channel & Payment Breakdown + Top Sellers (Cards Brancos) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Left: Channels & Payment Distribution */}
-        <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-2.5 border-b border-[#353535]">
-            <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+            <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
               <PieChart className="w-4 h-4 text-[#ff5722]" />
               <span>Divisão por Canais & Meios de Pagamento</span>
             </h3>
-            <span className="text-[10px] text-[#8e8f8f] font-mono">Consolidado</span>
+            <span className="text-[10px] text-gray-500 font-mono">Consolidado</span>
           </div>
 
-          {/* Channels Progress Bar */}
           <div className="space-y-2">
-            <span className="text-[11px] font-bold text-[#b4b5b5] block">
+            <span className="text-[11px] font-bold text-gray-700 block">
               Participação por Canal de Venda:
             </span>
-            <div className="w-full h-4 bg-[#141414] rounded-full overflow-hidden flex border border-[#353535]">
+            <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden flex border border-gray-200">
               <div
                 style={{ width: `${deliveryPercent}%` }}
                 className="bg-[#ff5722] h-full transition-all"
@@ -1229,8 +1180,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
               />
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-between text-xs text-[#b4b5b5] pt-1">
+            <div className="flex items-center justify-between text-xs text-gray-600 pt-1">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722]" />
                 <span>Delivery ({deliveryPercent}%)</span>
@@ -1246,20 +1196,19 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             </div>
           </div>
 
-          {/* Payment Methods Breakdown */}
-          <div className="pt-3 border-t border-[#353535] space-y-2.5">
-            <span className="text-[11px] font-bold text-[#b4b5b5] block">
+          <div className="pt-3 border-t border-gray-100 space-y-2.5">
+            <span className="text-[11px] font-bold text-gray-700 block">
               Formas de Pagamento Recebidas:
             </span>
             <div className="space-y-2 text-xs">
               {paymentBreakdown.map((pm, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-[#141414] border border-[#2a2a2a]">
+                <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${pm.bg}`} />
-                    <span className="text-white font-medium">{pm.method}</span>
+                    <span className="text-gray-900 font-medium">{pm.method}</span>
                   </div>
                   <div className="flex items-center gap-3 font-mono">
-                    <span className="text-[#8e8f8f]">{pm.percentage}%</span>
+                    <span className="text-gray-500">{pm.percentage}%</span>
                     <strong className={pm.color}>
                       R$ {pm.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </strong>
@@ -1270,21 +1219,20 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
         </div>
 
-        {/* Right: Top Selling Products */}
-        <div className="bg-[#1c1b1b] border border-[#353535] rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-2.5 border-b border-[#353535]">
-            <h3 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+            <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-emerald-600" />
               <span>Top 5 Campeões de Faturamento</span>
             </h3>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
               Mais Vendidos
             </span>
           </div>
 
           <div className="space-y-3">
             {topSellers.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#8e8f8f]">
+              <div className="py-8 text-center text-xs text-gray-500">
                 Nenhum produto vendido ainda. Quando houver pedidos faturados, o ranking dos campeões de venda aparecerá aqui.
               </div>
             ) : (
@@ -1292,28 +1240,28 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 <div key={idx} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-md bg-[#252525] text-white flex items-center justify-center font-bold text-[10px]">
+                      <span className="w-5 h-5 rounded-md bg-gray-100 text-gray-800 flex items-center justify-center font-bold text-[10px] border border-gray-200">
                         {idx + 1}
                       </span>
                       <div>
-                        <strong className="text-white block font-['Montserrat'] truncate max-w-[200px] sm:max-w-xs">
+                        <strong className="text-gray-900 block font-['Montserrat'] truncate max-w-[200px] sm:max-w-xs">
                           {item.name}
                         </strong>
-                        <span className="text-[10px] text-[#8e8f8f] block">{item.category}</span>
+                        <span className="text-[10px] text-gray-500 block">{item.category}</span>
                       </div>
                     </div>
                     <div className="text-right font-mono">
-                      <span className="text-white font-bold block">
+                      <span className="text-gray-900 font-bold block">
                         R$ {item.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="text-[10px] text-[#8e8f8f] block">{item.sales} un vendidas</span>
+                      <span className="text-[10px] text-gray-500 block">{item.sales} un vendidas</span>
                     </div>
                   </div>
 
-                  <div className="w-full h-1.5 bg-[#252525] rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       style={{ width: `${item.percent}%` }}
-                      className="h-full bg-gradient-to-r from-[#ff5722] to-amber-400 rounded-full"
+                      className="h-full bg-gradient-to-r from-[#ff5722] to-amber-500 rounded-full"
                     />
                   </div>
                 </div>
@@ -1322,7 +1270,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
 
           <div className="pt-2 text-center">
-            <span className="text-[11px] text-[#8e8f8f]">
+            <span className="text-[11px] text-gray-500">
               {topSellers.length > 0 ? (
                 <>O <strong>{topSellers[0].name}</strong> lidera o faturamento acumulado do restaurante.</>
               ) : (
