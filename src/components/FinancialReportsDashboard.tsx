@@ -95,6 +95,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   const [selectedChannel, setSelectedChannel] = useState<ChannelType>('todos');
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
   const [activeViewMode, setActiveViewMode] = useState<'linha' | 'barras'>('linha');
+  const [hoveredWeekCompareIndex, setHoveredWeekCompareIndex] = useState<number | null>(null);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -112,6 +113,60 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
   const validOrders = useMemo(() => {
     return orders.filter(o => o.status !== 'recusado');
   }, [orders]);
+
+  const currentVsPreviousWeekData = useMemo(() => {
+    const result = [];
+    for (let i = 6; i >= 0; i--) {
+      const currDate = new Date();
+      currDate.setDate(now.getDate() - i);
+      currDate.setHours(0, 0, 0, 0);
+
+      const prevDate = new Date(currDate);
+      prevDate.setDate(currDate.getDate() - 7);
+
+      const yCurr = currDate.getFullYear();
+      const mCurr = currDate.getMonth();
+      const dCurr = currDate.getDate();
+
+      const yPrev = prevDate.getFullYear();
+      const mPrev = prevDate.getMonth();
+      const dPrev = prevDate.getDate();
+
+      const currOrders = validOrders.filter(o => {
+        const d = parseOrderDate(o);
+        return d.getFullYear() === yCurr && d.getMonth() === mCurr && d.getDate() === dCurr;
+      });
+
+      const prevOrders = validOrders.filter(o => {
+        const d = parseOrderDate(o);
+        return d.getFullYear() === yPrev && d.getMonth() === mPrev && d.getDate() === dPrev;
+      });
+
+      const currRev = currOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+      const prevRev = prevOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const dayLabel = dayNames[currDate.getDay()];
+      const dateStr = `${String(dCurr).padStart(2, '0')}/${String(mCurr + 1).padStart(2, '0')}`;
+      const prevDateStr = `${String(dPrev).padStart(2, '0')}/${String(mPrev + 1).padStart(2, '0')}`;
+
+      result.push({
+        dayName: dayLabel,
+        dateStr,
+        prevDateStr,
+        currentRevenue: currRev,
+        previousRevenue: prevRev,
+        currentOrders: currOrders.length,
+        previousOrders: prevOrders.length,
+      });
+    }
+    return result;
+  }, [validOrders, now]);
+
+  const totalCurrentWeekCompare = currentVsPreviousWeekData.reduce((s, d) => s + d.currentRevenue, 0);
+  const totalPreviousWeekCompare = currentVsPreviousWeekData.reduce((s, d) => s + d.previousRevenue, 0);
+  const weekCompareDiff = totalPreviousWeekCompare > 0 ? ((totalCurrentWeekCompare - totalPreviousWeekCompare) / totalPreviousWeekCompare) * 100 : (totalCurrentWeekCompare > 0 ? 100 : 0);
+  const maxCompareRevenue = Math.max(...currentVsPreviousWeekData.map(d => Math.max(d.currentRevenue, d.previousRevenue)), 100) * 1.15;
 
   const dailyData: DataPoint[] = useMemo(() => {
     const points: DataPoint[] = [];
@@ -1026,6 +1081,177 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         ) : (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center text-xs text-gray-600">
             💡 Clique ou passe o cursor sobre qualquer ponto ou barra do gráfico para inspecionar os valores exatos de delivery, salão e ticket médio daquele período.
+          </div>
+        )}
+      </div>
+
+      {/* Comparativo Faturamento: Semana Atual vs Semana Anterior */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200 text-[#ff5722] flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
+                <span>Comparativo de Vendas: Semana Atual vs Semana Anterior</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase ${weekCompareDiff >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {weekCompareDiff >= 0 ? `+${weekCompareDiff.toFixed(1)}%` : `${weekCompareDiff.toFixed(1)}%`} vs semana anterior
+                </span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Comparação dia a dia entre o faturamento dos últimos 7 dias e o período correspondente da semana passada.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs font-mono">
+            <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722]" />
+              <span className="text-gray-600">Atual:</span>
+              <strong className="text-gray-900 font-bold">R$ {totalCurrentWeekCompare.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div className="bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+              <span className="text-gray-600">Anterior:</span>
+              <strong className="text-gray-900 font-bold">R$ {totalPreviousWeekCompare.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative w-full overflow-x-auto pt-2">
+          <div className="min-w-[650px] w-full">
+            <svg
+              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+              className="w-full h-auto overflow-visible select-none"
+            >
+              <defs>
+                <linearGradient id="currentWeekBar" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff7043" />
+                  <stop offset="100%" stopColor="#d84315" />
+                </linearGradient>
+                <linearGradient id="prevWeekBar" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#94a3b8" />
+                  <stop offset="100%" stopColor="#64748b" />
+                </linearGradient>
+              </defs>
+
+              {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+                const y = paddingTop + innerHeight - pct * innerHeight;
+                const valueLabel = (maxCompareRevenue * pct).toFixed(0);
+                return (
+                  <g key={i}>
+                    <line
+                      x1={paddingLeft}
+                      y1={y}
+                      x2={chartWidth - paddingRight}
+                      y2={y}
+                      stroke="#e5e7eb"
+                      strokeDasharray={pct === 0 ? 'none' : '4 4'}
+                      strokeWidth={pct === 0 ? '1.5' : '1'}
+                    />
+                    <text
+                      x={paddingLeft - 10}
+                      y={y + 4}
+                      fill="#6b7280"
+                      fontSize="10"
+                      textAnchor="end"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                    >
+                      R$ {Number(valueLabel).toLocaleString('pt-BR')}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {currentVsPreviousWeekData.map((d, idx) => {
+                const groupWidth = innerWidth / currentVsPreviousWeekData.length;
+                const groupX = paddingLeft + idx * groupWidth;
+                const barWidth = Math.max(10, Math.min(24, groupWidth * 0.35));
+                const spacing = 4;
+
+                const currBarH = Math.max(4, (d.currentRevenue / maxCompareRevenue) * innerHeight);
+                const prevBarH = Math.max(4, (d.previousRevenue / maxCompareRevenue) * innerHeight);
+
+                const currY = paddingTop + innerHeight - currBarH;
+                const prevY = paddingTop + innerHeight - prevBarH;
+
+                const currX = groupX + groupWidth / 2 - barWidth - spacing / 2;
+                const prevX = groupX + groupWidth / 2 + spacing / 2;
+
+                const isHovered = hoveredWeekCompareIndex === idx;
+
+                return (
+                  <g
+                    key={idx}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredWeekCompareIndex(idx)}
+                    onClick={() => setHoveredWeekCompareIndex(idx)}
+                  >
+                    <rect
+                      x={prevX}
+                      y={prevY}
+                      width={barWidth}
+                      height={prevBarH}
+                      rx="3"
+                      fill={isHovered ? '#64748b' : 'url(#prevWeekBar)'}
+                      className="transition-all duration-150"
+                    />
+
+                    <rect
+                      x={currX}
+                      y={currY}
+                      width={barWidth}
+                      height={currBarH}
+                      rx="3"
+                      fill={isHovered ? '#ff7043' : 'url(#currentWeekBar)'}
+                      className="transition-all duration-150 shadow-sm"
+                    />
+
+                    <text
+                      x={groupX + groupWidth / 2}
+                      y={chartHeight - 12}
+                      fill={isHovered ? '#ff5722' : '#6b7280'}
+                      fontSize="10"
+                      fontWeight={isHovered ? 'bold' : 'normal'}
+                      textAnchor="middle"
+                      fontFamily="Montserrat, sans-serif"
+                    >
+                      {d.dayName} ({d.dateStr})
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+
+        {hoveredWeekCompareIndex !== null ? (
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in">
+            <div className="space-y-0.5">
+              <span className="text-[10px] uppercase font-bold text-[#ff5722] tracking-wider font-['Montserrat']">
+                {currentVsPreviousWeekData[hoveredWeekCompareIndex].dayName} • {currentVsPreviousWeekData[hoveredWeekCompareIndex].dateStr} (Semana Atual) vs {currentVsPreviousWeekData[hoveredWeekCompareIndex].prevDateStr} (Semana Anterior)
+              </span>
+              <div className="flex items-center gap-4 text-xs font-mono pt-1">
+                <div>
+                  <span className="text-gray-500 font-sans text-[10px] block">Semana Atual:</span>
+                  <strong className="text-[#ff5722] text-sm">
+                    R$ {currentVsPreviousWeekData[hoveredWeekCompareIndex].currentRevenue.toFixed(2).replace('.', ',')} ({currentVsPreviousWeekData[hoveredWeekCompareIndex].currentOrders} ped.)
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-sans text-[10px] block">Semana Anterior:</span>
+                  <strong className="text-slate-600 text-sm">
+                    R$ {currentVsPreviousWeekData[hoveredWeekCompareIndex].previousRevenue.toFixed(2).replace('.', ',')} ({currentVsPreviousWeekData[hoveredWeekCompareIndex].previousOrders} ped.)
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center text-xs text-gray-600">
+            💡 Passe o cursor sobre as barras para comparar detalhadamente o faturamento de cada dia da semana atual com a semana anterior.
           </div>
         )}
       </div>
