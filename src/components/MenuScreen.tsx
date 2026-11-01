@@ -42,6 +42,7 @@ import {
   Calendar,
   Power,
   AlertCircle,
+  PauseCircle,
 } from 'lucide-react';
 
 interface MenuScreenProps {
@@ -86,7 +87,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   onOpenCustomerRegister,
   onOpenAddressModal,
   onSelectProduct,
-  onQuickAdd,
+  onQuickAdd: onQuickAddProp,
   onOpenCart,
   onOpenKitchen,
   onOpenChat,
@@ -123,6 +124,17 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [pausedAlertToast, setPausedAlertToast] = useState<string | null>(null);
+
+  // Intercepta tentativas de adicionar pratos quando a hamburgueria estiver com atividades suspensas
+  const onQuickAdd = (product: Product) => {
+    if (storeSettings?.isOrdersPaused) {
+      setPausedAlertToast('A hamburgueria está com as atividades suspensas temporariamente. O recebimento de pedidos está pausado no momento.');
+      setTimeout(() => setPausedAlertToast(null), 4000);
+      return;
+    }
+    onQuickAddProp(product);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -351,7 +363,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
               type="button"
               onClick={() => setShowScheduleModal(true)}
               className={`h-9 px-2.5 sm:px-3 rounded-full border text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ${
-                operatingStatus.isOpen
+                storeSettings?.isOrdersPaused
+                  ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/50 animate-pulse'
+                  : operatingStatus.isOpen
                   ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                   : 'bg-red-500/15 hover:bg-red-500/25 text-red-400 border-red-500/40 animate-pulse'
               }`}
@@ -359,13 +373,32 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  operatingStatus.isOpen ? 'bg-emerald-400' : 'bg-red-400'
+                  storeSettings?.isOrdersPaused
+                    ? 'bg-amber-400 animate-ping'
+                    : operatingStatus.isOpen
+                    ? 'bg-emerald-400'
+                    : 'bg-red-400'
                 }`}
               />
               <span className="hidden sm:inline">
-                {operatingStatus.isOpen ? 'Aberto' : 'Fechado'}
+                {storeSettings?.isOrdersPaused
+                  ? 'Atividades Suspensas'
+                  : operatingStatus.isOpen
+                  ? 'Aberto'
+                  : 'Fechado'}
               </span>
-              <Clock className="w-3.5 h-3.5 opacity-80" />
+              <span className="sm:hidden">
+                {storeSettings?.isOrdersPaused
+                  ? 'Suspenso'
+                  : operatingStatus.isOpen
+                  ? 'Aberto'
+                  : 'Fechado'}
+              </span>
+              {storeSettings?.isOrdersPaused ? (
+                <PauseCircle className="w-3.5 h-3.5 opacity-90 text-amber-300" />
+              ) : (
+                <Clock className="w-3.5 h-3.5 opacity-80" />
+              )}
             </button>
 
             <button
@@ -593,34 +626,35 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto space-y-6">
-        {/* Alerta Visual de Hamburgueria Fechada */}
-        {operatingStatus.isClosed && (
-          <div className="bg-gradient-to-r from-red-950/80 via-[#1f1515] to-red-950/80 border-2 border-red-500/60 rounded-xl p-4 sm:p-5 shadow-xl shadow-red-950/50 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+        {/* Alerta de Atividades Suspensas Temporariamente (Recebimento de Pedidos Pausado pelo Gestor) */}
+        {storeSettings?.isOrdersPaused ? (
+          <div className="bg-gradient-to-r from-amber-950/90 via-[#26170c] to-amber-950/90 border-2 border-amber-500 rounded-xl p-4 sm:p-5 shadow-2xl shadow-amber-950/60 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
             {/* Brilho decorativo sutil */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
               <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
-                  <Clock className="w-5 h-5 animate-pulse" />
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                  <PauseCircle className="w-6 h-6 animate-pulse" />
                 </div>
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-['Montserrat'] font-black text-xs sm:text-sm text-red-400 uppercase tracking-wide flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" />
-                      {operatingStatus.statusText}
+                    <span className="font-['Montserrat'] font-black text-xs sm:text-sm text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                      Atividades Suspensas Temporariamente
                     </span>
-                    <span className="bg-red-500/20 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-500/30">
+                    <span className="bg-amber-500/25 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
                       Pedidos Pausados
                     </span>
                   </div>
 
-                  <p className="text-xs text-white font-medium">
-                    {operatingStatus.statusSubtext}
+                  <p className="text-xs sm:text-sm text-white font-semibold">
+                    A hamburgueria está com as atividades suspensas temporariamente.
                   </p>
 
-                  <p className="text-[11px] text-[#b4b5b5] max-w-xl">
-                    Você pode navegar livremente pelo cardápio, conferir os ingredientes e montar sua sacola à vontade. O envio de pedidos será retomado assim que abrirmos!
+                  <p className="text-[11px] text-[#d1d5db] max-w-xl">
+                    {storeSettings.ordersPausedMessage ||
+                      'O recebimento de novos pedidos foi pausado temporariamente pela equipe da cozinha. Você pode conferir nosso cardápio completo normalmente — voltaremos a receber pedidos em breve!'}
                   </p>
                 </div>
               </div>
@@ -640,20 +674,84 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
                     type="button"
                     onClick={() => {
                       if (onUpdateStoreSettings && storeSettings) {
-                        onUpdateStoreSettings({ ...storeSettings, isOpen: true, scheduleMode: 'manual' });
+                        onUpdateStoreSettings({ ...storeSettings, isOrdersPaused: false, isOpen: true });
                       } else {
                         onOpenKitchen();
                       }
                     }}
                     className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    title="Retomar recebimento de pedidos no cardápio"
                   >
                     <Power className="w-3.5 h-3.5" />
-                    <span>Abrir Loja</span>
+                    <span>Retomar Loja</span>
                   </button>
                 )}
               </div>
             </div>
           </div>
+        ) : (
+          /* Alerta Visual de Hamburgueria Fechada Pelo Horário */
+          operatingStatus.isClosed && (
+            <div className="bg-gradient-to-r from-red-950/80 via-[#1f1515] to-red-950/80 border-2 border-red-500/60 rounded-xl p-4 sm:p-5 shadow-xl shadow-red-950/50 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+              {/* Brilho decorativo sutil */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+                    <Clock className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-['Montserrat'] font-black text-xs sm:text-sm text-red-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" />
+                        {operatingStatus.statusText}
+                      </span>
+                      <span className="bg-red-500/20 text-red-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-500/30">
+                        Pedidos Pausados
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-white font-medium">
+                      {operatingStatus.statusSubtext}
+                    </p>
+
+                    <p className="text-[11px] text-[#b4b5b5] max-w-xl">
+                      Você pode navegar livremente pelo cardápio, conferir os ingredientes e montar sua sacola à vontade. O envio de pedidos será retomado assim que abrirmos!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowScheduleModal(true)}
+                    className="px-3.5 py-2 rounded-lg bg-[#2a2a2a] hover:bg-[#353535] border border-[#454545] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-[#ff8a65]" />
+                    <span>Ver Horários</span>
+                  </button>
+
+                  {showManagerIcon && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onUpdateStoreSettings && storeSettings) {
+                          onUpdateStoreSettings({ ...storeSettings, isOpen: true, scheduleMode: 'manual' });
+                        } else {
+                          onOpenKitchen();
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                    >
+                      <Power className="w-3.5 h-3.5" />
+                      <span>Abrir Loja</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {/* Delivery Address & GPS Quick Access */}
@@ -1439,6 +1537,30 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       )}
 
       {/* Modal Completa com os Horários dos 7 Dias da Semana */}
+      {/* Toast Flutuante de Alerta de Atividades Suspensas */}
+      {pausedAlertToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-md bg-amber-950/95 border-2 border-amber-500 text-white p-3.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shrink-0">
+            <PauseCircle className="w-5 h-5 animate-pulse" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <strong className="block text-amber-400 font-bold text-xs uppercase tracking-wide">
+              Atividades Suspensas Temporariamente
+            </strong>
+            <p className="text-[11px] text-amber-100/90 mt-0.5 leading-snug">
+              {pausedAlertToast}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPausedAlertToast(null)}
+            className="p-1 rounded-md text-amber-300 hover:text-white hover:bg-amber-800/40 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <WeeklyScheduleModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}

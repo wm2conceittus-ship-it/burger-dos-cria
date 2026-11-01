@@ -25,6 +25,8 @@
       "type": "object",
       "properties": {
         "isOpen": { "type": "boolean" },
+        "isOrdersPaused": { "type": "boolean" },
+        "ordersPausedMessage": { "type": "string" },
         "storeName": { "type": "string" },
         "pixKey": { "type": "string" },
         "whatsappSupport": { "type": "string" },

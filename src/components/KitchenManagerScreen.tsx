@@ -93,6 +93,8 @@ import {
   Moon,
   Activity,
   RefreshCw,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -1801,6 +1803,48 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Botão de Pausar / Retomar Recebimento de Pedidos */}
+            <button
+              type="button"
+              onClick={() => {
+                const willPause = !storeSettings.isOrdersPaused;
+                onUpdateStoreSettings({
+                  ...storeSettings,
+                  isOrdersPaused: willPause,
+                });
+                setFinancialToast(
+                  willPause
+                    ? '⏸️ Recebimento de pedidos PAUSADO! Aviso exibido aos clientes no cardápio.'
+                    : '▶️ Recebimento de pedidos RETOMADO com sucesso!'
+                );
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 shadow-sm ${
+                storeSettings.isOrdersPaused
+                  ? 'bg-red-600 hover:bg-red-500 text-white border-red-400 ring-2 ring-red-400/50 animate-pulse'
+                  : managerTheme === 'light'
+                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                  : 'bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border-amber-500/50'
+              }`}
+              title={
+                storeSettings.isOrdersPaused
+                  ? 'Clique para retomar o recebimento de pedidos no cardápio'
+                  : 'Pausar temporariamente o recebimento de pedidos (avisa os clientes no cardápio)'
+              }
+            >
+              {storeSettings.isOrdersPaused ? (
+                <>
+                  <PlayCircle className="w-3.5 h-3.5 text-white" />
+                  <span className="font-extrabold">Retomar Pedidos</span>
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Pausar Recebimento de Pedidos</span>
+                  <span className="sm:hidden">Pausar Pedidos</span>
+                </>
+              )}
+            </button>
+
             {/* Botão de Conferência Pix & Resgate de Pedidos */}
             <button type="button" onClick={() => setShowPixRecoveryModal(true)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
@@ -2076,6 +2120,45 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
+        {/* Banner de Aviso de Pedidos Pausados no Painel do Gestor */}
+        {storeSettings.isOrdersPaused && (
+          <div className="bg-gradient-to-r from-red-950 via-[#2a1313] to-red-950 border-2 border-red-500 rounded-xl p-4 sm:p-4.5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0">
+                <PauseCircle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-['Montserrat'] font-black text-sm text-red-300 uppercase tracking-wide">
+                    RECEBIMENTO DE PEDIDOS PAUSADO
+                  </span>
+                  <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                    Loja Suspensa
+                  </span>
+                </div>
+                <p className="text-xs text-amber-100/90 mt-0.5">
+                  Os clientes estão visualizando no cardápio que a hamburgueria está com as atividades suspensas temporariamente. Nenhum novo pedido pode ser feito até que você retome.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateStoreSettings({
+                  ...storeSettings,
+                  isOrdersPaused: false,
+                });
+                setFinancialToast('▶️ Recebimento de pedidos RETOMADO com sucesso!');
+              }}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0"
+            >
+              <PlayCircle className="w-4 h-4" />
+              <span>Retomar Recebimento de Pedidos</span>
+            </button>
+          </div>
+        )}
+
         {/* Management Module Tabs */}
         <section className={`flex items-center justify-between border-b pb-2 overflow-x-auto hide-scrollbar ${
           managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'

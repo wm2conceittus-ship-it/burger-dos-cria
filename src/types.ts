@@ -163,6 +163,8 @@ export interface WeeklySchedule {
 
 export interface StoreSettings {
   isOpen: boolean;
+  isOrdersPaused?: boolean;
+  ordersPausedMessage?: string;
   storeName: string;
   address?: string;
   defaultDeliveryFee: number;
