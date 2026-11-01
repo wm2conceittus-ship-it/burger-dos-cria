@@ -55,13 +55,12 @@ function timeStringToMinutes(timeStr: string): number {
 export interface StoreOperatingStatus {
   isOpen: boolean;
   isClosed: boolean;
-  isOrdersPaused?: boolean;
   mode: 'auto' | 'manual';
   isManualOverride: boolean;
   currentDayKey: DayKey;
   currentDayLabel: string;
   todaySchedule: DaySchedule;
-  reason: 'manual_closed' | 'scheduled_day_off' | 'scheduled_time_closed' | 'orders_paused' | 'open';
+  reason: 'manual_closed' | 'scheduled_day_off' | 'scheduled_time_closed' | 'open';
   statusText: string;
   statusSubtext: string;
   nextOpeningText?: string;
@@ -177,9 +176,6 @@ export function getStoreOperatingStatus(
     }
   }
 
-  // Prioridade Máxima: Pausa temporária explícita de recebimento de pedidos pelo gestor
-  const isOrdersPaused = Boolean(settings?.isOrdersPaused);
-
   // Lógica final considerando modo automático vs manual
   let effectiveIsOpen = false;
   let reason: StoreOperatingStatus['reason'] = 'open';
@@ -188,14 +184,7 @@ export function getStoreOperatingStatus(
     ? `Fechamento previsto às ${activeShiftCloseTime}`
     : 'Aceitando pedidos a todo vapor!';
 
-  if (isOrdersPaused) {
-    effectiveIsOpen = false;
-    reason = 'orders_paused';
-    statusText = 'Atividades Suspensas Temporariamente';
-    statusSubtext =
-      settings?.ordersPausedMessage ||
-      'A hamburgueria está com as atividades suspensas temporariamente. O recebimento de novos pedidos está pausado.';
-  } else if (mode === 'manual') {
+  if (mode === 'manual') {
     effectiveIsOpen = !isManuallyClosed;
     if (!effectiveIsOpen) {
       reason = 'manual_closed';
@@ -238,9 +227,8 @@ export function getStoreOperatingStatus(
   return {
     isOpen: effectiveIsOpen,
     isClosed: !effectiveIsOpen,
-    isOrdersPaused,
     mode,
-    isManualOverride: (isManuallyClosed && isOpenBySchedule) || isOrdersPaused,
+    isManualOverride: isManuallyClosed && isOpenBySchedule,
     currentDayKey,
     currentDayLabel,
     todaySchedule,

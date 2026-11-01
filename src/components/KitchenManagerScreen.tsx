@@ -93,8 +93,6 @@ import {
   Moon,
   Activity,
   RefreshCw,
-  PauseCircle,
-  PlayCircle,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -635,7 +633,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
   const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
   const [financialToast, setFinancialToast] = useState<string | null>(null);
-  const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre'>('graficos');
+  const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre' | 'conciliacao'>('graficos');
+
+  // Estados para Conciliação Financeira em Tempo Real
+  const [checkingOrderIds, setCheckingOrderIds] = useState<Record<string, boolean>>({});
+  const [isBatchChecking, setIsBatchChecking] = useState(false);
+  const [orderCheckStatusMsg, setOrderCheckStatusMsg] = useState<
+    Record<string, { message: string; isApproved?: boolean; checkedAt: string; status?: string }>
+  >({});
+  const [conciliacaoSearch, setConciliacaoSearch] = useState('');
+  const [conciliacaoMethodFilter, setConciliacaoMethodFilter] = useState<'todos' | 'pix' | 'cartao' | 'dinheiro'>('todos');
+  const [conciliacaoStatusFilter, setConciliacaoStatusFilter] = useState<'pendente' | 'todos' | 'aprovado'>('pendente');
+  const [conciliacaoToast, setConciliacaoToast] = useState<string | null>(null);
 
   // New expense form
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
@@ -1036,6 +1045,227 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       setIsLoadingRecentMp(false);
     }
   };
+
+  // Conciliação Financeira: Checagem individual em tempo real via API do Mercado Pago
+  const handleCheckSingleOrderStatus = async (order: Order) => {
+    setCheckingOrderIds(prev => ({ ...prev, [order.id]: true }));
+    const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    try {
+      let isApproved = false;
+      let msg = '';
+      let statusStr = 'pendente';
+
+      if (order.mercadoPagoPaymentId) {
+        // Consulta direta pelo ID da transação no Mercado Pago
+        const res = await mercadoPagoApi.checkPaymentStatus(
+          order.mercadoPagoPaymentId,
+          storeSettings.mercadoPago?.accessToken
+        );
+        statusStr = res.status || 'desconhecido';
+        if (res.approved) {
+          isApproved = true;
+          msg = `✅ Pagamento Aprovado na API! (ID: ${res.id}${res.transaction_amount ? ` - R$ ${res.transaction_amount.toFixed(2).replace('.', ',')}` : ''})`;
+          if (onUpdatePaymentStatus) {
+            onUpdatePaymentStatus(order.id, 'aprovado');
+          }
+          playPixConfirmedSound();
+          startPixConfirmedTabNotification(`Pedido #${order.orderNumber}`);
+        } else {
+          msg = `⏳ Status MP: ${res.status.toUpperCase()} (${res.status_detail || 'Aguardando confirmação do pagamento'})`;
+        }
+      } else {
+        // Pedido sem ID direto do MP (ex: Pix com chave da loja ou QR code estático)
+        const recent = await mercadoPagoApi.getRecentPayments(storeSettings.mercadoPago?.accessToken);
+        if (recent.success && recent.payments && recent.payments.length > 0) {
+          const matched = recent.payments.find(p => {
+            if (!p.approved) return false;
+            const amtDiff = Math.abs((p.transaction_amount || 0) - order.total);
+            const descMatches =
+              p.description &&
+              (p.description.includes(String(order.orderNumber)) ||
+                (order.customerPhone && p.description.includes(order.customerPhone.replace(/\D/g, '').slice(-4))));
+            return (amtDiff < 0.05 && descMatches) || amtDiff < 0.01;
+          });
+
+          if (matched) {
+            isApproved = true;
+            statusStr = 'approved';
+            msg = `✅ Pix identificado na conta MP! (ID: ${matched.id} - R$ ${matched.transaction_amount?.toFixed(2).replace('.', ',')})`;
+            if (onUpdatePaymentStatus) {
+              onUpdatePaymentStatus(order.id, 'aprovado');
+            }
+            playPixConfirmedSound();
+            startPixConfirmedTabNotification(`Pedido #${order.orderNumber}`);
+          } else {
+            msg = `🔍 API consultada: Nenhum recebimento recente de R$ ${order.total.toFixed(2).replace('.', ',')} localizado na conta MP.`;
+          }
+        } else {
+          msg = `ℹ️ Pedido sem ID do Mercado Pago. Nenhuma transação recente encontrada na API.`;
+        }
+      }
+
+      setOrderCheckStatusMsg(prev => ({
+        ...prev,
+        [order.id]: { message: msg, isApproved, checkedAt: nowStr, status: statusStr },
+      }));
+    } catch (err: any) {
+      setOrderCheckStatusMsg(prev => ({
+        ...prev,
+        [order.id]: {
+          message: `❌ Erro na consulta à API: ${err.message || 'Falha de conexão com Mercado Pago'}`,
+          isApproved: false,
+          checkedAt: nowStr,
+        },
+      }));
+    } finally {
+      setCheckingOrderIds(prev => ({ ...prev, [order.id]: false }));
+    }
+  };
+
+  // Conciliação Financeira: Checagem em lote de todos os pedidos pendentes
+  const handleBatchCheckReconciliation = async () => {
+    setIsBatchChecking(true);
+    setConciliacaoToast('Iniciando varredura em tempo real na API do Mercado Pago...');
+    try {
+      const pendingOrders = orders.filter(o => o.paymentStatus === 'pendente');
+      if (pendingOrders.length === 0) {
+        setConciliacaoToast('Nenhum pedido com pagamento pendente para conciliar no momento.');
+        setIsBatchChecking(false);
+        return;
+      }
+
+      let approvedCount = 0;
+      for (const ord of pendingOrders) {
+        setCheckingOrderIds(prev => ({ ...prev, [ord.id]: true }));
+        try {
+          if (ord.mercadoPagoPaymentId) {
+            const res = await mercadoPagoApi.checkPaymentStatus(
+              ord.mercadoPagoPaymentId,
+              storeSettings.mercadoPago?.accessToken
+            );
+            const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (res.approved) {
+              approvedCount++;
+              if (onUpdatePaymentStatus) {
+                onUpdatePaymentStatus(ord.id, 'aprovado');
+              }
+              setOrderCheckStatusMsg(prev => ({
+                ...prev,
+                [ord.id]: {
+                  message: `✅ Pagamento Aprovado na API! (ID: ${res.id})`,
+                  isApproved: true,
+                  checkedAt: nowStr,
+                  status: 'approved',
+                },
+              }));
+            } else {
+              setOrderCheckStatusMsg(prev => ({
+                ...prev,
+                [ord.id]: {
+                  message: `⏳ Status MP: ${res.status.toUpperCase()} (${res.status_detail || 'Pendente'})`,
+                  isApproved: false,
+                  checkedAt: nowStr,
+                  status: res.status,
+                },
+              }));
+            }
+          }
+        } catch (e: any) {
+          console.error(`Erro ao verificar #${ord.orderNumber}:`, e);
+        } finally {
+          setCheckingOrderIds(prev => ({ ...prev, [ord.id]: false }));
+        }
+      }
+
+      if (approvedCount > 0) {
+        playPixConfirmedSound();
+        setConciliacaoToast(`🎉 Conciliação concluída! ${approvedCount} de ${pendingOrders.length} pagamentos foram confirmados e aprovados!`);
+      } else {
+        setConciliacaoToast(`🔍 Varredura concluída: Todos os ${pendingOrders.length} pedidos continuam aguardando pagamento.`);
+      }
+    } catch (err: any) {
+      setConciliacaoToast(`❌ Falha na conciliação: ${err.message}`);
+    } finally {
+      setIsBatchChecking(false);
+    }
+  };
+
+  // Conciliação: Confirmação manual de pagamento (ex: dinheiro ou comprovante conferido no banco)
+  const handleManualApprovePayment = (order: Order) => {
+    if (onUpdatePaymentStatus) {
+      onUpdatePaymentStatus(order.id, 'aprovado');
+    }
+    playPixConfirmedSound();
+    const nowStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setOrderCheckStatusMsg(prev => ({
+      ...prev,
+      [order.id]: {
+        message: '✅ Confirmado manualmente pelo gestor',
+        isApproved: true,
+        checkedAt: nowStr,
+        status: 'manual_approved',
+      },
+    }));
+  };
+
+  // Métricas e filtros de Conciliação Financeira
+  const pendingPaymentOrdersCount = useMemo(() => {
+    return orders.filter(o => o.paymentStatus === 'pendente').length;
+  }, [orders]);
+
+  const pendingPaymentTotalAmount = useMemo(() => {
+    return orders
+      .filter(o => o.paymentStatus === 'pendente')
+      .reduce((sum, o) => sum + (o.total || 0), 0);
+  }, [orders]);
+
+  const pendingPixTotalAmount = useMemo(() => {
+    return orders
+      .filter(o => o.paymentStatus === 'pendente' && (o.paymentMethod.toLowerCase().includes('pix') || o.mercadoPagoPaymentId))
+      .reduce((sum, o) => sum + (o.total || 0), 0);
+  }, [orders]);
+
+  const filteredReconciliationOrders = useMemo(() => {
+    return orders.filter(o => {
+      // Filtro de status
+      if (conciliacaoStatusFilter === 'pendente' && o.paymentStatus !== 'pendente') {
+        return false;
+      }
+      if (conciliacaoStatusFilter === 'aprovado' && o.paymentStatus !== 'aprovado') {
+        return false;
+      }
+
+      // Filtro de forma de pagamento
+      if (conciliacaoMethodFilter === 'pix') {
+        const isPix = o.paymentMethod.toLowerCase().includes('pix') || !!o.mercadoPagoPaymentId;
+        if (!isPix) return false;
+      } else if (conciliacaoMethodFilter === 'cartao') {
+        const isCard =
+          o.paymentMethod.toLowerCase().includes('cart') ||
+          o.paymentMethod.toLowerCase().includes('crédito') ||
+          o.paymentMethod.toLowerCase().includes('débito');
+        if (!isCard) return false;
+      } else if (conciliacaoMethodFilter === 'dinheiro') {
+        const isCash = o.paymentMethod.toLowerCase().includes('dinheiro');
+        if (!isCash) return false;
+      }
+
+      // Busca textual
+      if (conciliacaoSearch.trim()) {
+        const q = conciliacaoSearch.toLowerCase();
+        const numMatch = (o.orderNumber || '').toLowerCase().includes(q);
+        const nameMatch = (o.customerName || '').toLowerCase().includes(q);
+        const phoneMatch = (o.customerPhone || '').includes(q);
+        const mpIdMatch = (o.mercadoPagoPaymentId || '').toLowerCase().includes(q);
+        const methodMatch = (o.paymentMethod || '').toLowerCase().includes(q);
+        if (!numMatch && !nameMatch && !phoneMatch && !mpIdMatch && !methodMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [orders, conciliacaoStatusFilter, conciliacaoMethodFilter, conciliacaoSearch]);
 
   const handleAddMethodFromManager = () => {
     const trimmed = newPaymentMethodInput.trim();
@@ -1803,48 +2033,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Botão de Pausar / Retomar Recebimento de Pedidos */}
-            <button
-              type="button"
-              onClick={() => {
-                const willPause = !storeSettings.isOrdersPaused;
-                onUpdateStoreSettings({
-                  ...storeSettings,
-                  isOrdersPaused: willPause,
-                });
-                setFinancialToast(
-                  willPause
-                    ? '⏸️ Recebimento de pedidos PAUSADO! Aviso exibido aos clientes no cardápio.'
-                    : '▶️ Recebimento de pedidos RETOMADO com sucesso!'
-                );
-              }}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 shadow-sm ${
-                storeSettings.isOrdersPaused
-                  ? 'bg-red-600 hover:bg-red-500 text-white border-red-400 ring-2 ring-red-400/50 animate-pulse'
-                  : managerTheme === 'light'
-                  ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
-                  : 'bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border-amber-500/50'
-              }`}
-              title={
-                storeSettings.isOrdersPaused
-                  ? 'Clique para retomar o recebimento de pedidos no cardápio'
-                  : 'Pausar temporariamente o recebimento de pedidos (avisa os clientes no cardápio)'
-              }
-            >
-              {storeSettings.isOrdersPaused ? (
-                <>
-                  <PlayCircle className="w-3.5 h-3.5 text-white" />
-                  <span className="font-extrabold">Retomar Pedidos</span>
-                </>
-              ) : (
-                <>
-                  <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="hidden sm:inline">Pausar Recebimento de Pedidos</span>
-                  <span className="sm:hidden">Pausar Pedidos</span>
-                </>
-              )}
-            </button>
-
             {/* Botão de Conferência Pix & Resgate de Pedidos */}
             <button type="button" onClick={() => setShowPixRecoveryModal(true)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 border transition-all active:scale-95 ${
@@ -2120,45 +2308,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
-        {/* Banner de Aviso de Pedidos Pausados no Painel do Gestor */}
-        {storeSettings.isOrdersPaused && (
-          <div className="bg-gradient-to-r from-red-950 via-[#2a1313] to-red-950 border-2 border-red-500 rounded-xl p-4 sm:p-4.5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0">
-                <PauseCircle className="w-6 h-6 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-['Montserrat'] font-black text-sm text-red-300 uppercase tracking-wide">
-                    RECEBIMENTO DE PEDIDOS PAUSADO
-                  </span>
-                  <span className="bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                    Loja Suspensa
-                  </span>
-                </div>
-                <p className="text-xs text-amber-100/90 mt-0.5">
-                  Os clientes estão visualizando no cardápio que a hamburgueria está com as atividades suspensas temporariamente. Nenhum novo pedido pode ser feito até que você retome.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                onUpdateStoreSettings({
-                  ...storeSettings,
-                  isOrdersPaused: false,
-                });
-                setFinancialToast('▶️ Recebimento de pedidos RETOMADO com sucesso!');
-              }}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0"
-            >
-              <PlayCircle className="w-4 h-4" />
-              <span>Retomar Recebimento de Pedidos</span>
-            </button>
-          </div>
-        )}
-
         {/* Management Module Tabs */}
         <section className={`flex items-center justify-between border-b pb-2 overflow-x-auto hide-scrollbar ${
           managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'
@@ -5087,12 +5236,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             {/* Sub-abas de Relatórios Financeiros */}
-            <div className="w-full bg-[#1c1b1b] rounded-lg border border-[#353535] p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="w-full bg-white rounded-lg border border-gray-200 p-1.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shadow-sm">
               <button type="button" onClick={() => setFinancialSubTab('graficos')}
                 className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'graficos'
-                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <BarChart3 className="w-4 h-4" />
@@ -5102,12 +5251,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               <button type="button" onClick={() => setFinancialSubTab('dre')}
                 className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
                   financialSubTab === 'dre'
-                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
-                    : 'text-[#b4b5b5] hover:text-white hover:bg-[#252525]'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
                 <FileText className="w-4 h-4" />
                 <span>📑 DRE Operacional & Saídas de Caixa</span>
+              </button>
+
+              <button type="button" onClick={() => setFinancialSubTab('conciliacao')}
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                  financialSubTab === 'conciliacao'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>💳 Conciliação Financeira</span>
+                {pendingPaymentOrdersCount > 0 && (
+                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                    {pendingPaymentOrdersCount} pendente{pendingPaymentOrdersCount > 1 ? 's' : ''}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -5493,6 +5658,572 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
             </>
+          )}
+
+          {/* Sub-aba: Conciliação Financeira em Tempo Real com Mercado Pago */}
+          {financialSubTab === 'conciliacao' && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              {/* Header da Seção (Fundo Claro) */}
+              <div className="bg-white rounded-xl p-5 border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600">
+                      <ShieldCheck className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="font-['Montserrat'] text-lg font-bold text-gray-900 flex items-center gap-2">
+                        Conciliação Financeira & Validação em Tempo Real
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                          Mercado Pago API
+                        </span>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Monitore pedidos pendentes, force consultas em tempo real na API do gateway e garanta o recebimento antes de liberar a entrega.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleBatchCheckReconciliation}
+                    disabled={isBatchChecking || pendingPaymentOrdersCount === 0}
+                    className="px-4 py-2.5 rounded-lg text-xs font-['Montserrat'] font-bold text-white bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all shadow-sm flex items-center gap-2"
+                    title="Varre todos os pedidos com status pendente e consulta o status na API do Mercado Pago"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isBatchChecking ? 'animate-spin' : ''}`} />
+                    <span>{isBatchChecking ? 'Varrendo API...' : `Verificar Todos na API (${pendingPaymentOrdersCount})`}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Toast / Banner Informativo */}
+              {conciliacaoToast && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-medium">{conciliacaoToast}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoToast(null)}
+                    className="text-amber-500 hover:text-amber-800 p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Cards de Resumo Rápido (Cards Brancos) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* Total a Conciliar */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden transition-all hover:border-amber-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-['Montserrat']">
+                      Total a Conciliar
+                    </span>
+                    <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
+                      <Clock className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-2xl font-bold font-mono text-amber-700">
+                      R$ {pendingPaymentTotalAmount.toFixed(2).replace('.', ',')}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                      <span className="font-semibold text-gray-800">{pendingPaymentOrdersCount}</span>
+                      <span>pedido{pendingPaymentOrdersCount === 1 ? '' : 's'} aguardando pagamento</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pix Pendentes */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden transition-all hover:border-emerald-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-['Montserrat']">
+                      Pix Pendentes
+                    </span>
+                    <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+                      <QrCode className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-2xl font-bold font-mono text-emerald-700">
+                      R$ {pendingPixTotalAmount.toFixed(2).replace('.', ',')}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-1">
+                      Consultáveis diretamente na API do MP
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pedidos Reconciliados / Pagos */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden transition-all hover:border-blue-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-['Montserrat']">
+                      Pagamentos Aprovados
+                    </span>
+                    <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-2xl font-bold font-mono text-gray-900">
+                      {orders.filter(o => o.paymentStatus === 'aprovado').length}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-1">
+                      R$ {orders.filter(o => o.paymentStatus === 'aprovado').reduce((s, o) => s + (o.total || 0), 0).toFixed(2).replace('.', ',')} confirmados
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gateway Mercado Pago Status */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider font-['Montserrat']">
+                        Status do Gateway
+                      </span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                    <div className="mt-2 text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                      <span>Mercado Pago API</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase font-semibold">
+                        {storeSettings.mercadoPago?.environment || 'Produção'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-500 truncate mt-1">
+                      {storeSettings.mercadoPago?.accessToken ? 'Token configurado e ativo' : 'Token padrão do servidor ativo'}
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={handleTestMercadoPago}
+                      disabled={isTestingMp}
+                      className="text-[11px] font-semibold text-[#ff5722] hover:text-[#e64a19] flex items-center gap-1"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isTestingMp ? 'animate-spin' : ''}`} />
+                      <span>{isTestingMp ? 'Testando...' : 'Testar Conexão'}</span>
+                    </button>
+                    {mpTestStatus && (
+                      <span className="text-[10px] text-gray-700 truncate max-w-[130px] font-mono">
+                        {mpTestStatus}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra de Busca e Filtros (Fundo Claro) */}
+              <div className="bg-white rounded-xl p-3.5 border border-gray-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                {/* Campo de Busca */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={conciliacaoSearch}
+                    onChange={e => setConciliacaoSearch(e.target.value)}
+                    placeholder="Buscar por #pedido, cliente, telefone ou ID Mercado Pago..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-8 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-[#ff5722] transition-colors"
+                  />
+                  {conciliacaoSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setConciliacaoSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtro de Status de Pagamento */}
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoStatusFilter('pendente')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      conciliacaoStatusFilter === 'pendente'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Apenas Pendentes ({pendingPaymentOrdersCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoStatusFilter('todos')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      conciliacaoStatusFilter === 'todos'
+                        ? 'bg-white text-gray-900 border border-gray-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Todos ({orders.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoStatusFilter('aprovado')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      conciliacaoStatusFilter === 'aprovado'
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Aprovados ({orders.filter(o => o.paymentStatus === 'aprovado').length})
+                  </button>
+                </div>
+
+                {/* Filtro de Método */}
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoMethodFilter('todos')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                      conciliacaoMethodFilter === 'todos'
+                        ? 'bg-white text-gray-900 border border-gray-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Todas Formas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoMethodFilter('pix')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                      conciliacaoMethodFilter === 'pix'
+                        ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <QrCode className="w-3 h-3" />
+                    <span>Pix</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoMethodFilter('cartao')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                      conciliacaoMethodFilter === 'cartao'
+                        ? 'bg-blue-100 text-blue-900 border border-blue-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <CreditCard className="w-3 h-3" />
+                    <span>Cartão</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConciliacaoMethodFilter('dinheiro')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+                      conciliacaoMethodFilter === 'dinheiro'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Banknote className="w-3 h-3" />
+                    <span>Dinheiro</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabela Dedicada de Conciliação (Fundo Claro) */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold text-[11px] uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Pedido / Horário</th>
+                        <th className="py-3.5 px-4">Cliente & Canal</th>
+                        <th className="py-3.5 px-4">Forma de Pagamento & Gateway ID</th>
+                        <th className="py-3.5 px-4">Valor Total</th>
+                        <th className="py-3.5 px-4">Status Atual</th>
+                        <th className="py-3.5 px-4 min-w-[220px]">Diagnóstico API Mercado Pago</th>
+                        <th className="py-3.5 px-4 text-center min-w-[200px]">Ação em Tempo Real</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredReconciliationOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-12 text-center text-gray-500">
+                            <div className="max-w-md mx-auto space-y-2">
+                              {pendingPaymentOrdersCount === 0 && conciliacaoStatusFilter === 'pendente' ? (
+                                <>
+                                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
+                                    <CheckCircle2 className="w-6 h-6" />
+                                  </div>
+                                  <div className="font-['Montserrat'] font-bold text-sm text-gray-900">
+                                    🎉 Todos os pagamentos estão 100% conciliados!
+                                  </div>
+                                  <p className="text-xs text-gray-500">
+                                    Nenhum pedido com status de pagamento pendente no momento. Todos os valores foram confirmados.
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <Search className="w-8 h-8 text-gray-400 mx-auto" />
+                                  <div className="font-semibold text-gray-900">Nenhum pedido encontrado</div>
+                                  <p className="text-xs text-gray-500">
+                                    Ajuste o filtro de status ou o termo de busca para visualizar outros pedidos.
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredReconciliationOrders.map(order => {
+                          const isChecking = checkingOrderIds[order.id] || false;
+                          const checkInfo = orderCheckStatusMsg[order.id];
+                          const isPending = order.paymentStatus === 'pendente';
+                          const isApproved = order.paymentStatus === 'aprovado';
+                          const isPix = order.paymentMethod.toLowerCase().includes('pix') || !!order.mercadoPagoPaymentId;
+                          const isCard = order.paymentMethod.toLowerCase().includes('cart') || order.paymentMethod.toLowerCase().includes('crédito') || order.paymentMethod.toLowerCase().includes('débito');
+
+                          return (
+                            <tr
+                              key={order.id}
+                              className={`transition-colors ${
+                                isPending ? 'bg-amber-50/25 hover:bg-amber-50/50' : 'bg-white hover:bg-gray-50'
+                              }`}
+                            >
+                              {/* Pedido / Horário */}
+                              <td className="py-3.5 px-4 align-middle">
+                                <div className="font-mono font-bold text-gray-900 text-sm">
+                                  #{order.orderNumber}
+                                </div>
+                                <div className="text-[11px] text-gray-500 mt-0.5">
+                                  {formatOrderCreationDateTime(order)}
+                                </div>
+                                <div className="mt-1">
+                                  <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                    {order.type} {order.tableNumber ? `(Mesa ${order.tableNumber})` : ''}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Cliente & Canal */}
+                              <td className="py-3.5 px-4 align-middle">
+                                <div className="font-semibold text-gray-900 truncate max-w-[170px]" title={order.customerName}>
+                                  {order.customerName}
+                                </div>
+                                {order.customerPhone ? (
+                                  <a
+                                    href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[11px] text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 mt-0.5"
+                                    title="Abrir WhatsApp com cliente"
+                                  >
+                                    <Phone className="w-3 h-3" />
+                                    <span>{order.customerPhone}</span>
+                                  </a>
+                                ) : (
+                                  <div className="text-[11px] text-gray-400">Sem telefone</div>
+                                )}
+                                <div className="text-[10px] text-gray-500 truncate max-w-[170px] mt-0.5" title={order.address}>
+                                  {order.address}
+                                </div>
+                              </td>
+
+                              {/* Forma de Pagamento & Gateway ID */}
+                              <td className="py-3.5 px-4 align-middle">
+                                <div className="flex items-center gap-1.5 font-semibold text-gray-800">
+                                  {isPix ? (
+                                    <QrCode className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  ) : isCard ? (
+                                    <CreditCard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  ) : (
+                                    <Banknote className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  )}
+                                  <span className="truncate">{order.paymentMethod}</span>
+                                </div>
+
+                                {order.mercadoPagoPaymentId ? (
+                                  <div className="mt-1 flex items-center gap-1.5">
+                                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 truncate max-w-[130px]">
+                                      MP: {order.mercadoPagoPaymentId}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(order.mercadoPagoPaymentId || '');
+                                        setConciliacaoToast(`ID do Mercado Pago #${order.mercadoPagoPaymentId} copiado!`);
+                                        setTimeout(() => setConciliacaoToast(null), 2500);
+                                      }}
+                                      className="text-gray-400 hover:text-gray-700 p-0.5"
+                                      title="Copiar ID do Mercado Pago"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-[10px] text-gray-400 mt-0.5">
+                                    {isPix ? 'Pix direto / QR Code da Loja' : 'Sem ID externo'}
+                                  </div>
+                                )}
+
+                                {order.pixReceiptUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingReceiptOrder(order)}
+                                    className="mt-1 text-[10px] text-amber-700 hover:text-amber-800 font-medium underline flex items-center gap-0.5"
+                                  >
+                                    <Eye className="w-2.5 h-2.5" />
+                                    <span>Ver comprovante enviado</span>
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* Valor Total */}
+                              <td className="py-3.5 px-4 align-middle font-mono font-bold text-sm">
+                                <span className={isApproved ? 'text-emerald-700' : 'text-amber-700'}>
+                                  R$ {order.total.toFixed(2).replace('.', ',')}
+                                </span>
+                              </td>
+
+                              {/* Status Atual */}
+                              <td className="py-3.5 px-4 align-middle">
+                                {isApproved ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Aprovado</span>
+                                  </span>
+                                ) : isPending ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>Pendente</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-800 border border-red-200">
+                                    <X className="w-3 h-3 text-red-600" />
+                                    <span>{order.paymentStatus}</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Diagnóstico API Mercado Pago */}
+                              <td className="py-3.5 px-4 align-middle">
+                                {checkInfo ? (
+                                  <div className="space-y-0.5">
+                                    <div
+                                      className={`text-xs font-semibold ${
+                                        checkInfo.isApproved
+                                          ? 'text-emerald-700'
+                                          : 'text-amber-800'
+                                      }`}
+                                    >
+                                      {checkInfo.message}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 font-mono">
+                                      Última checagem: {checkInfo.checkedAt}
+                                    </div>
+                                  </div>
+                                ) : order.mercadoPagoPaymentId ? (
+                                  <div className="text-[11px] text-gray-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                    <span>ID registrado. Clique em 'Verificar Status' para consultar a API.</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-[11px] text-gray-400">
+                                    Aguardando verificação sob demanda na API.
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Ações em Tempo Real */}
+                              <td className="py-3.5 px-4 align-middle text-center">
+                                <div className="flex items-center justify-center gap-2 flex-wrap">
+                                  {/* Botão Verificar Status via API */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCheckSingleOrderStatus(order)}
+                                    disabled={isChecking}
+                                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#5C3317] to-[#3D200C] hover:from-[#73401D] hover:to-[#5C3317] text-white text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+                                    title="Forçar consulta imediata de status em tempo real na API do Mercado Pago"
+                                  >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin text-amber-300' : 'text-amber-300'}`} />
+                                    <span>{isChecking ? 'Consultando...' : 'Verificar Status'}</span>
+                                  </button>
+
+                                  {/* Botão Confirmar Manualmente (fallback) */}
+                                  {isPending && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleManualApprovePayment(order)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center gap-1 transition-all active:scale-95 shadow-xs"
+                                      title="Confirmar pagamento recebido manualmente caso o cliente tenha mostrado o comprovante no banco ou pago em dinheiro"
+                                    >
+                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Confirmar</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Rodapé da Tabela com Explicação e Consulta Avulsa (Fundo Claro) */}
+                <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 text-xs">
+                  <div className="flex items-start gap-2 text-gray-600 max-w-xl">
+                    <HelpCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold text-gray-900">Como funciona a Conciliação em Tempo Real?</span>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-gray-600">
+                        Ao clicar em <strong className="text-gray-900">Verificar Status</strong>, nosso backend consulta os servidores do Mercado Pago imediatamente. Se o Pix ou Cartão tiver sido pago pelo cliente, o pedido é automaticamente marcado como <strong className="text-emerald-700">Aprovado</strong>, a cozinha recebe o alerta sonoro e você tem a certeza de que o valor já caiu na sua conta antes do envio.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Consulta Rápida de ID Avulso */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={manualPixIdInput}
+                      onChange={e => setManualPixIdInput(e.target.value)}
+                      placeholder="Consultar ID avulso MP..."
+                      className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 placeholder-gray-400 w-48 font-mono focus:outline-none focus:border-[#ff5722] shadow-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidateManualPaymentId}
+                      disabled={isValidatingManualPix || !manualPixIdInput.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-800 text-xs font-semibold flex items-center gap-1 disabled:opacity-50 shadow-xs"
+                    >
+                      <Search className={`w-3.5 h-3.5 ${isValidatingManualPix ? 'animate-spin' : ''}`} />
+                      <span>Checar</span>
+                    </button>
+                  </div>
+                </div>
+
+                {manualPixValidationResult && (
+                  <div className="p-3 bg-amber-50 border-t border-amber-200 text-xs flex items-center justify-between text-amber-900">
+                    <div>
+                      {manualPixValidationResult.error ? (
+                        <span className="text-red-700 font-medium">❌ {manualPixValidationResult.error}</span>
+                      ) : (
+                        <span className="font-medium">
+                          {manualPixValidationResult.approved ? '✅ Pagamento Aprovado!' : '⏳ Status: ' + manualPixValidationResult.status} (ID: {manualPixValidationResult.id} - R$ {manualPixValidationResult.transaction_amount?.toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setManualPixValidationResult(null)}
+                      className="text-amber-600 hover:text-amber-900"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
           </div>
         )}

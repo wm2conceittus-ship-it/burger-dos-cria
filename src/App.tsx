@@ -626,20 +626,12 @@ export default function App() {
 
   // Cart operations
   const handleAddToCart = (item: CartItem) => {
-    if (storeSettings?.isOrdersPaused) {
-      showToast('⏸️ A hamburgueria está com as atividades suspensas temporariamente. O envio de pedidos está pausado!');
-      return;
-    }
     setCartItems(prev => [...prev, item]);
     showToast(`Adicionado ao carrinho: ${item.product.name}!`);
     setCurrentScreen('cart');
   };
 
   const handleQuickAdd = (product: Product) => {
-    if (storeSettings?.isOrdersPaused) {
-      showToast('⏸️ A hamburgueria está com as atividades suspensas temporariamente. O envio de pedidos está pausado!');
-      return;
-    }
     if (product.isAvailable === false) {
       showToast('Item temporariamente esgotado!');
       return;
