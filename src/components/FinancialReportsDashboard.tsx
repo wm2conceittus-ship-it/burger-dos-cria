@@ -431,6 +431,22 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     return activeSeries.reduce((sum, d) => sum + d.profitEstimate, 0);
   }, [activeSeries]);
 
+  const targetMonthForCards = selectedMonth !== 'todos' ? selectedMonth : now.getMonth();
+
+  const currentMonthRevenue = useMemo(() => {
+    const mIdx = targetMonthForCards;
+    const yr = selectedYear;
+    const monthOrders = validOrders.filter(o => {
+      const d = parseOrderDate(o);
+      return d.getFullYear() === yr && d.getMonth() === mIdx;
+    });
+    return monthOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  }, [validOrders, selectedYear, targetMonthForCards]);
+
+  const currentMonthProfit = useMemo(() => {
+    return currentMonthRevenue * 0.38;
+  }, [currentMonthRevenue]);
+
   const periodGrowth = useMemo(() => {
     if (activeSeries.length < 2) return 0;
     const last = activeSeries[activeSeries.length - 1].displayRevenue || 0;
@@ -611,14 +627,14 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         </div>
 
         <div className="pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
-          <div className="bg-gray-100 p-1 rounded-xl border border-gray-200 flex items-center gap-1 flex-wrap">
+          <div className="bg-gray-100 p-1 rounded-md border border-gray-200 flex items-center gap-1 flex-wrap">
             <button
               type="button"
               onClick={() => {
                 setSelectedPeriod('diario');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'diario'
                   ? 'bg-[#ff5722] text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
@@ -633,7 +649,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 setSelectedPeriod('semanal');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'semanal'
                   ? 'bg-[#ff5722] text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
@@ -648,7 +664,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 setSelectedPeriod('mensal');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'mensal'
                   ? 'bg-[#ff5722] text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
@@ -663,7 +679,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
                 setSelectedPeriod('anual');
                 setHoveredPointIndex(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-['Montserrat'] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-['Montserrat'] font-bold transition-all ${
                 selectedPeriod === 'anual'
                   ? 'bg-[#ff5722] text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
@@ -675,7 +691,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
 
           <div className="flex items-center gap-2 flex-wrap">
             {(selectedPeriod === 'semanal' || selectedPeriod === 'diario') && (
-              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-200 text-xs">
                 <span className="text-gray-600 text-[11px] font-bold">Mês:</span>
                 <select
                   value={selectedMonth}
@@ -699,7 +715,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
             )}
 
             {selectedPeriod !== 'anual' && (
-              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-200 text-xs">
                 <span className="text-gray-600 text-[11px] font-bold">Ano:</span>
                 <select
                   value={selectedYear}
@@ -726,7 +742,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         <div className="bg-white rounded-lg p-4 border border-gray-200 relative overflow-hidden shadow-sm group hover:border-[#ff5722]/50 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 font-['Montserrat']">
-              Faturamento {selectedPeriod === 'diario' ? 'do Período' : selectedPeriod === 'semanal' ? 'das Semanas' : selectedPeriod === 'mensal' ? `de ${selectedYear}` : 'Histórico Total'}
+              Faturamento Mensal
             </span>
             <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#ff5722] flex items-center justify-center border border-orange-200">
               <DollarSign className="w-4 h-4" />
@@ -734,15 +750,11 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-['Montserrat'] font-black text-2xl text-gray-900 font-mono">
-              R$ {totalPeriodRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              R$ {currentMonthRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-xs">
-            <span className={`inline-flex items-center gap-0.5 font-bold ${periodGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {periodGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-              {Math.abs(periodGrowth).toFixed(1)}%
-            </span>
-            <span className="text-gray-500 text-[11px]">vs intervalo anterior</span>
+          <div className="mt-2 text-xs text-gray-500">
+            Mês de {MONTH_NAMES[targetMonthForCards]} / {selectedYear}
           </div>
         </div>
 
@@ -769,7 +781,7 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
         <div className="bg-white rounded-lg p-4 border border-emerald-200 relative overflow-hidden shadow-sm group hover:border-emerald-500 transition-all">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 font-['Montserrat']">
-              Lucro Líquido Estimado (~38%)
+              Lucro Líquido Mensal
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
               <Wallet className="w-4 h-4" />
@@ -777,12 +789,11 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="font-['Montserrat'] font-black text-2xl text-emerald-700 font-mono">
-              R$ {totalPeriodProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              R$ {currentMonthProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-          <div className="mt-2 text-xs text-gray-500 flex items-center justify-between">
-            <span>Margem Operacional:</span>
-            <strong className="text-emerald-700 font-bold font-mono">Alta Rentabilidade</strong>
+          <div className="mt-2 text-xs text-gray-500">
+            Mês de {MONTH_NAMES[targetMonthForCards]} / {selectedYear}
           </div>
         </div>
 

@@ -168,6 +168,7 @@ export interface ExpenseItem {
   category: 'insumos' | 'bebidas' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros';
   amount: number;
   time: string;
+  date?: string;
 }
 
 const INITIAL_EXPENSES: ExpenseItem[] = [];
@@ -638,6 +639,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [newExpenseDesc, setNewExpenseDesc] = useState('');
   const [newExpenseCat, setNewExpenseCat] = useState<'insumos' | 'bebidas' | 'motoboy' | 'embalagens' | 'gas' | 'operacional' | 'fixo' | 'outros'>('insumos');
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
+  const [newExpenseDate, setNewExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // Payment methods in store settings
   const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'horarios' | 'funcionarios' | 'area' | 'entregadores' | 'formas' | 'cupons'>('geral');
@@ -1557,11 +1559,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       category: newExpenseCat,
       amount: parsedAmount,
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      date: newExpenseDate || new Date().toISOString().slice(0, 10),
     };
 
     setExpenses(prev => [newExpense, ...prev]);
     setNewExpenseDesc('');
     setNewExpenseAmount('');
+    setNewExpenseDate(new Date().toISOString().slice(0, 10));
     setShowAddExpenseModal(false);
     setFinancialToast('Despesa registrada com sucesso!');
     setTimeout(() => setFinancialToast(null), 3000);
@@ -8039,19 +8043,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             </div>
 
             <form onSubmit={handleAddExpense} className="p-5 space-y-4 text-xs">
-              <div>
-                <label className="block text-[#b4b5b5] mb-1 font-medium">Descrição do Gasto *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Compra de Pães Brioche, Diária Motoboy Lucas..."
-                  value={newExpenseDesc}
-                  onChange={e => setNewExpenseDesc(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#b4b5b5] mb-1 font-medium">Data da Despesa *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newExpenseDate}
+                    onChange={e => setNewExpenseDate(e.target.value)}
+                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722] font-mono"
+                  />
+                </div>
                 <div>
                   <label className="block text-[#b4b5b5] mb-1 font-medium">Categoria *</label>
                   <select
@@ -8069,7 +8071,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <option value="outros">Outras Despesas Diversas</option>
                   </select>
                 </div>
+              </div>
 
+              <div>
+                <label className="block text-[#b4b5b5] mb-1 font-medium">Descrição do Gasto *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Compra de Pães Brioche, Diária Motoboy Lucas..."
+                  value={newExpenseDesc}
+                  onChange={e => setNewExpenseDesc(e.target.value)}
+                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-md px-3.5 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+                />
+              </div>
+
+              <div>
                 <div>
                   <label className="block text-[#b4b5b5] mb-1 font-medium">Valor (R$) *</label>
                   <input
