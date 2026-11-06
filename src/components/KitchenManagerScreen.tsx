@@ -119,6 +119,7 @@ import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
 import { WeeklyScheduleManager } from './WeeklyScheduleManager';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
+import { RechartsAnalyticsPanel } from './RechartsAnalyticsPanel';
 import { ShareMenuModal } from './ShareMenuModal';
 import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import {
@@ -633,7 +634,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
   const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
   const [financialToast, setFinancialToast] = useState<string | null>(null);
-  const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre' | 'conciliacao'>('graficos');
+  const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre' | 'conciliacao' | 'recharts'>('graficos');
 
   // Estados para Conciliação Financeira em Tempo Real
   const [checkingOrderIds, setCheckingOrderIds] = useState<Record<string, boolean>>({});
@@ -5274,6 +5275,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </span>
                 )}
               </button>
+
+              <button type="button" onClick={() => setFinancialSubTab('recharts')}
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center justify-center gap-2 transition-all ${
+                  financialSubTab === 'recharts'
+                    ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 text-amber-500" />
+                <span>📈 Análise Recharts (Dias & Ticket 30d)</span>
+              </button>
             </div>
 
             {financialSubTab === 'graficos' && (
@@ -5282,6 +5294,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 storeSettings={storeSettings}
                 products={products}
               />
+            )}
+
+            {financialSubTab === 'recharts' && (
+              <RechartsAnalyticsPanel orders={orders} />
             )}
 
             {financialSubTab === 'dre' && (

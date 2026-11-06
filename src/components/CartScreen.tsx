@@ -39,6 +39,7 @@ import {
   Upload,
   Image as ImageIcon,
   FileText,
+  PauseCircle,
 } from 'lucide-react';
 import { compressImageFile } from '../utils/imageUpload';
 import { mercadoPagoApi, PixResponse } from '../services/mercadoPagoService';
@@ -258,6 +259,9 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     receiptUrl?: string,
     pStatus?: 'pendente' | 'aprovado' | 'recusado'
   ) => {
+    if (storeSettings?.isOrdersPaused) {
+      return;
+    }
     onCheckout(
       method,
       discAmount,
@@ -349,6 +353,9 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   const handleSelectPaymentMethod = (methodName: string) => {
+    if (storeSettings?.isOrdersPaused) {
+      return;
+    }
     setPaymentMethod(methodName);
     if (!customerProfile && onOpenCustomerRegister) {
       onOpenCustomerRegister();
@@ -799,8 +806,20 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           )}
         </div>
 
-        {/* Aviso se a hamburgueria estiver fechada */}
-        {operatingStatus.isClosed && (
+        {/* Aviso se a hamburgueria estiver com atividades suspensas (Pedidos Pausados) */}
+        {storeSettings?.isOrdersPaused ? (
+          <div className="bg-gradient-to-r from-amber-950/80 via-[#26170c] to-amber-950/80 border-2 border-amber-500/80 rounded-lg p-3.5 flex items-start gap-2.5 text-xs animate-in fade-in shadow-lg">
+            <PauseCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-amber-400 font-['Montserrat'] block text-xs uppercase tracking-wide">
+                Atividades Suspensas Temporariamente
+              </span>
+              <p className="text-[11.5px] text-amber-100/90 font-medium leading-relaxed">
+                A hamburgueria está com as atividades suspensas temporariamente e o recebimento de pedidos está pausado pela equipe da cozinha no momento.
+              </p>
+            </div>
+          </div>
+        ) : operatingStatus.isClosed && (
           <div className="bg-red-500/15 border border-red-500/40 rounded-lg p-3 flex items-start gap-2.5 text-xs animate-in fade-in">
             <Clock className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
@@ -1467,13 +1486,20 @@ export const CartScreen: React.FC<CartScreenProps> = ({
       {items.length > 0 && (
         <div className="fixed bottom-14 sm:bottom-16 left-0 w-full z-40 bg-gradient-to-t from-[#131313] via-[#131313]/95 to-transparent p-2 px-3">
           <div className="max-w-md mx-auto">
-            <button
-              onClick={() => handleSelectPaymentMethod(paymentMethod)}
-              className="w-full py-2.5 rounded-lg font-['Montserrat'] font-bold text-xs sm:text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md btn-flame text-white"
-            >
-              <span>Ir para Pagamento ({paymentMethod}) • R$ {total.toFixed(2).replace('.', ',')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            {storeSettings?.isOrdersPaused ? (
+              <div className="w-full py-2.5 px-3 rounded-lg bg-amber-950/90 border border-amber-500/80 text-amber-200 text-center font-['Montserrat'] font-bold text-xs flex items-center justify-center gap-2 shadow-lg">
+                <PauseCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                <span>Recebimento Pausado • Atividades Suspensas</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => handleSelectPaymentMethod(paymentMethod)}
+                className="w-full py-2.5 rounded-lg font-['Montserrat'] font-bold text-xs sm:text-xs flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md btn-flame text-white"
+              >
+                <span>Ir para Pagamento ({paymentMethod}) • R$ {total.toFixed(2).replace('.', ',')}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1662,6 +1688,17 @@ export const CartScreen: React.FC<CartScreenProps> = ({
                     )}
 
                   {/* Passo a Passo e Modo de Confirmação */}
+                  {/* Aviso Importante para o Cliente */}
+                  <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-3.5 text-xs text-amber-200 space-y-1.5 shadow-sm animate-pulse">
+                    <div className="font-bold font-['Montserrat'] flex items-center gap-1.5 text-amber-300">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Aviso Importante</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-amber-100/90 font-medium">
+                      Por favor, <strong>aguarde na tela de confirmação até que o status mude para "Pedido Confirmado com Sucesso"</strong> para garantir que seu pedido seja devidamente registrado e enviado para a cozinha.
+                    </p>
+                  </div>
+
                   {isAutoPixMode ? (
                     <div className="bg-[#161616] p-3.5 rounded-xl border border-emerald-500/30 text-[#b4b5b5] space-y-2 text-[11px] leading-relaxed">
                       <span className="font-bold text-white flex items-center gap-1.5">
