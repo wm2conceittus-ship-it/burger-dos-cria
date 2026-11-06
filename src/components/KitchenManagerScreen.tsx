@@ -66,6 +66,7 @@ import {
   ChevronDown,
   CheckCircle2,
   CheckCheck,
+  XCircle,
   Volume2,
   VolumeX,
   Bell,
@@ -93,6 +94,8 @@ import {
   Moon,
   Activity,
   RefreshCw,
+  Filter,
+  List,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -160,7 +163,7 @@ interface KitchenManagerScreenProps {
   onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
   onDeleteProduct?: (productId: string) => void;
   onClearOrders?: () => void;
-  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes';
+  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados';
 }
 
 export interface ExpenseItem {
@@ -200,7 +203,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'>(
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados'>(
     initialTab || 'pedidos'
   );
 
@@ -225,6 +228,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [showPixRecoveryModal, setShowPixRecoveryModal] = useState(false);
+  const [cancelledPeriodFilter, setCancelledPeriodFilter] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'todos'>('todos');
+  const [cancelledViewMode, setCancelledViewMode] = useState<'cards' | 'lista'>('cards');
 
   // Web Notifications State (HTML5 Browser Notifications)
   const [webNotificationPerm, setWebNotificationPerm] = useState<WebNotificationState>(() => {
@@ -270,13 +275,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     setTimeout(() => setFinancialToast(null), 3000);
   };
 
-  // Theme state for the manager screen: 'light' (fundo branco gelo) | 'dark' (fundo escuro)
-  const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>(() => {
-    try {
-      localStorage.removeItem('burger_manager_theme_v7');
-    } catch {}
-    return 'dark'; // Default: FUNDO ESCURO ativo
-  });
+  // Theme state for the manager screen: Always Light Mode
+  const [managerTheme, setManagerTheme] = useState<'light' | 'dark'>('light');
 
   // Layout mode for orders: 'carousel' | 'kanban' | 'grid'
   const [ordersLayoutMode, setOrdersLayoutMode] = useState<'carousel' | 'kanban' | 'grid'>(() => {
@@ -1425,6 +1425,68 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   );
   const pendingPixOrdersCount = pendingPixOrders.length;
 
+  function parseOrderDate(order: Order): Date {
+    if (order.id && order.id.startsWith('ord-')) {
+      const rawNum = parseInt(order.id.replace('ord-', ''), 10);
+      if (!isNaN(rawNum) && rawNum > 1500000000000 && rawNum < 2500000000000) {
+        return new Date(rawNum);
+      }
+    }
+    if (order.orderDate && typeof order.orderDate === 'string') {
+      const parts = order.orderDate.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+          return new Date(year, month, day);
+        }
+      }
+    }
+    return new Date();
+  }
+
+  const cancelledOrders = useMemo(() => {
+    return orders.filter(o => o.status === 'recusado');
+  }, [orders]);
+
+  const now = useMemo(() => new Date(), []);
+
+  const filteredCancelledOrders = useMemo(() => {
+    const rawCancelled = orders.filter(o => o.status === 'recusado');
+    if (cancelledPeriodFilter === 'todos') return rawCancelled;
+
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+
+    return rawCancelled.filter(o => {
+      const d = parseOrderDate(o);
+      if (cancelledPeriodFilter === 'diario') {
+        return (
+          d.getFullYear() === endDate.getFullYear() &&
+          d.getMonth() === endDate.getMonth() &&
+          d.getDate() === endDate.getDate()
+        );
+      }
+      if (cancelledPeriodFilter === 'semanal') {
+        const weekAgo = new Date(endDate);
+        weekAgo.setDate(endDate.getDate() - 7);
+        weekAgo.setHours(0, 0, 0, 0);
+        return d >= weekAgo && d <= endDate;
+      }
+      if (cancelledPeriodFilter === 'mensal') {
+        return (
+          d.getFullYear() === endDate.getFullYear() &&
+          d.getMonth() === endDate.getMonth()
+        );
+      }
+      if (cancelledPeriodFilter === 'anual') {
+        return d.getFullYear() === endDate.getFullYear();
+      }
+      return true;
+    });
+  }, [orders, cancelledPeriodFilter, now]);
+
   // Filtered orders specifically for the Kanban board
   const filteredKanbanOrders = useMemo(() => {
     return orders.filter(order => {
@@ -2054,28 +2116,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               )}
             </button>
 
-            {/* Botão de Alternar Fundo Branco / Fundo Escuro */}
-            <button type="button" onClick={() => {
-                const next = managerTheme === 'light' ? 'dark' : 'light';
-                setManagerTheme(next);
-                try {
-                  localStorage.setItem('burger_manager_theme_v7', next);
-                } catch {}
-              }}
-              className={`p-2 rounded-lg border transition-all active:scale-95 ${
-                managerTheme === 'light'
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 shadow-sm'
-                  : 'bg-[#252525] hover:bg-[#303030] text-amber-300 border-[#404040]'
-              }`}
-              title={managerTheme === 'light' ? 'Alternar para Fundo Escuro' : 'Alternar para Fundo Branco Gelo'}
-            >
-              {managerTheme === 'light' ? (
-                <Sun className="w-4 h-4 text-amber-500 fill-amber-500" />
-              ) : (
-                <Moon className="w-4 h-4 text-blue-400" />
-              )}
-            </button>
-
             {/* Botão Rápido de Alerta Sonoro / Beep de Novo Pedido & PIX */}
             <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
               managerTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-[#1c1b1b] border-[#353535]'
@@ -2330,6 +2370,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 isAlert: lowStockProducts.length > 0,
               },
               { id: 'relatorios' as const, label: 'Finanças & Gráficos', icon: BarChart3 },
+              { id: 'cancelados' as const, label: 'Cancelados', icon: XCircle, badge: cancelledOrders.length > 0 ? cancelledOrders.length : undefined },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
             ].map(tab => {
               const isActive = activeTab === tab.id;
@@ -6241,6 +6282,262 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
           )}
+          </div>
+        )}
+
+        {/* ================= ABA: PEDIDOS CANCELADOS / RECUSADOS ================= */}
+        {activeTab === 'cancelados' && (
+          <div className="space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shadow-inner">
+                    <XCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-['Montserrat'] text-xl font-bold text-gray-900">
+                      Pedidos Cancelados & Recusados
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Visualize todos os pedidos que foram recusados ou cancelados pela operação, filtrados por período.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700">
+                    Total no Período: <span className="font-mono font-bold text-red-600">{filteredCancelledOrders.length}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setCancelledViewMode('cards')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        cancelledViewMode === 'cards'
+                          ? 'bg-red-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      title="Visualizar em Cards"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Cards</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCancelledViewMode('lista')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        cancelledViewMode === 'lista'
+                          ? 'bg-red-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                      title="Visualizar em Tabela / Lista"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Lista</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seletor de Período: Dia, Semana, Mês, Ano, Todos */}
+              <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-gray-700 font-bold">
+                  <Filter className="w-4 h-4 text-red-500" />
+                  <span>Filtrar por Período:</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setCancelledPeriodFilter('diario')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      cancelledPeriodFilter === 'diario'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Hoje (Dia)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelledPeriodFilter('semanal')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      cancelledPeriodFilter === 'semanal'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Esta Semana
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelledPeriodFilter('mensal')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      cancelledPeriodFilter === 'mensal'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Este Mês
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelledPeriodFilter('anual')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      cancelledPeriodFilter === 'anual'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Este Ano
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCancelledPeriodFilter('todos')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      cancelledPeriodFilter === 'todos'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Todos ({cancelledOrders.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {filteredCancelledOrders.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center border border-gray-200 shadow-sm space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h3 className="font-['Montserrat'] font-bold text-base text-gray-900">
+                  Nenhum pedido cancelado ou recusado neste período
+                </h3>
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
+                  Não há registros de recusa para o filtro de tempo selecionado.
+                </p>
+              </div>
+            ) : cancelledViewMode === 'cards' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredCancelledOrders.map(order => (
+                  <div key={order.id} className="bg-white rounded-xl p-4 border border-red-200 shadow-sm space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500" />
+                    
+                    <div className="flex items-center justify-between pl-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-gray-900 text-sm">
+                          #{order.orderNumber}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-red-50 text-red-700 border border-red-200">
+                          Recusado / Cancelado
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-mono">
+                        {order.createdAt || order.orderDate || ''}
+                      </span>
+                    </div>
+
+                    <div className="pl-2 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-gray-800">
+                        <span className="font-semibold">{order.customerName}</span>
+                        {order.customerPhone && (
+                          <a
+                            href={`https://wa.me/55${order.customerPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>{order.customerPhone}</span>
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="text-gray-600 text-[11px]">
+                        <strong>Canal:</strong> {order.type} {order.tableNumber ? `(Mesa ${order.tableNumber})` : ''} • <strong>Pagamento:</strong> {order.paymentMethod}
+                      </div>
+
+                      {/* Motivo do Cancelamento */}
+                      <div className="bg-red-50/60 rounded-lg p-2.5 border border-red-200 text-red-900 space-y-1">
+                        <div className="font-bold text-[11px] flex items-center gap-1 text-red-700">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          <span>Motivo do Cancelamento / Recusa:</span>
+                        </div>
+                        <p className="text-[11px] font-medium leading-relaxed">
+                          {order.notes || order.notes === '' ? order.notes : 'Cancelado pelo gestor da operação (sem observação informada).'}
+                        </p>
+                      </div>
+
+                      {/* Itens do Pedido */}
+                      <div className="border-t border-gray-100 pt-2 space-y-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Itens do Pedido:</span>
+                        <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                          {(order.items || []).map((item, idx) => (
+                            <div key={idx} className="flex justify-between text-[11px] text-gray-700">
+                              <span>{item.quantity}x {item.name} {item.pizzaSize ? `(${item.pizzaSize})` : ''}</span>
+                              <span className="font-mono font-medium">R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-100 pt-2 flex justify-between items-center font-mono font-bold text-sm text-gray-900">
+                        <span>Valor Total:</span>
+                        <span className="text-red-600">R$ {(order.total || 0).toFixed(2).replace('.', ',')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200 text-gray-700 font-['Montserrat'] uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-4">Pedido #</th>
+                        <th className="py-3 px-4">Data / Hora</th>
+                        <th className="py-3 px-4">Cliente</th>
+                        <th className="py-3 px-4">Canal</th>
+                        <th className="py-3 px-4">Motivo do Cancelamento</th>
+                        <th className="py-3 px-4 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-gray-800">
+                      {filteredCancelledOrders.map(order => (
+                        <tr key={order.id} className="hover:bg-red-50/30 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-gray-900">
+                            #{order.orderNumber}
+                          </td>
+                          <td className="py-3 px-4 font-mono text-gray-500 whitespace-nowrap">
+                            {order.createdAt || order.orderDate || '-'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-semibold text-gray-900">{order.customerName}</div>
+                            {order.customerPhone && (
+                              <div className="text-[11px] text-gray-500">{order.customerPhone}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-gray-700">
+                            {order.type} {order.tableNumber ? `(Mesa ${order.tableNumber})` : ''}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="bg-red-50 text-red-900 px-2.5 py-1 rounded-md border border-red-200 text-[11px] max-w-xs truncate" title={order.notes || 'Cancelado pelo gestor'}>
+                              {order.notes || 'Cancelado pelo gestor (sem observação)'}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-red-600">
+                            R$ {(order.total || 0).toFixed(2).replace('.', ',')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

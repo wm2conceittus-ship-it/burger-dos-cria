@@ -580,10 +580,102 @@ export const FinancialReportsDashboard: React.FC<FinancialReportsDashboardProps>
     }, 1500);
   };
 
+  const todayKpiMetrics = useMemo(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const d = today.getDate();
+
+    const todayOrders = orders.filter(o => {
+      const od = parseOrderDate(o);
+      return od.getFullYear() === y && od.getMonth() === m && od.getDate() === d;
+    });
+
+    const validTodayOrders = todayOrders.filter(o => o.status !== 'recusado');
+    const todayRevenue = validTodayOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const todayCancelledCount = todayOrders.filter(o => o.status === 'recusado').length;
+    const todayTotalCount = todayOrders.length;
+    const todayCancellationRate = todayTotalCount > 0 ? (todayCancelledCount / todayTotalCount) * 100 : 0;
+
+    const totalAll = orders.length;
+    const totalCancelledAll = orders.filter(o => o.status === 'recusado').length;
+    const overallCancellationRate = totalAll > 0 ? (totalCancelledAll / totalAll) * 100 : 0;
+
+    return {
+      todayOrdersCount: todayOrders.length,
+      todayRevenue,
+      todayCancellationRate,
+      overallCancellationRate,
+    };
+  }, [orders]);
+
   const currentHoveredPoint = hoveredPointIndex !== null ? points[hoveredPointIndex] : null;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Painel de KPIs Rápidos (Tempo Real Firebase) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Card 1: Pedidos do Dia */}
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-200 text-[#ff5722] flex items-center justify-center shadow-inner shrink-0">
+            <ShoppingBag className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
+              Pedidos do Dia (Hoje)
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="font-['Montserrat'] font-extrabold text-2xl text-gray-900">
+                {todayKpiMetrics.todayOrdersCount}
+              </span>
+              <span className="text-[10px] bg-orange-50 text-[#ff5722] px-1.5 py-0.5 rounded font-bold">
+                Ao vivo Firebase
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Faturamento Total de Hoje */}
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shadow-inner shrink-0">
+            <DollarSign className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
+              Faturamento (Hoje)
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="font-['Montserrat'] font-extrabold text-2xl text-emerald-700">
+                R$ {todayKpiMetrics.todayRevenue.toFixed(2).replace('.', ',')}
+              </span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold">
+                Bruto
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Taxa de Cancelamento */}
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shadow-inner shrink-0">
+            <TrendingDown className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block">
+              Taxa de Cancelamento
+            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="font-['Montserrat'] font-extrabold text-2xl text-red-600">
+                {todayKpiMetrics.todayCancellationRate.toFixed(1)}%
+              </span>
+              <span className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded font-bold">
+                Geral: {todayKpiMetrics.overallCancellationRate.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Top Header Card (Card Branco) */}
       <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-4 text-gray-900">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
