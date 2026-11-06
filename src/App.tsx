@@ -951,17 +951,19 @@ export default function App() {
     showToast('Pedido aceito na cozinha! Preparando...');
   };
 
-  const handleKitchenRejectOrder = (orderId: string) => {
+  const handleKitchenRejectOrder = (orderId: string, reason?: string) => {
     const targetOrder = orders.find(o => o.id === orderId);
+    const rejectionReasonStr = reason ? `Cancelado/Recusado: ${reason}` : (targetOrder?.notes || 'Cancelado pelo gestor');
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status: 'recusado' } : o))
+      prev.map(o => (o.id === orderId ? { ...o, status: 'recusado', notes: rejectionReasonStr } : o))
     );
-    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'recusado' } : prev));
-    updateOrderStatusInFirestore(orderId, 'recusado');
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, status: 'recusado', notes: rejectionReasonStr } : prev));
+    updateOrderInFirestore(orderId, { status: 'recusado', notes: rejectionReasonStr });
 
     if (targetOrder && targetOrder.customerPhone) {
       try {
-        const rejectionUrl = getCustomerRejectedWhatsAppUrl(targetOrder, storeSettings);
+        const updatedTarget = { ...targetOrder, notes: rejectionReasonStr, status: 'recusado' as const };
+        const rejectionUrl = getCustomerRejectedWhatsAppUrl(updatedTarget, storeSettings);
         if (rejectionUrl) {
           openWhatsAppLink(rejectionUrl);
         }
@@ -970,7 +972,7 @@ export default function App() {
       }
     }
 
-    showToast('Pedido recusado e aviso enviado ao cliente!');
+    showToast('Pedido recusado e motivo registrado com sucesso!');
   };
 
   const handleKitchenAdvanceToReady = (orderId: string) => {

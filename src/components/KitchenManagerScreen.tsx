@@ -145,7 +145,7 @@ interface KitchenManagerScreenProps {
   onOpenEditProduct: (product: Product) => void;
   onOpenAddProduct: () => void;
   onAcceptOrder: (orderId: string) => void;
-  onRejectOrder: (orderId: string) => void;
+  onRejectOrder: (orderId: string, reason?: string) => void;
   onAdvanceToReady: (orderId: string) => void;
   onAdvanceToDelivery: (
     orderId: string,
@@ -230,6 +230,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showPixRecoveryModal, setShowPixRecoveryModal] = useState(false);
   const [cancelledPeriodFilter, setCancelledPeriodFilter] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'todos'>('todos');
   const [cancelledViewMode, setCancelledViewMode] = useState<'cards' | 'lista'>('cards');
+  const [rejectReasonInput, setRejectReasonInput] = useState('Produto em falta / Indisponível');
 
   // Web Notifications State (HTML5 Browser Notifications)
   const [webNotificationPerm, setWebNotificationPerm] = useState<WebNotificationState>(() => {
@@ -9840,7 +9841,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Modal de Confirmação para Recusar Pedido */}
       {rejectOrderTarget && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#20201f] border border-[#353535] rounded-lg w-full max-w-sm p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[#20201f] border border-[#353535] rounded-xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 text-red-400">
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 border border-red-500/40">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -9855,33 +9856,71 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             </div>
 
-            <div className="bg-[#161616] rounded-xl p-3 border border-[#303030] text-xs space-y-1.5 text-[#b4b5b5]">
+            <div className="bg-[#161616] rounded-xl p-3.5 border border-[#303030] text-xs space-y-3 text-[#b4b5b5]">
               <div className="flex justify-between text-white font-medium">
                 <span>Total do Pedido:</span>
                 <span className="text-[#ff5722] font-black font-['Montserrat']">
                   R$ {(rejectOrderTarget.total || 0).toFixed(2).replace('.', ',')}
                 </span>
               </div>
+
+              {/* Motivo do Cancelamento */}
+              <div className="space-y-2 pt-1 border-t border-[#303030]">
+                <label className="block text-xs font-semibold text-white">
+                  Selecione ou informe o motivo da recusa:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Produto em falta / Indisponível',
+                    'Cliente desistiu / Pedido duplicado',
+                    'Endereço fora da área de entrega',
+                    'Forma de pagamento não confirmada',
+                  ].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setRejectReasonInput(preset)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                        rejectReasonInput === preset
+                          ? 'bg-red-600 text-white border-red-500 shadow-sm'
+                          : 'bg-[#252525] text-gray-300 border-[#353535] hover:bg-[#303030]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={rejectReasonInput}
+                  onChange={e => setRejectReasonInput(e.target.value)}
+                  placeholder="Ou digite o motivo personalizado..."
+                  className="w-full bg-[#1c1b1b] border border-[#353535] rounded-lg px-3.5 py-2 text-white text-xs placeholder:text-gray-500 focus:outline-none focus:border-red-500 mt-1 font-medium"
+                />
+              </div>
+
               <p className="text-[11px] text-[#8e8f8f] leading-relaxed">
-                Ao recusar, o pedido será cancelado no sistema e arquivado no histórico de hoje.
+                Ao recusar, o pedido será cancelado, notificado ao cliente via WhatsApp e salvo na aba de Cancelados com este motivo.
               </p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#353535]">
-              <button type="button" onClick={() => setRejectOrderTarget(null)}
+              <button type="button" onClick={() => { setRejectOrderTarget(null); setRejectReasonInput('Produto em falta / Indisponível'); }}
                 className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-[#b4b5b5] hover:text-white bg-[#2a2a2a] hover:bg-[#333] transition-colors"
               >
                 Cancelar
               </button>
               <button type="button" onClick={() => {
-                  onRejectOrder(rejectOrderTarget.id);
+                  onRejectOrder(rejectOrderTarget.id, rejectReasonInput.trim() || 'Cancelado pelo gestor');
                   setRejectOrderTarget(null);
+                  setRejectReasonInput('Produto em falta / Indisponível');
                   setKdsToast(`Pedido #${rejectOrderTarget.orderNumber} cancelado.`);
                   setTimeout(() => setKdsToast(null), 3000);
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-bold font-['Montserrat'] text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all shadow-md"
               >
-                Confirmar Recusa
+                Confirmar Recusa com Motivo
               </button>
             </div>
           </div>
