@@ -482,16 +482,16 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         )}
 
         {/* Visual Timeline / Stepper (5 Etapas: Recebido, Em Preparo, Pronto, Em Rota, Entregue) */}
-        <section className="bg-[#1c1b1b] rounded-lg p-4 sm:p-5 border border-[#353535] shadow-xl relative overflow-hidden space-y-3.5">
+        <section className="bg-[#282828] rounded-xl p-4 sm:p-5 border border-[#444] shadow-xl relative overflow-hidden space-y-3.5">
           {/* Header do Stepper com indicador de etapa atual */}
-          <div className="flex items-center justify-between pb-2 border-b border-[#353535]/60">
+          <div className="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-[#333333] border border-[#4d4d4d]">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#ff5722] animate-ping" />
               <span className="text-xs font-['Montserrat'] font-black uppercase tracking-wider text-white">
                 Progresso da Entrega
               </span>
             </div>
-            <span className="text-[10px] font-['Montserrat'] font-extrabold px-2.5 py-0.5 rounded-full bg-[#ff5722]/15 text-[#ff8a65] border border-[#ff5722]/30">
+            <span className="text-[10px] font-['Montserrat'] font-extrabold px-2.5 py-0.5 rounded-full bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40">
               Etapa {currentStepIndex + 1} de 5 • {steps[currentStepIndex].label}
             </span>
           </div>

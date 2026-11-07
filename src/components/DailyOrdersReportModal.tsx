@@ -649,7 +649,7 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
                         return (
                           <React.Fragment key={order.id}>
                             <tr
-                              className={`hover:bg-[#252525] transition-colors cursor-pointer ${
+                              className={`bg-[#20201f] hover:bg-[#252525] transition-colors cursor-pointer select-none ${
                                 isExpanded ? 'bg-[#252525]' : ''
                               }`}
                               onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
@@ -799,9 +799,9 @@ export const DailyOrdersReportModal: React.FC<DailyOrdersReportModalProps> = ({
 
                             {/* Accordion Expandable Detailed Card */}
                             {isExpanded && (
-                              <tr className="bg-[#1c1c1c] border-b border-[#353535]">
+                              <tr className="bg-[#242424] border-b border-[#353535]">
                                 <td colSpan={9} className="p-4">
-                                  <div className="bg-[#262626] border border-[#353535] rounded-md p-4 space-y-3">
+                                  <div className="bg-[#20201f] border border-[#353535] rounded-md p-4 space-y-3">
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#353535] pb-2">
                                       <div className="flex items-center gap-2">
                                         <Receipt className="w-4 h-4 text-[#ff5722]" />

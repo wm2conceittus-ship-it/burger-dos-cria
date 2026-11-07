@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Calendar, TrendingUp, ShoppingBag, DollarSign, Activity, Filter } from 'lucide-react';
+import { Last7DaysOrdersBarChart } from './Last7DaysOrdersBarChart';
 
 interface RechartsAnalyticsPanelProps {
   orders: Order[];
@@ -263,6 +264,9 @@ export const RechartsAnalyticsPanel: React.FC<RechartsAnalyticsPanelProps> = ({ 
           </div>
         </div>
       </div>
+
+      {/* Dashboard: Volume de Pedidos Diários nos Últimos 7 Dias */}
+      <Last7DaysOrdersBarChart orders={orders} />
 
       {/* Grid de Gráficos Recharts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
