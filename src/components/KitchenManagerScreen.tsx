@@ -2540,6 +2540,26 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Botões de Ação na mesma sequência */}
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
+                  <button
+                    type="button"
+                    disabled={isValidatingPendingPix}
+                    onClick={handleCheckAllPendingPix}
+                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-sky-400 border border-sky-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    title="Consulta manualmente a API do Mercado Pago para todos os pedidos com Pix pendente"
+                  >
+                    {isValidatingPendingPix ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span>Verificando Pix...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 text-sky-400 shrink-0" />
+                        <span>Forçar Verificação Pix</span>
+                      </>
+                    )}
+                  </button>
+
                   <button onClick={() => setShowDailyReportModal(true)}
                     className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Ver e exportar lista detalhada de pedidos do dia"
@@ -2585,6 +2605,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               </div>
             </section>
+
+            {pixSyncResult && (
+              <div className="p-3 bg-sky-950/90 border border-sky-500/50 text-sky-200 text-xs rounded-xl font-semibold flex items-center justify-between gap-3 shadow-lg animate-in fade-in">
+                <span>{pixSyncResult}</span>
+                <button type="button" onClick={() => setPixSyncResult(null)} className="text-xs underline text-sky-300 hover:text-white shrink-0">Fechar</button>
+              </div>
+            )}
 
             {/* Barra de Filtros e Seletor de Modo (Carrossel vs Kanban vs Grade) */}
             {ordersLayoutMode === 'carousel' || ordersLayoutMode === 'kanban' ? (
