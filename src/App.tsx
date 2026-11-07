@@ -1403,6 +1403,10 @@ export default function App() {
           onOpenChatWithDriver={() => setIsDriverChatOpen(true)}
           onOpenHelp={() => showToast('Suporte Burger Dash: Atendimento 24h via WhatsApp.')}
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
+          onMarkAsReceived={orderId => {
+            handleKitchenUpdateStatus(orderId, 'entregue');
+            showToast('Pedido marcado como recebido por você! 🎉 Bom apetite!');
+          }}
         />
       )}
 

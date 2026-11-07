@@ -405,9 +405,13 @@ export const CartScreen: React.FC<CartScreenProps> = ({
   };
 
   // Opção 2: Modo de Aprovação 100% Automática do Pix (Mercado Pago API)
+  const autoCreatePixEnabled = storeSettings?.mercadoPago?.autoCreatePixQr ?? true;
+  const expirationMins = storeSettings?.mercadoPago?.pixExpirationMinutes || 30;
+
   const isAutoPixMode =
     (storeSettings?.pixApprovalMode ?? 'automatic') === 'automatic' &&
-    storeSettings?.mercadoPago?.isEnabled !== false;
+    storeSettings?.mercadoPago?.isEnabled !== false &&
+    autoCreatePixEnabled;
 
   const [autoPixData, setAutoPixData] = useState<PixResponse | null>(null);
   const [isLoadingAutoPix, setIsLoadingAutoPix] = useState(false);
@@ -416,7 +420,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
   // Pix QR Code and EMV Payload State
   const [hasCopiedPixCode, setHasCopiedPixCode] = useState(false);
-  const [pixTimeLeft, setPixTimeLeft] = useState(15 * 60);
+  const [pixTimeLeft, setPixTimeLeft] = useState(expirationMins * 60);
 
   useEffect(() => {
     if (!paymentMethod.toLowerCase().includes('pix')) return;
@@ -477,6 +481,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
             identification: { type: 'CPF', number: '19119119100' },
           },
           customAccessToken: storeSettings?.mercadoPago?.accessToken,
+          expirationMinutes: expirationMins,
         });
 
         if (isMounted) {

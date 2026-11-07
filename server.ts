@@ -86,7 +86,7 @@ app.post('/api/mercadopago/test-connection', async (req: Request, res: Response)
 // Real call to Mercado Pago API: POST https://api.mercadopago.com/v1/payments
 app.post('/api/mercadopago/create-pix', async (req: Request, res: Response) => {
   try {
-    const { transaction_amount, description, payer, customAccessToken } = req.body;
+    const { transaction_amount, description, payer, customAccessToken, expirationMinutes } = req.body;
     const token = getAccessToken(customAccessToken);
 
     if (!transaction_amount || transaction_amount <= 0) {
@@ -94,11 +94,14 @@ app.post('/api/mercadopago/create-pix', async (req: Request, res: Response) => {
     }
 
     const idempotencyKey = `pix-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const expMins = Number(expirationMinutes) || 30;
+    const dateOfExpiration = new Date(Date.now() + expMins * 60000).toISOString();
 
     const mpPayload = {
       transaction_amount: Number(transaction_amount),
       description: description || 'Pedido - Burguer dos Crias',
       payment_method_id: 'pix',
+      date_of_expiration: dateOfExpiration,
       payer: {
         email: payer?.email || 'cliente@email.com',
         first_name: payer?.first_name || 'Cliente',

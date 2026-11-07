@@ -65,6 +65,8 @@ export interface MercadoPagoConfig {
   allowCheckoutPro: boolean;
   autoPixReadEnabled?: boolean;
   autoPixReadInterval?: number;
+  autoCreatePixQr?: boolean;
+  pixExpirationMinutes?: number;
   lastValidatedAt?: string;
   accountName?: string;
 }

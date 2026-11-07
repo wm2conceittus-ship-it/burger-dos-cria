@@ -8912,6 +8912,94 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     </div>
                   </div>
 
+                  {/* SEÇÃO: CRIAÇÃO AUTOMÁTICA DE QR CODE E TEMPO DE EXPIRAÇÃO */}
+                  <div className="bg-[#10202a] p-4 rounded-xl border border-[#009ee3]/40 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#009ee3]/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#009ee3]/20 text-[#009ee3] flex items-center justify-center shrink-0 border border-[#009ee3]/40">
+                          <QrCode className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                            Criação Automática de QR Code no Carrinho
+                            <span className="text-[9px] bg-[#009ee3]/20 text-[#009ee3] px-2 py-0.5 rounded-full font-bold border border-[#009ee3]/30">
+                              Mercado Pago
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-[#b4b5b5]">
+                            Gera automaticamente o QR Code dinâmico do Mercado Pago assim que o cliente seleciona Pix no checkout.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Switch Criação Automática QR Code */}
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={storeSettings.mercadoPago?.autoCreatePixQr ?? true}
+                          onChange={e =>
+                            onUpdateStoreSettings({
+                              ...storeSettings,
+                              mercadoPago: {
+                                ...(storeSettings.mercadoPago || {
+                                  isEnabled: true,
+                                  publicKey: '',
+                                  accessToken: '',
+                                  environment: 'sandbox',
+                                  allowPix: true,
+                                  allowCreditCard: true,
+                                  allowCheckoutPro: true,
+                                }),
+                                autoCreatePixQr: e.target.checked,
+                              },
+                            })
+                          }
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#353535] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+                      </label>
+                    </div>
+
+                    {/* Campo de Tempo de Expiração do QR Code */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs items-center">
+                      <div className="space-y-1">
+                        <label className="text-white font-semibold block text-[11px]">
+                          Tempo de Expiração do QR Code (Minutos):
+                        </label>
+                        <p className="text-[10px] text-[#b4b5b5]">
+                          Tempo limite para o cliente efetuar o pagamento Pix antes do QR Code expirar (Padrão: 30 min).
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={1440}
+                          value={storeSettings.mercadoPago?.pixExpirationMinutes ?? 30}
+                          onChange={e =>
+                            onUpdateStoreSettings({
+                              ...storeSettings,
+                              mercadoPago: {
+                                ...(storeSettings.mercadoPago || {
+                                  isEnabled: true,
+                                  publicKey: '',
+                                  accessToken: '',
+                                  environment: 'sandbox',
+                                  allowPix: true,
+                                  allowCreditCard: true,
+                                  allowCheckoutPro: true,
+                                }),
+                                pixExpirationMinutes: Math.max(1, parseInt(e.target.value) || 30),
+                              },
+                            })
+                          }
+                          className="w-full bg-[#182833] border border-[#009ee3]/30 rounded-lg px-3 py-2 text-white font-mono text-center focus:outline-none focus:border-[#009ee3]"
+                        />
+                        <span className="text-[#86cfff] font-mono font-bold text-xs shrink-0">minutos</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* SEÇÃO: CONSULTA MANUAL DE COMPROVANTE OU ID DE TRANSAÇÃO PIX */}
                   <div className="bg-[#152530] p-4 rounded-xl border border-[#009ee3]/30 space-y-3">
                     <div className="flex items-center justify-between pb-1 border-b border-[#009ee3]/20">

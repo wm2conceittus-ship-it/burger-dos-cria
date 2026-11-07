@@ -43,6 +43,8 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
     () => `MP-${Math.floor(100000000 + Math.random() * 900000000)}`
   );
 
+  const expirationMins = storeSettings.mercadoPago?.pixExpirationMinutes || 30;
+
   // Load real/sandbox Pix from backend API
   useEffect(() => {
     let isMounted = true;
@@ -59,6 +61,7 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
             identification: { type: 'CPF', number: '19119119100' },
           },
           customAccessToken: storeSettings.mercadoPago?.accessToken,
+          expirationMinutes: expirationMins,
         });
 
         if (isMounted) {
@@ -78,10 +81,10 @@ export const MercadoPagoModal: React.FC<MercadoPagoModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [total, storeSettings.mercadoPago?.accessToken]);
+  }, [total, storeSettings.mercadoPago?.accessToken, expirationMins]);
 
-  // Timer countdown for Pix (15 minutes)
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
+  // Timer countdown for Pix
+  const [timeLeft, setTimeLeft] = useState(expirationMins * 60);
 
   useEffect(() => {
     if (tab !== 'pix' || isSuccess) return;

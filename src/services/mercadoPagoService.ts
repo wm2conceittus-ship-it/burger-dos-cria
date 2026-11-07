@@ -70,6 +70,7 @@ export const mercadoPagoApi = {
       identification: { type: string; number: string };
     };
     customAccessToken?: string;
+    expirationMinutes?: number;
   }): Promise<PixResponse> {
     const res = await fetch('/api/mercadopago/create-pix', {
       method: 'POST',

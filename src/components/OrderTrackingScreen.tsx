@@ -35,6 +35,7 @@ interface OrderTrackingScreenProps {
   onOpenChatWithDriver: () => void;
   onOpenHelp: () => void;
   onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
+  onMarkAsReceived?: (orderId: string) => void;
 }
 
 export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
@@ -44,6 +45,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
   onOpenChatWithDriver,
   onOpenHelp,
   onUpdatePaymentStatus,
+  onMarkAsReceived,
 }) => {
   if (!order) {
     return (
@@ -395,6 +397,8 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           </div>
         )}
 
+
+
         {/* Card de Alerta no WhatsApp do Gestor */}
         <div className="bg-emerald-950/40 border-2 border-emerald-500/50 rounded-lg p-3.5 space-y-2.5 shadow-xl">
           <div className="flex items-start justify-between gap-2.5">
@@ -571,6 +575,20 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
           <p className="text-[10px] text-center text-[#8e8f8f] italic">
             Toque nos ícones acima para simular e visualizar as 5 etapas da entrega
           </p>
+
+          {/* Botão de Marcar como Recebido pelo Cliente dentro do Card */}
+          {order.status !== 'entregue' && order.status !== 'recusado' && onMarkAsReceived && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onMarkAsReceived(order.id)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-4 rounded-xl font-['Montserrat'] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-98 transition-all shadow-lg shadow-emerald-600/30 border border-emerald-500/40"
+              >
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>✓ Marcar Pedido como Recebido / Entregue</span>
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Delivery GPS Map Card */}
@@ -660,6 +678,17 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
             <MessageSquare className="w-5 h-5" />
             <span>Entrar em contato com o entregador</span>
           </button>
+
+          {/* Botão Falar com o Gestor */}
+          <a
+            href={`https://wa.me/${(storeSettings?.whatsappManagerAlert || storeSettings?.whatsappSupport || '5511987654321').replace(/\D/g, '')}?text=${encodeURIComponent(`Olá Gestor! Gostaria de falar sobre o meu Pedido #${order.orderNumber}.`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-white font-['Montserrat'] font-bold rounded-md flex items-center justify-center gap-2 active:scale-98 transition-all shadow-lg shadow-emerald-600/30 text-sm"
+          >
+            <MessageSquare className="w-5 h-5 text-white" />
+            <span>💬 Falar com o Gestor (WhatsApp)</span>
+          </a>
 
           <button
             onClick={onOpenHelp}
