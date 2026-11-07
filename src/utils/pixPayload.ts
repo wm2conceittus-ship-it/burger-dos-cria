@@ -1,6 +1,8 @@
 /**
  * Utilitário de Geração de Código Pix e Payload EMV (Padrão Banco Central do Brasil)
+ * Com gerador síncrono local de QR Code SVG 100% confiável via 'qrcode'.
  */
+import QRCode from 'qrcode';
 
 export function generatePixPayload(params: {
   pixKey: string;
@@ -13,23 +15,18 @@ export function generatePixPayload(params: {
 
   let cleanKey = (pixKey || '11987654321').trim();
   
-  // Format cleanKey according to BCB standard
   if (cleanKey.includes('@')) {
     cleanKey = cleanKey.toLowerCase().trim();
   } else {
     const digits = cleanKey.replace(/\D/g, '');
-    // CNPJ (14 digits)
     if (digits.length === 14) {
       cleanKey = digits;
     } else if (cleanKey.startsWith('+')) {
       cleanKey = `+${cleanKey.replace(/\D/g, '')}`;
     } else if (digits.length === 10 || digits.length === 11) {
-      // If it looks like Brazilian phone (e.g. 11987654321 or (11) 98765-4321)
-      // Check if it's formatted as phone or explicitly with DDD >= 11
       if (cleanKey.includes('(') || cleanKey.includes('-') || cleanKey.startsWith('9')) {
         cleanKey = `+55${digits}`;
       } else {
-        // Keep as digits (works for CPF or phone)
         cleanKey = digits;
       }
     }
@@ -54,36 +51,25 @@ export function generatePixPayload(params: {
     return `${id}${len}${value}`;
   };
 
-  // 00: Payload Format Indicator
   const f00 = formatField('00', '01');
-  // 01: Point of Initiation Method (12 = Dynamic / Specific amount, 11 = Static)
   const f01 = formatField('01', strAmount ? '12' : '11');
 
-  // 26: Merchant Account Information (Pix)
   const gui = formatField('00', 'br.gov.bcb.pix');
   const keyField = formatField('01', cleanKey);
   const f26 = formatField('26', `${gui}${keyField}`);
 
-  // 52: Merchant Category Code (0000)
   const f52 = formatField('52', '0000');
-  // 53: Transaction Currency (986 = Real BRL)
   const f53 = formatField('53', '986');
-  // 54: Transaction Amount
   const f54 = strAmount ? formatField('54', strAmount) : '';
-  // 58: Country Code (BR)
   const f58 = formatField('58', 'BR');
-  // 59: Merchant Name
   const f59 = formatField('59', cleanName || 'BURGER CRIAS');
-  // 60: Merchant City
   const f60 = formatField('60', cleanCity || 'SAO PAULO');
 
-  // 62: Additional Data Field (TXID)
   const f05 = formatField('05', txid || '***');
   const f62 = formatField('62', f05);
 
   const raw = `${f00}${f01}${f26}${f52}${f53}${f54}${f58}${f59}${f60}${f62}6304`;
 
-  // CRC16-CCITT (Polynomial 0x1021, Initial 0xFFFF)
   let crc = 0xffff;
   for (let i = 0; i < raw.length; i++) {
     crc ^= raw.charCodeAt(i) << 8;
@@ -101,6 +87,28 @@ export function generatePixPayload(params: {
 }
 
 export function getPixQrCodeUrl(payload: string, size = 260): string {
+  try {
+    const qr = (QRCode as any).create(payload, { errorCorrectionLevel: 'M' });
+    const sizeModules = qr.modules.size;
+    const data = qr.modules.data;
+    
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizeModules} ${sizeModules}" width="${size}" height="${size}">`;
+    svg += `<path fill="#ffffff" d="M0 0h${sizeModules}v${sizeModules}H0z"/>`;
+    svg += `<path fill="#000000" d="`;
+    
+    for (let row = 0; row < sizeModules; row++) {
+      for (let col = 0; col < sizeModules; col++) {
+        if (data[row * sizeModules + col]) {
+          svg += `M${col} ${row}h1v1H${col}z `;
+        }
+      }
+    }
+    svg += `"/></svg>`;
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  } catch (err) {
+    console.warn('Error generating local QR code, falling back to external API:', err);
+  }
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(
     payload
   )}`;
