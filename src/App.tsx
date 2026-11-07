@@ -872,7 +872,11 @@ export default function App() {
         if (orderedItem && p.stock !== undefined) {
           hasStockChange = true;
           const newStock = Math.max(0, p.stock - orderedItem.quantity);
-          return { ...p, stock: newStock };
+          return {
+            ...p,
+            stock: newStock,
+            isAvailable: newStock === 0 ? false : p.isAvailable,
+          };
         }
         return p;
       });
@@ -1171,7 +1175,11 @@ export default function App() {
         if (orderedItem && p.stock !== undefined) {
           hasStockChange = true;
           const newStock = Math.max(0, p.stock - orderedItem.quantity);
-          return { ...p, stock: newStock };
+          return {
+            ...p,
+            stock: newStock,
+            isAvailable: newStock === 0 ? false : p.isAvailable,
+          };
         }
         return p;
       });
@@ -1239,7 +1247,11 @@ export default function App() {
     }
   };
 
-  const handleSaveProduct = async (savedProduct: Product) => {
+  const handleSaveProduct = async (productToSave: Product) => {
+    const savedProduct: Product = {
+      ...productToSave,
+      isAvailable: (productToSave.stock !== undefined && productToSave.stock <= 0) ? false : productToSave.isAvailable,
+    };
     // 1. Update React state immediately using functional updater
     setProducts(prev => {
       const exists = prev.some(p => p.id === savedProduct.id);

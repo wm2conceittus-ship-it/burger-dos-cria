@@ -248,15 +248,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       ? (parseNum(pizzaGPrice, 0) || parsedPrice || 49.90)
       : parsedPrice;
 
+    const parsedStock = stock.trim() !== '' ? Math.max(0, parseInt(stock, 10) || 0) : undefined;
+    const isZeroStock = parsedStock !== undefined && parsedStock <= 0;
+
     const savedProduct: Product = {
       id: initialProduct?.id || `prod-${Date.now()}`,
       name: name.trim(),
       category,
       price: basePrice,
       costPrice: costPrice.trim() ? parseNum(costPrice) : undefined,
-      stock: stock.trim() !== '' ? Math.max(0, parseInt(stock, 10) || 0) : undefined,
+      stock: parsedStock,
       minStock: minStock.trim() !== '' ? Math.max(0, parseInt(minStock, 10) || 0) : undefined,
-      isAvailable: initialProduct?.isAvailable !== undefined ? initialProduct.isAvailable : true,
+      isAvailable: isZeroStock ? false : (initialProduct?.isAvailable !== undefined ? initialProduct.isAvailable : true),
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
@@ -589,7 +592,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {/* Seção de Controle de Estoque & Estoque Mínimo */}
-          <div className="p-3.5 bg-gradient-to-br from-[#1c1b1a] via-[#181716] to-[#141414] border border-[#353535] rounded-xl space-y-2.5 shadow-md">
+          <div className="p-3.5 bg-[#2b2a29] border border-[#444341] rounded-xl space-y-2.5 shadow-md">
             <div className="flex items-center justify-between">
               <label className="text-white font-['Montserrat'] font-bold text-xs flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-[#ff5722]" />
@@ -616,7 +619,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={stock}
                     onChange={e => setStock(e.target.value)}
                     placeholder="Ex: 10"
-                    className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-[#ff5722] font-semibold"
+                    className="w-full bg-[#363533] border border-[#555] rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-[#ff5722] font-semibold"
                   />
                   <span className="absolute right-3 text-xs text-[#8e8f8f] font-mono">un</span>
                 </div>
@@ -636,7 +639,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={minStock}
                     onChange={e => setMinStock(e.target.value)}
                     placeholder="Ex: 5"
-                    className="w-full bg-[#1c1b1b] border border-amber-500/40 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-amber-400 font-semibold"
+                    className="w-full bg-[#363533] border border-amber-500/50 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-amber-400 font-semibold"
                   />
                   <span className="absolute right-3 text-xs text-amber-400 font-mono font-bold">un</span>
                 </div>
@@ -649,7 +652,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border transition-all ${
                   stock.trim() !== '' && Number(stock) <= Number(minStock)
                     ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
-                    : 'bg-[#141414] border-[#353535] text-[#b4b5b5]'
+                    : 'bg-[#363533] border-[#555] text-[#b4b5b5]'
                 }`}
               >
                 <AlertTriangle
