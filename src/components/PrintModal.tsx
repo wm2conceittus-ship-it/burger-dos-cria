@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, StoreSettings } from '../types';
-import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText, Bluetooth } from 'lucide-react';
+import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText, Bluetooth, QrCode } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
 import { getOrderDate, getOrderTime, formatOrderCreationDateTime } from '../utils/orderDateTime';
 
@@ -17,6 +17,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   const [copiedText, setCopiedText] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
   const [isPrintingBluetooth, setIsPrintingBluetooth] = useState(false);
+  const [showPrintQrModal, setShowPrintQrModal] = useState(false);
 
   if (!order) return null;
 
@@ -335,8 +336,8 @@ ${doubleDivider}
             <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
-                <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 print:hidden">
-                  <Flame className="w-5 h-5 fill-[#ff5722]" />
+                <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm">
+                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover" />
                 </div>
                 <h2 className="font-black text-sm tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[10px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
@@ -486,6 +487,9 @@ ${doubleDivider}
             <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 print:shadow-none print:w-[80mm] print:p-0">
               {/* Header */}
               <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">
+                <div className="w-12 h-12 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1.5 overflow-hidden border border-gray-300 shadow-sm">
+                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover" />
+                </div>
                 <h2 className="font-black text-base tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[11px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
                 <p className="text-[10px] font-normal text-gray-500">{storeAddress}</p>
@@ -663,7 +667,99 @@ ${doubleDivider}
               <Bluetooth className={`w-3.5 h-3.5 ${isPrintingBluetooth ? 'animate-spin' : ''}`} />
               <span>{isPrintingBluetooth ? 'Conectando...' : 'Bluetooth ESC/POS'}</span>
             </button>
+
+            {/* Gerar QR Code de Impressão Button */}
+            <button
+              onClick={() => setShowPrintQrModal(true)}
+              className="flex items-center gap-1.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-500/40 px-3 py-2.5 rounded-xl font-bold font-['Montserrat'] text-xs transition-all active:scale-95"
+              title="Gerar QR Code para escaneamento rápido por garçons ou impressoras móveis"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Gerar QR Code de Impressão</span>
+            </button>
           </div>
+
+          {/* QR Code Modal Popup */}
+          {showPrintQrModal && (
+            <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-[#1c1b1b] border border-[#353535] rounded-3xl w-full max-w-sm p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+                <div className="flex justify-between items-center pb-3 border-b border-[#353535]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <QrCode className="w-4 h-4" />
+                    </span>
+                    <h4 className="font-['Montserrat'] font-bold text-sm text-white">
+                      QR Code de Impressão
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setShowPrintQrModal(false)}
+                    className="text-[#b4b5b5] hover:text-white p-1 rounded-md hover:bg-[#333]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-mono text-amber-400 font-bold block">
+                    Pedido #{order.orderNumber} • {order.customerName}
+                  </span>
+                  <p className="text-xs text-[#b4b5b5]">
+                    Garçons e atendentes podem escanear este QR Code para enviar a comanda diretamente para impressoras térmicas Bluetooth portáteis.
+                  </p>
+                </div>
+
+                {/* QR Code SVG */}
+                <div className="bg-white rounded-2xl p-4 w-48 h-48 mx-auto flex items-center justify-center relative shadow-inner border-4 border-amber-500/30">
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <rect x="5" y="5" width="25" height="25" fill="#000" />
+                    <rect x="8" y="8" width="19" height="19" fill="#fff" />
+                    <rect x="11" y="11" width="13" height="13" fill="#000" />
+                    <rect x="70" y="5" width="25" height="25" fill="#000" />
+                    <rect x="73" y="8" width="19" height="19" fill="#fff" />
+                    <rect x="76" y="11" width="13" height="13" fill="#000" />
+                    <rect x="5" y="70" width="25" height="25" fill="#000" />
+                    <rect x="8" y="73" width="19" height="19" fill="#fff" />
+                    <rect x="11" y="76" width="13" height="13" fill="#000" />
+                    <rect x="35" y="10" width="8" height="8" fill="#000" />
+                    <rect x="48" y="8" width="14" height="6" fill="#000" />
+                    <rect x="35" y="24" width="6" height="14" fill="#000" />
+                    <rect x="45" y="20" width="12" height="12" fill="#ff5722" />
+                    <rect x="62" y="22" width="5" height="10" fill="#000" />
+                    <rect x="10" y="35" width="18" height="6" fill="#000" />
+                    <rect x="15" y="45" width="8" height="15" fill="#000" />
+                    <rect x="28" y="38" width="6" height="8" fill="#000" />
+                    <rect x="38" y="38" width="24" height="24" fill="#ff5722" rx="4" />
+                    <rect x="68" y="35" width="8" height="12" fill="#000" />
+                    <rect x="80" y="40" width="12" height="6" fill="#000" />
+                    <rect x="68" y="52" width="10" height="8" fill="#000" />
+                    <rect x="82" y="52" width="10" height="16" fill="#000" />
+                    <rect x="36" y="68" width="8" height="14" fill="#000" />
+                    <rect x="48" y="65" width="14" height="6" fill="#000" />
+                    <rect x="48" y="76" width="8" height="16" fill="#000" />
+                    <rect x="62" y="70" width="12" height="8" fill="#000" />
+                    <rect x="78" y="75" width="14" height="16" fill="#000" />
+                  </svg>
+                  <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-white border border-[#ff5722] flex items-center justify-center shadow-md">
+                    <span className="font-['Montserrat'] font-black text-[9px] text-[#ff5722]">
+                      POS
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowPrintQrModal(false);
+                    handleBluetoothPrint();
+                  }}
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white py-2.5 rounded-xl text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all"
+                >
+                  <Bluetooth className="w-4 h-4" />
+                  <span>Conectar Impressora Bluetooth Agora</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <button

@@ -455,6 +455,9 @@ export default function App() {
             });
           }
           showToast(`🔔 Novo pedido #${incomingOrders[0].orderNumber} recebido na cozinha!`);
+          if (storeSettings.autoPrintReceipts !== false) {
+            setPrintOrder(incomingOrders[0]);
+          }
         }
 
         // Detecta Pix confirmado pelo banco em tempo real (mudança de pendente para aprovado)
@@ -1183,6 +1186,9 @@ export default function App() {
 
     if (storeSettings.soundAlerts !== false) {
       playNewOrderSound();
+    }
+    if (storeSettings.autoPrintReceipts !== false) {
+      setPrintOrder(newOrder);
     }
     showToast(`Pedido ${newOrder.orderNumber} adicionado e sincronizado no Firebase!`);
   };

@@ -4316,7 +4316,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <div className="pt-2 border-t border-[#353535]/50 flex gap-2">
                           {isNovo ? (
                             <>
-                              <button onClick={() => onRejectOrder(order.id)}
+                              <button onClick={() => setRejectOrderTarget(order)}
                                 className="flex-1 bg-[#353535] hover:bg-[#454747] text-white py-2.5 rounded-md text-xs font-semibold font-['Montserrat'] transition-colors"
                               >
                                 Recusar
@@ -4346,7 +4346,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               >
                                 Mudar para Pronto
                               </button>
-                              <button onClick={() => onRejectOrder(order.id)}
+                              <button onClick={() => setRejectOrderTarget(order)}
                                 className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 py-1.5 rounded-md text-[11px] font-bold font-['Montserrat'] transition-all"
                               >
                                 Cancelar / Recusar Pedido
@@ -4766,7 +4766,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <div className="pt-3 border-t border-[#353535]/50 flex gap-2">
                       {isNovo && (
                         <>
-                          <button onClick={() => onRejectOrder(order.id)}
+                          <button onClick={() => setRejectOrderTarget(order)}
                             className="flex-1 bg-[#2a2a2a] hover:bg-[#353535] text-[#e5e2e1] py-2.5 rounded-md text-xs font-medium font-['Montserrat'] transition-colors"
                           >
                             Recusar
@@ -4799,7 +4799,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           >
                             Mudar para Pronto
                           </button>
-                          <button onClick={() => onRejectOrder(order.id)}
+                          <button onClick={() => setRejectOrderTarget(order)}
                             className="w-full bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 py-1.5 rounded-md text-[10px] font-bold font-['Montserrat'] transition-all"
                             onClickCapture={e => e.stopPropagation()}
                           >
@@ -10723,7 +10723,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onRejectOrder(order.id);
+                        setRejectOrderTarget(order);
                         setSelectedOrderDetail(null);
                       }}
                       className="px-4 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40 text-xs font-bold font-['Montserrat'] shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
