@@ -7255,43 +7255,43 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
             {/* ABA FORMAS DE PAGAMENTO LOCAIS */}
             {configTab === 'formas' && (
-            <div className="bg-[#20201f] rounded-md p-5 border border-[#353535]/50 space-y-4 shadow-md text-xs">
+            <div className="bg-white rounded-xl p-5 border border-gray-200 space-y-4 shadow-sm text-xs">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-[#ff5722]" />
-                  <h3 className="font-['Montserrat'] font-bold text-sm text-white">
+                  <h3 className="font-['Montserrat'] font-bold text-sm text-gray-900">
                     Formas de Pagamento Locais Aceitas
                   </h3>
                 </div>
-                <span className="text-[10px] text-[#ff8a65] font-semibold bg-[#ff5722]/15 px-2 py-0.5 rounded-md border border-[#ff5722]/30">
+                <span className="text-[10px] text-[#ff5722] font-semibold bg-orange-100 px-2.5 py-0.5 rounded-md border border-orange-200">
                   {(storeSettings.acceptedPaymentMethods || []).length} ativas
                 </span>
               </div>
-              <p className="text-[11px] text-[#b4b5b5]">
+              <p className="text-[11px] text-gray-500">
                 Configure quais formas de pagamento aparecem para os clientes no carrinho (Pix, cartões na maquininha, dinheiro, vales-refeição).
               </p>
 
                 {/* Chave Pix Config - Painel Completo e Confiável */}
-                <div className="bg-[#1c1b1b] border-2 border-[#ff5722]/40 rounded-xl p-4 sm:p-5 space-y-4 shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff5722]/5 rounded-bl-full pointer-events-none" />
+                <div className="bg-gray-50 border-2 border-orange-200 rounded-xl p-4 sm:p-5 space-y-4 shadow-xs relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/50 rounded-bl-full pointer-events-none" />
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#353535] pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#ff5722] to-[#e64a19] flex items-center justify-center text-white shadow-md">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#ff5722] to-[#e64a19] flex items-center justify-center text-white shadow-sm">
                         <QrCode className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-['Montserrat'] font-bold text-sm text-white flex items-center gap-2">
+                        <h4 className="font-['Montserrat'] font-bold text-sm text-gray-900 flex items-center gap-2">
                           Chave Pix Oficial da Hamburgueria
                           <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
                             storeSettings.pixKey
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                              : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-amber-100 text-amber-800 border-amber-300'
                           }`}>
                             {storeSettings.pixKey ? 'Configurada' : 'Pendente'}
                           </span>
                         </h4>
-                        <p className="text-[11px] text-[#b4b5b5]">
+                        <p className="text-[11px] text-gray-500">
                           Usada para gerar o QR Code Dinâmico e Chave Copia e Cola no Carrinho e nos Pedidos.
                         </p>
                       </div>
@@ -7299,24 +7299,24 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                     {/* Feedback de Salvo */}
                     {pixSavedToast && (
-                      <div className="bg-emerald-500/20 border border-emerald-500 text-emerald-300 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 animate-in fade-in">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <div className="bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 animate-in fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         <span>Chave salva com sucesso!</span>
                       </div>
                     )}
                   </div>
 
                   {/* Seletor do Modo de Aprovação Pix (Opção 1 vs Opção 2) */}
-                  <div className="bg-[#141414] p-3.5 rounded-xl border border-[#353535] space-y-2.5">
+                  <div className="bg-white p-3.5 rounded-xl border border-gray-200 space-y-2.5 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <label className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-600" />
                         Modo de Operação do Pix no Checkout:
                       </label>
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
                         (storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border-amber-300'
                       }`}>
                         {(storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
                           ? '⚡ Opção 2: 100% Automático Ativo'
@@ -7334,20 +7334,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         }
                         className={`p-3 rounded-xl border text-left transition-all relative ${
                           (storeSettings.pixApprovalMode ?? 'automatic') === 'automatic'
-                            ? 'bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/50 shadow-md'
-                            : 'bg-[#1e1e1e] border-[#333] hover:border-[#555] opacity-75'
+                            ? 'bg-emerald-50 border-emerald-500 ring-1 ring-emerald-500/30 shadow-xs'
+                            : 'bg-white border-gray-200 hover:border-gray-300 opacity-80'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-xs text-white flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-emerald-600" />
                             Aprovação 100% Automática
                           </span>
-                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded uppercase">
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded uppercase">
                             Recomendado
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                        <p className="text-[11px] text-gray-600 leading-relaxed">
                           Gera QR Code dinâmico com valor exato via <strong>Mercado Pago API</strong>. O sistema identifica a transferência na hora e aprova o pedido sozinho!
                         </p>
                       </button>
@@ -7361,33 +7361,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         }
                         className={`p-3 rounded-xl border text-left transition-all ${
                           storeSettings.pixApprovalMode === 'manual'
-                            ? 'bg-amber-950/40 border-amber-500 ring-1 ring-amber-500/50 shadow-md'
-                            : 'bg-[#1e1e1e] border-[#333] hover:border-[#555] opacity-75'
+                            ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500/30 shadow-xs'
+                            : 'bg-white border-gray-200 hover:border-gray-300 opacity-80'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-xs text-white flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-600" />
                             Pix Direto (Conferência Manual)
                           </span>
-                          <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.2 rounded uppercase">
+                          <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded uppercase">
                             Chave da Loja
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#b4b5b5] leading-relaxed">
+                        <p className="text-[11px] text-gray-600 leading-relaxed">
                           O cliente transfere direto para a sua conta e você confere o extrato ou o comprovante manualmente antes de liberar o pedido.
                         </p>
                       </button>
                     </div>
 
                     {(storeSettings.pixApprovalMode ?? 'automatic') === 'automatic' && (
-                      <div className="p-2.5 bg-emerald-950/30 rounded-lg border border-emerald-500/30 flex items-center justify-between text-[11px] text-emerald-300">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <span>Status do Gateway: <strong>Ativo</strong> ({storeSettings.mercadoPago?.environment === 'production' ? 'Produção' : 'Modo Sandbox / Teste'})</span>
                         </span>
                         <button type="button" onClick={() => setConfigTab('gateway')}
-                          className="text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 px-2 py-1 rounded font-bold border border-emerald-500/40 transition-colors"
+                          className="text-[10px] bg-emerald-200 hover:bg-emerald-300 text-emerald-900 px-2.5 py-1 rounded-md font-bold border border-emerald-300 transition-colors"
                         >
                           Configurar Credenciais MP →
                         </button>
@@ -7397,7 +7397,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   {/* Seletor do Tipo de Chave */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#8e8f8f] uppercase mb-1.5">
+                    <label className="block text-[11px] font-semibold text-gray-600 uppercase mb-1.5">
                       1. Tipo de Chave Pix:
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
@@ -7415,7 +7415,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             className={`p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 border transition-all ${
                               isSelected
                                 ? 'bg-[#ff5722] text-white border-[#ff5722] shadow-sm font-bold'
-                                : 'bg-[#252525] text-[#b4b5b5] border-[#353535] hover:text-white hover:bg-[#2e2e2e]'
+                                : 'bg-white text-gray-700 border-gray-300 hover:text-gray-900 hover:bg-gray-100'
                             }`}
                           >
                             <Icon className="w-3.5 h-3.5" />
@@ -7429,7 +7429,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   {/* Input de Chave Pix com Ações Integradas */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <label className="block text-xs font-semibold text-white">
+                      <label className="block text-xs font-semibold text-gray-900">
                         2. Digite ou Cole a sua Chave Pix (Para gerar o Código Copia e Cola):
                       </label>
                       {pixKeyInput && (
@@ -7437,7 +7437,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             setPixKeyInput('');
                             handleSavePixSettings('');
                           }}
-                          className="text-[10px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                          className="text-[10px] text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
                         >
                           <Trash2 className="w-3 h-3" /> Limpar chave
                         </button>
@@ -7467,7 +7467,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             ? 'Ex: financeiro@hamburgueria.com.br'
                             : 'Ex: 123e4567-e89b-12d3-a456-426614174000'
                         }
-                        className="w-full bg-[#252525] border-2 border-[#3d3d3d] rounded-lg px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722] transition-colors pr-24"
+                        className="w-full bg-white border-2 border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-900 font-mono text-sm focus:outline-none focus:border-[#ff5722] focus:ring-1 focus:ring-[#ff5722] transition-colors pr-24"
                       />
 
                       {/* Botão Salvar dentro do input */}
@@ -7480,16 +7480,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[#b4b5b5] gap-1 pt-0.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-gray-500 gap-1 pt-0.5">
                       <span>
                         Chave usada pelo sistema para codificar o Pix Copia e Cola.
                       </span>
                       {storeSettings.pixKey ? (
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" /> Chave salva: {storeSettings.pixKey}
                         </span>
                       ) : (
-                        <span className="text-amber-400 font-semibold flex items-center gap-1">
+                        <span className="text-amber-700 font-semibold flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" /> Nenhuma chave cadastrada
                         </span>
                       )}
@@ -7497,18 +7497,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
 
                   {/* 3. Imagem do QR Code Pix - Upload ou Link Direto */}
-                  <div className="bg-[#242323] border border-[#383838] rounded-xl p-3.5 sm:p-4 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-[#353535] pb-2.5">
+                  <div className="bg-white border border-gray-200 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-gray-200 pb-2.5">
                       <div className="flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 text-[#ff5722]" />
-                        <label className="text-xs font-bold text-white uppercase tracking-wider">
+                        <label className="text-xs font-bold text-gray-900 uppercase tracking-wider">
                           3. Imagem do QR Code Pix (Upload ou Link Web)
                         </label>
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border w-fit ${
                         pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                          ? 'bg-purple-100 text-purple-800 border-purple-300'
+                          : 'bg-blue-100 text-blue-800 border-blue-300'
                       }`}>
                         {pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
                           ? '✓ Imagem Personalizada Ativa'
@@ -7516,28 +7516,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-[11px] text-[#b4b5b5]">
+                    <p className="text-[11px] text-gray-500">
                       Você pode fazer upload da imagem do QR Code gerada pelo app do seu banco ou colar um link direto de imagem. Se preferir não enviar uma imagem, o sistema gerará o QR Code automaticamente usando a chave Pix acima.
                     </p>
 
                     {/* Ações de Upload e Link */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Opção A: Upload de Imagem */}
-                      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg p-3 space-y-2 flex flex-col justify-between">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2 flex flex-col justify-between">
                         <div className="space-y-1">
-                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                             <Upload className="w-3.5 h-3.5 text-[#ff5722]" />
                             Upload do Arquivo (PNG, JPG)
                           </span>
-                          <p className="text-[10px] text-[#8e8f8f]">
+                          <p className="text-[10px] text-gray-500">
                             Selecione a foto ou print do QR Code no seu celular ou computador.
                           </p>
                         </div>
 
                         <label className={`w-full py-2 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 ${
                           isUploadingPixQr
-                            ? 'bg-[#333] border-[#555] text-white cursor-wait'
-                            : 'bg-[#292828] hover:bg-[#333] border-[#444] hover:border-[#ff5722] text-white shadow-sm'
+                            ? 'bg-gray-200 border-gray-300 text-gray-600 cursor-wait'
+                            : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-[#ff5722] text-gray-800 shadow-xs'
                         }`}>
                           <Upload className="w-4 h-4 text-[#ff5722]" />
                           <span>{isUploadingPixQr ? 'Otimizando imagem...' : 'Escolher Imagem do QR Code'}</span>
@@ -7552,13 +7552,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </div>
 
                       {/* Opção B: Link / URL da Imagem */}
-                      <div className="bg-[#1c1b1b] border border-[#353535] rounded-lg p-3 space-y-2 flex flex-col justify-between">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2 flex flex-col justify-between">
                         <div className="space-y-1">
-                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                             <Link2 className="w-3.5 h-3.5 text-[#ff5722]" />
                             Link / URL da Imagem
                           </span>
-                          <p className="text-[10px] text-[#8e8f8f]">
+                          <p className="text-[10px] text-gray-500">
                             Ou cole a URL direta onde a imagem do QR Code está hospedada.
                           </p>
                         </div>
@@ -7576,7 +7576,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               }
                             }}
                             placeholder="https://exemplo.com/pix-qrcode.png"
-                            className="w-full bg-[#252525] border border-[#444] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-[#555] focus:outline-none focus:border-[#ff5722]"
+                            className="w-full bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#ff5722]"
                           />
                         </div>
                       </div>
@@ -7584,17 +7584,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                     {/* Feedback de erro no upload se houver */}
                     {pixQrUploadError && (
-                      <div className="p-2.5 bg-red-950/50 border border-red-500/40 rounded-lg text-red-200 text-xs flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                      <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
                         <span>{pixQrUploadError}</span>
                       </div>
                     )}
 
                     {/* Preview da imagem atual configurada e botão de remover */}
                     {(pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl) && (
-                      <div className="bg-[#181818] border border-purple-500/30 rounded-lg p-2.5 flex items-center justify-between gap-3">
+                      <div className="bg-gray-100 border border-purple-200 rounded-lg p-2.5 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-11 h-11 bg-white rounded p-0.5 shrink-0 shadow flex items-center justify-center">
+                          <div className="w-11 h-11 bg-white rounded p-0.5 shrink-0 shadow-xs flex items-center justify-center border border-gray-200">
                             <img
                               src={pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl}
                               alt="QR Code Personalizado"
@@ -7602,10 +7602,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             />
                           </div>
                           <div className="min-w-0">
-                            <span className="text-[11px] font-bold text-white block">
+                            <span className="text-[11px] font-bold text-gray-900 block">
                               Imagem do QR Code Personalizado Carregada
                             </span>
-                            <span className="text-[10px] text-[#b4b5b5] block truncate">
+                            <span className="text-[10px] text-gray-500 block truncate">
                               Esta imagem será exibida diretamente aos clientes no checkout.
                             </span>
                           </div>
@@ -7615,7 +7615,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             setPixQrCodeImageUrlInput('');
                             handleSavePixSettings(undefined, '');
                           }}
-                          className="px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/50 text-red-300 hover:text-red-200 border border-red-500/40 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors"
+                          className="px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0 transition-colors"
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Remover Imagem</span>
@@ -7625,26 +7625,26 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
 
                   {/* Preview Fiel de como o cliente vê no Checkout */}
-                  <div className="bg-[#252525] rounded-xl p-3.5 sm:p-4 border border-[#353535] space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#353535] pb-2">
+                  <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-gray-200 space-y-3 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-2">
                       <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-white block flex items-center gap-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-900 block flex items-center gap-1.5">
                           <Eye className="w-3.5 h-3.5 text-[#ff5722]" />
                           Como o cliente vê no Checkout (Pagamento Pix)
                         </span>
-                        <p className="text-[10.5px] text-[#b4b5b5]">
+                        <p className="text-[10.5px] text-gray-500">
                           Garantia de privacidade: apenas o QR Code e o botão de copiar código são exibidos. Nenhuma chave alfanumérica é exposta.
                         </p>
                       </div>
-                      <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold uppercase w-fit">
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-bold uppercase w-fit">
                         🔒 Chave alfanumérica oculta
                       </span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       {/* Simulação do Card de Checkout */}
-                      <div className="flex items-center gap-3.5 bg-[#181818] p-3 rounded-xl border border-[#383838] w-full sm:w-auto">
-                        <div className="w-20 h-20 bg-white p-1 rounded-lg shrink-0 flex items-center justify-center shadow-md border-2 border-emerald-500/40">
+                      <div className="flex items-center gap-3.5 bg-gray-50 p-3 rounded-xl border border-gray-200 w-full sm:w-auto">
+                        <div className="w-20 h-20 bg-white p-1 rounded-lg shrink-0 flex items-center justify-center shadow-xs border-2 border-emerald-300">
                           <img
                             src={
                               pixQrCodeImageUrlInput ||
@@ -7664,16 +7664,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           />
                         </div>
                         <div className="min-w-0 space-y-1">
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             <span>QR Code Ativo no Checkout</span>
                           </div>
-                          <span className="text-[10px] text-[#8e8f8f] block">
+                          <span className="text-[10px] text-gray-500 block">
                             {pixQrCodeImageUrlInput || storeSettings.pixQrCodeImageUrl
                               ? 'Fonte: Imagem enviada pelo gestor'
                               : 'Fonte: Gerado dinamicamente via chave Pix'}
                           </span>
-                          <span className="text-[10px] text-[#ffb5a0] block font-mono">
+                          <span className="text-[10px] text-gray-700 block font-mono font-medium">
                             Favorecido: {storeSettings.storeName || 'BURGER DOS CRIAS'}
                           </span>
                         </div>
@@ -7692,23 +7692,23 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             setPixCopiedToast(true);
                             setTimeout(() => setPixCopiedToast(false), 2500);
                           }}
-                          className="px-3 py-2 bg-[#1c1b1b] hover:bg-[#333] text-white border border-[#3d3d3d] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                          className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors shadow-xs"
                         >
                           {pixCopiedToast ? (
                             <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400 font-bold">Código Copiado!</span>
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="text-emerald-700 font-bold">Código Copiado!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3.5 h-3.5 text-[#ff8a65]" />
+                              <Copy className="w-3.5 h-3.5 text-[#ff5722]" />
                               <span>Testar "Copiar Código"</span>
                             </>
                           )}
                         </button>
 
                         <button type="button" onClick={() => handleSavePixSettings()}
-                          className="btn-flame text-white px-4 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                          className="btn-flame text-white px-4 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Salvar no Firebase</span>
@@ -7719,7 +7719,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 {/* Lista de formas ativas e remoção */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 pt-2">
+                  <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">
+                    Formas de Pagamento Ativas no Carrinho:
+                  </label>
                   {(storeSettings.acceptedPaymentMethods || [
                     'Pix',
                     'Cartão de Crédito',
@@ -7729,11 +7732,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   ]).map(method => (
                     <div
                       key={method}
-                      className="flex items-center justify-between p-2.5 bg-[#1c1b1b] border border-[#353535] rounded-lg"
+                      className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-lg"
                     >
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-medium text-white">{method}</span>
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-medium text-gray-900">{method}</span>
                       </div>
                       <button type="button" onClick={() => {
                           const current = storeSettings.acceptedPaymentMethods || [
@@ -7749,7 +7752,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             acceptedPaymentMethods: current.filter(m => m !== method),
                           });
                         }}
-                        className="text-[#b4b5b5] hover:text-red-400 p-1 text-[11px] transition-colors"
+                        className="text-gray-400 hover:text-red-600 p-1 text-[11px] transition-colors"
                         title="Remover forma de pagamento"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -7759,7 +7762,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 {/* Input para adicionar nova forma de pagamento no gestor */}
-                <div className="pt-1 space-y-2">
+                <div className="pt-2 space-y-2">
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -7772,9 +7775,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           handleAddMethodFromManager();
                         }
                       }}
-                      className="flex-grow bg-[#1c1b1b] border border-[#353535] rounded-lg px-3 py-2 text-xs text-white placeholder:text-[#b4b5b5]/40 focus:outline-none focus:border-[#ff5722]"
+                      className="flex-grow bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#ff5722]"
                     />
-                    <button type="button" onClick={handleAddMethodFromManager} className="btn-flame text-white px-3.5 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 active:scale-95 transition-all" >
+                    <button type="button" onClick={handleAddMethodFromManager} className="btn-flame text-white px-3.5 py-2 rounded-lg text-xs font-bold font-['Montserrat'] flex items-center gap-1 active:scale-95 transition-all shadow-xs" >
                       <Plus className="w-3.5 h-3.5" /> Adicionar
                     </button>
                   </div>
@@ -7796,7 +7799,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                               });
                             }
                           }}
-                          className="text-[10px] bg-[#1c1b1b] hover:bg-[#353535] text-[#ffb5a0] px-2 py-0.5 rounded-md border border-[#353535] transition-colors"
+                          className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1 rounded-md border border-gray-300 transition-colors font-medium"
                         >
                           + {sug}
                         </button>

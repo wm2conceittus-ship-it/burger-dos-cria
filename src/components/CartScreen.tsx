@@ -521,7 +521,35 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           }
         }
       } catch (err: any) {
-        console.warn('Erro ao criar Pix automático Mercado Pago:', err);
+        console.warn('Erro ao criar Pix automático Mercado Pago (usando fallback local):', err);
+        if (isMounted) {
+          const fallbackId = 'EMP-' + Math.floor(100000 + Math.random() * 900000);
+          const fallbackResponse = {
+            id: fallbackId,
+            status: 'pending',
+            status_detail: 'waiting_transfer',
+            qr_code: pixPayload,
+            qr_code_base64: '',
+            ticket_url: '#',
+            isRealApi: false,
+            note: 'Gerado via chave Pix da loja (Fallback automático).'
+          };
+          setAutoPixData(fallbackResponse);
+          setIsAutoPixApproved(false);
+          if (hasPreRegisteredPixRef.current !== String(fallbackId)) {
+            hasPreRegisteredPixRef.current = String(fallbackId);
+            onCheckout(
+              'Pix (Aguardando Confirmação)',
+              discountAmount,
+              changeFor,
+              String(fallbackId),
+              orderType,
+              orderType === 'Mesa' ? tableNumber : undefined,
+              undefined,
+              'pendente'
+            );
+          }
+        }
       } finally {
         if (isMounted) setIsLoadingAutoPix(false);
       }
