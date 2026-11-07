@@ -657,6 +657,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   // Payment methods in store settings
   const [configTab, setConfigTab] = useState<'gateway' | 'geral' | 'horarios' | 'funcionarios' | 'area' | 'entregadores' | 'formas' | 'cupons'>('geral');
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [webhookTestStatus, setWebhookTestStatus] = useState<string | null>(null);
   const [newPaymentMethodInput, setNewPaymentMethodInput] = useState('');
   const [mpTestStatus, setMpTestStatus] = useState<string | null>(null);
   const [isTestingMp, setIsTestingMp] = useState(false);
@@ -5288,7 +5291,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 }`}
               >
                 <BarChart3 className="w-4 h-4" />
-                <span>📊 Vendas & Faturamento (Semana, Mês & Ano)</span>
+                <span>📊 Vendas & Faturamento</span>
               </button>
 
               <button type="button" onClick={() => setFinancialSubTab('dre')}
@@ -8641,6 +8644,106 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* SEÇÃO: WEBHOOK DO MERCADO PAGO */}
+                  <div className="bg-[#10202a] p-4 rounded-xl border border-[#009ee3]/40 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#009ee3]/20">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[#009ee3]/20 text-[#009ee3] flex items-center justify-center shrink-0 border border-[#009ee3]/40">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-['Montserrat'] font-bold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                            Webhook do Mercado Pago (Notificações IPN)
+                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">
+                              Endpoint Ativo
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-[#b4b5b5]">
+                            Configure esta URL no seu painel do Mercado Pago para receber avisos instantâneos de pagamentos aprovados.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-white">
+                        URL do Webhook (Endpoint Público) para colar no Dashboard do Mercado Pago:
+                      </label>
+                      <div className="flex items-center gap-2 bg-[#181818] border border-[#353535] rounded-lg p-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={`${window.location.origin}/api/mercadopago/webhook`}
+                          className="bg-transparent text-emerald-300 font-mono text-xs w-full focus:outline-none select-all truncate"
+                          onClick={e => (e.target as HTMLInputElement).select()}
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const url = `${window.location.origin}/api/mercadopago/webhook`;
+                            await copyToClipboard(url);
+                            setCopiedWebhookUrl(true);
+                            setTimeout(() => setCopiedWebhookUrl(false), 2500);
+                          }}
+                          className="px-3 py-1.5 rounded-md bg-[#009ee3] hover:bg-[#0086c3] text-white text-xs font-bold shrink-0 flex items-center gap-1 active:scale-95 transition-all"
+                        >
+                          {copiedWebhookUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedWebhookUrl ? 'Copiado!' : 'Copiar URL'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#152530] p-3 rounded-lg border border-[#009ee3]/30">
+                      <div className="text-[11px] text-[#b4b5b5]">
+                        <span>Status da Conexão: </span>
+                        <strong className="text-emerald-400">Pronto para receber eventos (200 OK)</strong>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isTestingWebhook}
+                        onClick={async () => {
+                          setIsTestingWebhook(true);
+                          setWebhookTestStatus(null);
+                          try {
+                            const res = await fetch('/api/mercadopago/webhook?topic=payment&id=test-' + Date.now(), {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ type: 'payment', action: 'payment.updated', data: { id: 'test-' + Date.now() } })
+                            });
+                            if (res.ok) {
+                              setWebhookTestStatus('✅ Webhook testado com sucesso! O endpoint respondeu corretamente com 200 OK.');
+                            } else {
+                              setWebhookTestStatus('⚠️ Endpoint respondeu com erro.');
+                            }
+                          } catch (err: any) {
+                            setWebhookTestStatus(`❌ Erro ao testar webhook: ${err.message}`);
+                          } finally {
+                            setIsTestingWebhook(false);
+                          }
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#252525] hover:bg-[#333] text-white text-xs font-bold border border-[#444] flex items-center gap-1.5 active:scale-95 transition-all shrink-0"
+                      >
+                        {isTestingWebhook ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Testando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                            <span>Testar Webhook Endpoint</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {webhookTestStatus && (
+                      <div className="p-2.5 rounded-md text-xs font-semibold bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 animate-in fade-in">
+                        {webhookTestStatus}
+                      </div>
+                    )}
                   </div>
 
                   {/* SEÇÃO: LEITURA AUTOMÁTICA DE STATUS DE PAGAMENTOS PIX */}

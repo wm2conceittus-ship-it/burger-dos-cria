@@ -447,36 +447,15 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
   const pixQrCodeUrl = useMemo(() => getPixQrCodeUrl(pixPayload, 260), [pixPayload]);
 
-  // Pré-cadastra pedido pendente para Pix Manual ao abrir a tela de pagamento
+  // Configura Pix Manual ao abrir a tela de pagamento
   useEffect(() => {
     if (!showPaymentModal || !paymentMethod.toLowerCase().includes('pix') || isAutoPixMode) {
       return;
-    }
-    const key = `manual-${pixTxId}`;
-    if (hasPreRegisteredPixRef.current !== key) {
-      hasPreRegisteredPixRef.current = key;
-      onCheckout(
-        paymentMethod,
-        discountAmount,
-        changeFor,
-        undefined,
-        orderType,
-        orderType === 'Mesa' ? tableNumber : undefined,
-        customerPixReceipt || undefined,
-        'pendente'
-      );
     }
   }, [
     showPaymentModal,
     paymentMethod,
     isAutoPixMode,
-    pixTxId,
-    discountAmount,
-    changeFor,
-    orderType,
-    tableNumber,
-    customerPixReceipt,
-    onCheckout,
   ]);
 
   // Inicializar chamada de criação do Pix dinâmico quando a modal abrir com Pix em Modo Automático
@@ -503,22 +482,6 @@ export const CartScreen: React.FC<CartScreenProps> = ({
         if (isMounted) {
           setAutoPixData(response);
           setIsAutoPixApproved(false);
-
-          // Pré-cadastra o pedido pendente no gestor imediatamente!
-          // Garante que se o cliente pagar no app do banco e fechar a aba, o pedido JÁ ESTÁ NO GESTOR!
-          if (response?.id && hasPreRegisteredPixRef.current !== String(response.id)) {
-            hasPreRegisteredPixRef.current = String(response.id);
-            onCheckout(
-              'Pix (Aguardando Confirmação Bancária)',
-              discountAmount,
-              changeFor,
-              String(response.id),
-              orderType,
-              orderType === 'Mesa' ? tableNumber : undefined,
-              undefined,
-              'pendente'
-            );
-          }
         }
       } catch (err: any) {
         console.warn('Erro ao criar Pix automático Mercado Pago (usando fallback local):', err);
@@ -536,19 +499,6 @@ export const CartScreen: React.FC<CartScreenProps> = ({
           };
           setAutoPixData(fallbackResponse);
           setIsAutoPixApproved(false);
-          if (hasPreRegisteredPixRef.current !== String(fallbackId)) {
-            hasPreRegisteredPixRef.current = String(fallbackId);
-            onCheckout(
-              'Pix (Aguardando Confirmação)',
-              discountAmount,
-              changeFor,
-              String(fallbackId),
-              orderType,
-              orderType === 'Mesa' ? tableNumber : undefined,
-              undefined,
-              'pendente'
-            );
-          }
         }
       } finally {
         if (isMounted) setIsLoadingAutoPix(false);
@@ -701,7 +651,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({
     if (isAutoPixMode && autoPixData?.qr_code_base64) {
       return `data:image/png;base64,${autoPixData.qr_code_base64}`;
     }
-    if (isAutoPixMode && autoPixData?.qr_code) {
+    if (autoPixData?.qr_code) {
       return getPixQrCodeUrl(autoPixData.qr_code, 260);
     }
     return storeSettings?.pixQrCodeImageUrl || pixQrCodeUrl;
@@ -1648,32 +1598,25 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
                   {/* QR Code Container */}
                   <div className="flex flex-col items-center justify-center p-4 bg-white rounded-lg max-w-[210px] mx-auto shadow-2xl border-4 border-emerald-500/30 relative">
-                    {isLoadingAutoPix ? (
-                      <div className="w-36 h-36 flex flex-col items-center justify-center gap-2 text-zinc-600">
-                        <Clock className="w-8 h-8 animate-spin text-[#ff5722]" />
-                        <span className="text-[10px] font-bold">Gerando Pix...</span>
-                      </div>
-                    ) : (
-                      <div className="relative w-36 h-36 flex items-center justify-center">
-                        <img
-                          src={activeQrCodeImage}
-                          alt="QR Code Pix"
-                          className="w-36 h-36 object-contain rounded-lg"
-                        />
-                        {/* Logo da Hamburgueria no centro do QR Code */}
-                        {!storeSettings?.pixQrCodeImageUrl && !autoPixData?.qr_code_base64 && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-10 h-10 rounded-full bg-white p-1 shadow-2xl border-2 border-[#ff5722] flex items-center justify-center overflow-hidden">
-                              <img
-                                src={APP_IMAGES.logo}
-                                alt="Logo da Hamburgueria"
-                                className="w-full h-full object-cover rounded-full"
-                              />
-                            </div>
+                    <div className="relative w-36 h-36 flex items-center justify-center">
+                      <img
+                        src={activeQrCodeImage || pixQrCodeUrl}
+                        alt="QR Code Pix"
+                        className="w-36 h-36 object-contain rounded-lg"
+                      />
+                      {/* Logo da Hamburgueria no centro do QR Code */}
+                      {!storeSettings?.pixQrCodeImageUrl && !autoPixData?.qr_code_base64 && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-10 h-10 rounded-full bg-white p-1 shadow-2xl border-2 border-[#ff5722] flex items-center justify-center overflow-hidden">
+                            <img
+                              src={APP_IMAGES.logo}
+                              alt="Logo da Hamburgueria"
+                              className="w-full h-full object-cover rounded-full"
+                            />
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-1.5 flex items-center gap-1 text-[10px] text-zinc-800 font-extrabold uppercase tracking-wide">
                       <QrCode className="w-3.5 h-3.5 text-[#ff5722]" />
                       <span>R$ {total.toFixed(2).replace('.', ',')}</span>
