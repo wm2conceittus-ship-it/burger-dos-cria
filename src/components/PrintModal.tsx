@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, StoreSettings } from '../types';
-import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText } from 'lucide-react';
+import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText, Bluetooth } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
 import { getOrderDate, getOrderTime, formatOrderCreationDateTime } from '../utils/orderDateTime';
 
@@ -16,6 +16,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   });
   const [copiedText, setCopiedText] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
+  const [isPrintingBluetooth, setIsPrintingBluetooth] = useState(false);
 
   if (!order) return null;
 
@@ -120,11 +121,130 @@ ${order.changeFor ? `LEVAR TROCO PARA:    ${order.changeFor}\n` : ''}${order.mer
         BOM APETITE! 🔥
 ${doubleDivider}
     * * * ${order.orderNumber} * * *
-`.trim();
+    `.trim();
 
     navigator.clipboard.writeText(text);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2500);
+  };
+
+  // Web Bluetooth ESC/POS Direct Print for Thermal Printers (58mm/80mm)
+  const handleBluetoothPrint = async () => {
+    const nav = navigator as any;
+    if (!nav.bluetooth) {
+      alert('A Web Bluetooth API não é suportada neste navegador (use Google Chrome em tablets Android, Windows ou Mac).');
+      return;
+    }
+
+    setIsPrintingBluetooth(true);
+    try {
+      const device = await nav.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [
+          '000018f0-0000-1000-8000-00805f9b34fb',
+          '00001101-0000-1000-8000-00805f9b34fb',
+          'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+          '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+        ]
+      });
+
+      if (!device || !device.gatt) {
+        throw new Error('Nenhum dispositivo Bluetooth selecionado.');
+      }
+
+      const server = await device.gatt.connect();
+      let characteristic: any = null;
+      const services = await server.getPrimaryServices();
+
+      for (const service of services) {
+        try {
+          const chars = await service.getCharacteristics();
+          for (const char of chars) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              characteristic = char;
+              break;
+            }
+          }
+        } catch {
+          // ignore
+        }
+        if (characteristic) break;
+      }
+
+      if (!characteristic) {
+        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb').catch(() => null);
+        if (service) {
+          characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb').catch(() => null);
+        }
+      }
+
+      if (!characteristic) {
+        throw new Error('Característica de escrita ESC/POS não encontrada na impressora térmica.');
+      }
+
+      const encoder = new TextEncoder();
+      const maxChars = paperSize === '58mm' ? 32 : 48;
+      const divider = '-'.repeat(maxChars);
+      const doubleDivider = '='.repeat(maxChars);
+
+      let escPosData = '';
+      escPosData += '\x1b\x40'; // Init ESC @
+      escPosData += '\x1b\x61\x01'; // Center align
+      escPosData += '\x1b\x45\x01'; // Bold ON
+      escPosData += `${storeName.toUpperCase()}\n`;
+      escPosData += '\x1b\x45\x00'; // Bold OFF
+      escPosData += `PEDIDO #${order.orderNumber}\n`;
+      escPosData += `${doubleDivider}\n`;
+      escPosData += '\x1b\x61\x00'; // Left align
+      escPosData += `Data: ${getOrderDate(order)}  Hora: ${getOrderTime(order)}\n`;
+      escPosData += `Tipo: ${order.type.toUpperCase()}\n`;
+      escPosData += `Cliente: ${order.customerName}\n`;
+      escPosData += `Fone: ${order.customerPhone || 'N/A'}\n`;
+      escPosData += `Endereço: ${order.address || 'Retirada'}\n`;
+      if (order.notes) escPosData += `Obs: ${order.notes}\n`;
+      escPosData += `${divider}\n`;
+      escPosData += `QTD ITEM                      TOTAL\n`;
+      escPosData += `${divider}\n`;
+
+      order.items.forEach(it => {
+        const itemTotal = (it.price * it.quantity).toFixed(2).replace('.', ',');
+        escPosData += `${it.quantity}x ${it.name} - R$ ${itemTotal}\n`;
+        if (it.pizzaSize) escPosData += `   TAM: ${it.pizzaSize.toUpperCase()}\n`;
+        if (it.notes) escPosData += `   OBS: ${it.notes}\n`;
+      });
+
+      escPosData += `${divider}\n`;
+      escPosData += `Subtotal: R$ ${order.subtotal.toFixed(2).replace('.', ',')}\n`;
+      if (order.deliveryFee > 0) {
+        escPosData += `Taxa Entrega: R$ ${order.deliveryFee.toFixed(2).replace('.', ',')}\n`;
+      }
+      escPosData += `${doubleDivider}\n`;
+      escPosData += `TOTAL: R$ ${order.total.toFixed(2).replace('.', ',')}\n`;
+      escPosData += `${doubleDivider}\n`;
+      escPosData += `Pagamento: ${order.paymentMethod || 'PIX'}\n`;
+      escPosData += '\x1b\x61\x01'; // Center align
+      escPosData += `\nOBRIGADO PELA PREFERÊNCIA!\n`;
+      escPosData += `=== ${order.orderNumber} ===\n\n\n`;
+      escPosData += '\x1d\x56\x41\x00'; // Cut paper
+
+      const bytes = encoder.encode(escPosData);
+      const chunkSize = 512;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
+        if (characteristic.properties.writeWithoutResponse) {
+          await characteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await characteristic.writeValue(chunk);
+        }
+      }
+
+      alert('Comando ESC/POS enviado via Bluetooth com sucesso para a impressora!');
+    } catch (err: any) {
+      console.error('Erro Web Bluetooth:', err);
+      alert(`Erro na impressão Bluetooth: ${err.message || err}`);
+    } finally {
+      setIsPrintingBluetooth(false);
+    }
   };
 
   return (
@@ -151,7 +271,7 @@ ${doubleDivider}
               <h3 className="font-['Montserrat'] font-bold text-xs text-white">
                 Impressão de Pedido {order.orderNumber}
               </h3>
-              <p className="text-[10px] text-[#8e8f8f]">Selecione a bobina da sua impressora térmica</p>
+              <p className="text-[10px] text-[#8e8f8f]">Selecione a bobina ou conecte via Web Bluetooth</p>
             </div>
           </div>
 
@@ -208,299 +328,112 @@ ${doubleDivider}
           )}
         </div>
 
-        {/* Scrollable Receipt Preview Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#121212] flex justify-center items-start print:p-0 print:bg-white print:overflow-visible">
-          {/* ============================================================== */}
-          {/* LAYOUT 1: BOBINA 58mm (CUPOM FISCAL / MINI POS / BLUETOOTH)   */}
-          {/* ============================================================== */}
-          {paperSize === '58mm' && (
-            <div
-              id="printable-ticket"
-              className="ticket-58mm bg-white text-black font-mono text-[11px] leading-[1.25] p-3 rounded shadow-2xl w-[265px] border border-gray-300 print:border-none print:shadow-none print:p-0 print:m-0"
-            >
-              {/* Cupom Header */}
-              <div className="text-center pb-1.5 border-b border-dashed border-black flex flex-col items-center">
-                {/* Logo da Hamburgueria */}
-                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-black shadow-sm mb-1 bg-black flex items-center justify-center">
-                  <img
-                    src={APP_IMAGES.logo}
-                    alt="Logo Burguer dos Crias"
-                    className="w-full h-full object-cover print:contrast-150 print:grayscale"
-                  />
+        {/* Receipt Preview Container (Scrollable) */}
+        <div className="p-4 sm:p-6 bg-[#131313] overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white">
+          {paperSize === '58mm' ? (
+            /* 58mm POS Thermal Receipt Preview */
+            <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
+              {/* Header */}
+              <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
+                <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 print:hidden">
+                  <Flame className="w-5 h-5 fill-[#ff5722]" />
                 </div>
-                <p className="font-black text-sm tracking-wider font-['Montserrat'] uppercase">
-                  {storeName}
-                </p>
-                <p className="text-[9px] font-bold text-gray-800 uppercase">
-                  Hamburgueria & Pizzaria
-                </p>
-                <p className="text-[8px] text-gray-600 px-1 leading-tight">
-                  {storeAddress}
-                </p>
-                <p className="text-[9px] font-bold text-gray-800">
-                  WhatsApp: {storeWhatsApp}
-                </p>
-                <div className="mt-1 bg-black text-white text-[9px] font-bold py-0.5 px-2 uppercase tracking-wider rounded-sm w-full">
-                  DOC. AUXILIAR DE VENDA (NÃO FISCAL)
-                </div>
+                <h2 className="font-black text-sm tracking-wide">{storeName.toUpperCase()}</h2>
+                <p className="text-[10px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
+                <p className="text-[9.5px] font-normal text-gray-500 leading-tight">{storeAddress}</p>
+                <p className="text-[9.5px] font-normal text-gray-500">WhatsApp: {storeWhatsApp}</p>
               </div>
 
-              {/* Order Meta Info */}
-              <div className="py-1.5 border-b border-dashed border-black space-y-0.5">
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-base">{order.orderNumber}</span>
-                  <span className="font-black text-xs px-1.5 py-0.2 bg-black text-white uppercase rounded-sm">
-                    {order.type === 'Mesa' ? `MESA ${order.tableNumber || ''}` : order.type}
-                  </span>
+              {/* Order Meta */}
+              <div className="border-b border-dashed border-gray-400 pb-2 space-y-1 text-[11px]">
+                <div className="text-center font-black bg-black text-white py-1 text-xs tracking-wider">
+                  PEDIDO #{order.orderNumber}
                 </div>
-                <div className="flex justify-between text-[10px] text-gray-700">
-                  <span>Data: {getOrderDate(order)}</span>
-                  <span>Hora: {getOrderTime(order)}</span>
+                <div className="flex justify-between text-gray-700">
+                  <span>DATA: {getOrderDate(order)}</span>
+                  <span>HORA: {getOrderTime(order)}</span>
                 </div>
-                <div className="text-[10px] pt-0.5">
-                  <p className="font-bold truncate">CLIENTE: {order.customerName}</p>
-                  <p className="text-gray-700">FONE: {order.customerPhone}</p>
-                  <p className="text-gray-800 font-semibold leading-tight pt-0.5">
-                    END: {order.address}
-                  </p>
+                <div className="flex justify-between text-gray-700">
+                  <span>TIPO: {order.type.toUpperCase()}</span>
+                  {order.tableNumber && <span>MESA: #{order.tableNumber}</span>}
+                </div>
+                <div className="pt-1">
+                  <span className="text-gray-500 block text-[9.5px]">CLIENTE:</span>
+                  <span className="font-bold text-black">{order.customerName}</span>
+                </div>
+                {order.customerPhone && (
+                  <div>
+                    <span className="text-gray-500 block text-[9.5px]">FONE:</span>
+                    <span className="font-bold text-black">{order.customerPhone}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-500 block text-[9.5px]">ENDEREÇO DE ENTREGA:</span>
+                  <span className="font-bold text-black leading-tight block">{order.address}</span>
                 </div>
                 {order.notes && (
-                  <div className="mt-1 p-1 bg-gray-100 border border-black text-[9px] font-bold leading-tight">
-                    OBS GERAL: {order.notes}
+                  <div className="bg-yellow-100 p-1.5 rounded border border-yellow-300 text-black mt-1">
+                    <span className="text-[9px] font-bold block uppercase">Obs do Pedido:</span>
+                    <span className="font-black">{order.notes}</span>
                   </div>
                 )}
               </div>
 
-              {/* Items Column Header */}
-              <div className="py-1 border-b border-black text-[9px] font-black flex justify-between uppercase">
-                <span>QTD ITEM</span>
-                <span>TOTAL</span>
-              </div>
-
               {/* Items List */}
-              <div className="py-1 space-y-1.5 border-b border-dashed border-black">
-                {order.items.map((it, idx) => (
-                  <div key={idx} className="text-[10px] leading-tight">
-                    <div className="flex justify-between items-start font-bold">
-                      <span className="pr-1">
-                        <span className="font-black">{it.quantity}x</span> {it.name}
+              <div className="border-b border-dashed border-gray-400 pb-2 space-y-2">
+                <div className="text-[10px] text-gray-500 font-bold flex justify-between border-b border-gray-300 pb-0.5">
+                  <span>QTD ITEM</span>
+                  <span>TOTAL (R$)</span>
+                </div>
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="space-y-0.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-bold text-black">
+                        {item.quantity}x {item.name}
                       </span>
-                      <span className="whitespace-nowrap font-black">
-                        {(it.price * it.quantity).toFixed(2).replace('.', ',')}
+                      <span className="font-mono text-black whitespace-nowrap">
+                        {(item.price * item.quantity).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
-
-                    {/* Sizes */}
-                    {it.pizzaSize && (
-                      <p className="text-[9px] font-black pl-3 text-black">
-                        » TAM: {it.pizzaSize.toUpperCase()} {it.pizzaSize === 'Família' ? '(12 FAT)' : `(${it.pizzaSize === 'P' ? '4 FAT' : it.pizzaSize === 'M' ? '6 FAT' : '8 FAT'})`}
-                      </p>
+                    {item.pizzaSize && (
+                      <div className="text-[10px] text-gray-700 pl-4 font-semibold">
+                        • Tam: {item.pizzaSize.toUpperCase()}
+                        {item.pizzaSize === 'Família' ? ' (12 Fatias)' : item.pizzaSize === 'P' ? ' (4 Fatias)' : item.pizzaSize === 'M' ? ' (6 Fatias)' : ' (8 Fatias)'}
+                      </div>
                     )}
-                    {it.juiceSize && (
-                      <p className="text-[9px] font-black pl-3 text-black">
-                        » TAM: {it.juiceSize === '1L' ? '1 LITRO (1LT)' : it.juiceSize.toUpperCase()}
-                      </p>
+                    {item.juiceSize && (
+                      <div className="text-[10px] text-gray-700 pl-4 font-semibold">
+                        • Tamanho: {item.juiceSize === '1L' ? '1L (Garrafa)' : item.juiceSize.toUpperCase()}
+                      </div>
                     )}
-
-                    {/* Additional Notes */}
-                    {it.notes && (
-                      <p className="text-[9px] font-semibold italic pl-3 text-gray-800">
-                        • {it.notes}
-                      </p>
+                    {item.notes && (
+                      <div className="text-[10px] text-red-600 pl-4 italic">
+                        Obs: {item.notes}
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* Financial Totals */}
-              <div className="py-1.5 border-b-2 border-dashed border-black space-y-0.5 text-[10px]">
-                <div className="flex justify-between text-gray-700">
+              {/* Totals & Payment */}
+              <div className="border-b border-dashed border-gray-400 pb-2 space-y-1 text-xs">
+                <div className="flex justify-between text-gray-600 text-[11px]">
                   <span>Subtotal:</span>
                   <span>R$ {order.subtotal.toFixed(2).replace('.', ',')}</span>
                 </div>
                 {order.deliveryFee > 0 && (
-                  <div className="flex justify-between text-gray-700">
+                  <div className="flex justify-between text-gray-600 text-[11px]">
                     <span>Taxa de Entrega:</span>
                     <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-black text-xs pt-1 border-t border-black text-black">
-                  <span>{isOnlinePaid ? 'TOTAL DO PEDIDO:' : 'TOTAL A COBRAR:'}</span>
-                  <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
-                </div>
-              </div>
-
-              {/* Payment Details */}
-              <div className="py-1.5 border-b border-dashed border-black text-[9px] space-y-1 font-bold">
-                <div className="flex justify-between">
-                  <span>FORMA DE PGTO:</span>
-                  <span className="uppercase">{order.paymentMethod || 'PIX'}</span>
-                </div>
-
-                {/* Big Visual Instruction Box for Courier */}
-                {isOnlinePaid ? (
-                  <div className="bg-black text-white px-1.5 py-1 text-center font-black text-[10px] tracking-wide rounded-sm">
-                    ✓ PAGO ONLINE - NÃO COBRAR
-                  </div>
-                ) : isNeedMachine ? (
-                  <div className="border-2 border-black p-1 text-center font-black text-[10px] tracking-wide rounded-sm">
-                    💳 LEVAR MAQUININHA (COBRAR)
-                  </div>
-                ) : isCash ? (
-                  <div className="border-2 border-black p-1 text-center font-black text-[10px] tracking-wide rounded-sm">
-                    💵 COBRAR EM DINHEIRO
-                    {order.changeFor && (
-                      <div className="text-[9px] font-black underline mt-0.5">
-                        LEVAR TROCO PARA: {order.changeFor}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="border border-black p-1 text-center font-black text-[9px]">
-                    COBRAR NA ENTREGA
-                  </div>
-                )}
-
-                {order.mercadoPagoPaymentId && (
-                  <div className="flex justify-between text-[8px] text-gray-700">
-                    <span>AUTORIZAÇÃO:</span>
-                    <span className="font-mono">{order.mercadoPagoPaymentId}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer / Barcode */}
-              <div className="text-center pt-2 text-[9px] space-y-1">
-                <p className="font-bold uppercase tracking-wider">
-                  Obrigado pela preferência! 🔥
-                </p>
-                <div className="font-mono tracking-widest text-[9px] text-gray-800 py-0.5">
-                  |||| ||||| ||||||| |||| ||||
-                </div>
-                <p className="text-[8px] text-gray-600">
-                  * {order.orderNumber} • BURGER DOS CRIAS *
-                </p>
-                <div className="flex items-center justify-center gap-1 text-[8px] text-gray-500 pt-1 border-t border-dotted border-gray-400">
-                  <Scissors className="w-2.5 h-2.5" />
-                  <span>Corte da Bobina</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================== */}
-          {/* LAYOUT 2: BOBINA 80mm (COMANDA AMPLA TRADICIONAL)              */}
-          {/* ============================================================== */}
-          {paperSize === '80mm' && (
-            <div
-              id="printable-ticket"
-              className="ticket-80mm bg-white text-[#111111] rounded-xl w-[360px] p-5 shadow-2xl space-y-3 font-mono text-xs border border-gray-300 print:border-none print:shadow-none print:p-0 print:m-0"
-            >
-              {/* Receipt Header with Logo */}
-              <div className="relative pb-3 border-b-2 border-dashed border-gray-400 text-center">
-                <div className="flex flex-col items-center justify-center mb-1.5">
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-black shadow-sm mb-1 bg-black flex items-center justify-center">
-                    <img
-                      src={APP_IMAGES.logo}
-                      alt="Logo Burguer dos Crias"
-                      className="w-full h-full object-cover print:contrast-150"
-                    />
-                  </div>
-                  <h2 className="font-extrabold text-base tracking-wider uppercase font-['Montserrat'] text-black leading-tight">
-                    {storeName}
-                  </h2>
-                  <p className="text-[10px] text-gray-700 font-bold uppercase tracking-widest mt-0.5">
-                    • COMANDA DE PRODUÇÃO & EXPEDIÇÃO •
-                  </p>
-                  <p className="text-[9px] text-gray-600 font-sans">
-                    Endereço: {storeAddress}
-                  </p>
-                  <p className="text-[9px] text-gray-500 font-sans">
-                    WhatsApp: {storeWhatsApp} • Atendimento Oficial
-                  </p>
-                </div>
-              </div>
-
-              {/* Order Meta Info */}
-              <div className="space-y-1.5 py-1 text-[11px] border-b border-dashed border-gray-300">
-                <div className="flex justify-between items-center bg-gray-100 print:bg-transparent px-2 py-1 rounded">
-                  <span className="font-black text-sm">PEDIDO {order.orderNumber}</span>
-                  <span className="px-2 py-0.5 bg-black text-white text-[10px] font-bold rounded uppercase">
-                    {order.type === 'Mesa' ? `🍽️ MESA ${order.tableNumber || ''} (SALÃO)` : order.type}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-gray-800 pt-1">
-                  <span><strong>Cliente:</strong> {order.customerName}</span>
-                  <span><strong>Data:</strong> {getOrderDate(order)} • <strong>Hora:</strong> {getOrderTime(order)}</span>
-                </div>
-
-                <div className="text-gray-800">
-                  <strong>Endereço:</strong> {order.address}
-                </div>
-
-                {order.notes && (
-                  <div className="bg-amber-50 p-1.5 rounded border border-amber-200 text-amber-900 font-bold">
-                    OBS GERAL: {order.notes}
-                  </div>
-                )}
-              </div>
-
-              {/* Items List */}
-              <div className="py-2 space-y-2">
-                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider pb-1 border-b border-gray-200">
-                  Itens do Pedido ({order.items.length})
-                </div>
-
-                {order.items.map((it, i) => (
-                  <div key={i} className="flex justify-between items-start text-xs border-b border-dotted border-gray-200 pb-1.5">
-                    <div className="pr-2">
-                      <span className="font-black text-sm">{it.quantity}x</span>{' '}
-                      <span className="font-bold text-black">{it.name}</span>
-                      {it.pizzaSize && (
-                        <span className="ml-1.5 inline-block text-[10px] font-black bg-black text-white px-1.5 py-0.5 rounded print:border print:border-black">
-                          TAM: {it.pizzaSize.toUpperCase()} {it.pizzaSize === 'Família' ? '(12 FATIAS)' : `(${it.pizzaSize === 'P' ? '4 FATIAS' : it.pizzaSize === 'M' ? '6 FATIAS' : '8 FATIAS'})`}
-                        </span>
-                      )}
-                      {it.juiceSize && (
-                        <span className="ml-1.5 inline-block text-[10px] font-black bg-amber-600 text-white px-1.5 py-0.5 rounded print:text-black print:border print:border-black">
-                          TAM: {it.juiceSize === '1L' ? '1 LITRO (1LT)' : it.juiceSize.toUpperCase()}
-                        </span>
-                      )}
-                      {it.notes && (
-                        <p className="text-[11px] text-black font-extrabold ml-5 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5">
-                          » OBS: {it.notes}
-                        </p>
-                      )}
-                    </div>
-                    <span className="font-bold text-right whitespace-nowrap">
-                      R$ {(it.price * it.quantity).toFixed(2).replace('.', ',')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Financial Summary */}
-              <div className="pt-2 border-t-2 border-dashed border-gray-400 space-y-1 text-xs">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal dos Itens:</span>
-                  <span>R$ {order.subtotal.toFixed(2).replace('.', ',')}</span>
-                </div>
-
-                {order.deliveryFee > 0 && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>Taxa de Entrega:</span>
-                    <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between text-base font-black pt-1.5 border-t border-gray-300 text-black">
-                  <span>{isOnlinePaid ? 'TOTAL DO PEDIDO:' : 'TOTAL A COBRAR:'}</span>
+                <div className="flex justify-between text-black font-black text-sm pt-1 border-t border-gray-300">
+                  <span>TOTAL:</span>
                   <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
                 </div>
 
                 <div className="flex justify-between items-center text-[11px] font-bold text-gray-800 pt-1">
-                  <span>FORMA DE PAGAMENTO:</span>
+                  <span>PAGAMENTO:</span>
                   <span className="uppercase px-1.5 py-0.5 bg-gray-200 rounded font-black">
                     {order.paymentMethod || 'PIX'}
                   </span>
@@ -541,10 +474,158 @@ ${doubleDivider}
               </div>
 
               {/* Footer */}
-              <div className="text-center pt-2.5 border-t border-dashed border-gray-400 text-[10px] text-gray-500 space-y-0.5">
+              <div className="text-center pt-2 text-[10px] text-gray-500 space-y-0.5">
                 <p className="font-bold text-gray-700">Obrigado pela preferência! Bom apetite! 🔥</p>
                 <p className="tracking-widest font-mono text-[9px]">
-                  * * * {order.orderNumber} - SISTEMA BURGER DOS CRIAS * * *
+                  * * * {order.orderNumber} * * *
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* 80mm Wide Thermal Receipt Preview */
+            <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 print:shadow-none print:w-[80mm] print:p-0">
+              {/* Header */}
+              <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">
+                <h2 className="font-black text-base tracking-wide">{storeName.toUpperCase()}</h2>
+                <p className="text-[11px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
+                <p className="text-[10px] font-normal text-gray-500">{storeAddress}</p>
+                <p className="text-[10px] font-normal text-gray-500">WhatsApp: {storeWhatsApp}</p>
+              </div>
+
+              {/* Order Meta */}
+              <div className="border-b border-dashed border-gray-400 pb-3 space-y-1.5 text-xs">
+                <div className="text-center font-black bg-black text-white py-1.5 text-sm tracking-wider">
+                  PEDIDO #{order.orderNumber}
+                </div>
+                <div className="flex justify-between text-gray-700">
+                  <span>DATA: {getOrderDate(order)}</span>
+                  <span>HORA: {getOrderTime(order)}</span>
+                </div>
+                <div className="flex justify-between text-gray-700">
+                  <span>TIPO: {order.type.toUpperCase()}</span>
+                  {order.tableNumber && <span>MESA: #{order.tableNumber}</span>}
+                </div>
+                <div>
+                  <span className="text-gray-500 block text-[10px]">CLIENTE:</span>
+                  <span className="font-bold text-black text-sm">{order.customerName}</span>
+                </div>
+                {order.customerPhone && (
+                  <div>
+                    <span className="text-gray-500 block text-[10px]">FONE:</span>
+                    <span className="font-bold text-black">{order.customerPhone}</span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-gray-500 block text-[10px]">ENDEREÇO DE ENTREGA:</span>
+                  <span className="font-bold text-black leading-tight block">{order.address}</span>
+                </div>
+                {order.notes && (
+                  <div className="bg-yellow-100 p-2 rounded border border-yellow-300 text-black mt-1">
+                    <span className="text-[10px] font-bold block uppercase">Obs do Pedido:</span>
+                    <span className="font-black text-sm">{order.notes}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Items List */}
+              <div className="border-b border-dashed border-gray-400 pb-3 space-y-2.5">
+                <div className="text-[11px] text-gray-500 font-bold flex justify-between border-b border-gray-300 pb-1">
+                  <span>QTD ITEM</span>
+                  <span>TOTAL (R$)</span>
+                </div>
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="space-y-0.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-bold text-black text-sm">
+                        {item.quantity}x {item.name}
+                      </span>
+                      <span className="font-mono text-black whitespace-nowrap text-sm">
+                        {(item.price * item.quantity).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                    {item.pizzaSize && (
+                      <div className="text-xs text-gray-700 pl-5 font-semibold">
+                        • Tam: {item.pizzaSize.toUpperCase()}
+                        {item.pizzaSize === 'Família' ? ' (12 Fatias)' : item.pizzaSize === 'P' ? ' (4 Fatias)' : item.pizzaSize === 'M' ? ' (6 Fatias)' : ' (8 Fatias)'}
+                      </div>
+                    )}
+                    {item.juiceSize && (
+                      <div className="text-xs text-gray-700 pl-5 font-semibold">
+                        • Tamanho: {item.juiceSize === '1L' ? '1L (Garrafa)' : item.juiceSize.toUpperCase()}
+                      </div>
+                    )}
+                    {item.notes && (
+                      <div className="text-xs text-red-600 pl-5 italic">
+                        Obs: {item.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Totals & Payment */}
+              <div className="border-b border-dashed border-gray-400 pb-3 space-y-1.5 text-xs">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal:</span>
+                  <span>R$ {order.subtotal.toFixed(2).replace('.', ',')}</span>
+                </div>
+                {order.deliveryFee > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Taxa de Entrega:</span>
+                    <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-black font-black text-base pt-1.5 border-t border-gray-300">
+                  <span>TOTAL:</span>
+                  <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold text-gray-800 pt-1.5">
+                  <span>FORMA DE PAGAMENTO:</span>
+                  <span className="uppercase px-1.5 py-0.5 bg-gray-200 rounded font-black">
+                    {order.paymentMethod || 'PIX'}
+                  </span>
+                </div>
+
+                {/* Big Visual Instruction Box for Courier */}
+                {isOnlinePaid ? (
+                  <div className="bg-black text-white p-2 text-center font-black text-xs tracking-wider rounded">
+                    ✓ PAGO ONLINE - NÃO COBRAR DO CLIENTE
+                  </div>
+                ) : isNeedMachine ? (
+                  <div className="border-2 border-black p-2 text-center font-black text-xs tracking-wider rounded">
+                    💳 LEVAR MAQUININHA DE CARTÃO (COBRAR NA ENTREGA)
+                  </div>
+                ) : isCash ? (
+                  <div className="border-2 border-black p-2 text-center font-black text-xs tracking-wider rounded space-y-0.5">
+                    <div>💵 COBRAR EM DINHEIRO NA ENTREGA</div>
+                    {order.changeFor ? (
+                      <div className="text-xs font-black underline bg-gray-100 py-0.5 px-1 rounded inline-block text-black">
+                        ⚠️ LEVAR TROCO PARA: {order.changeFor}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] font-normal">(Cliente informou que não precisa de troco)</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border border-black p-1.5 text-center font-black text-xs rounded">
+                    COBRAR NA ENTREGA
+                  </div>
+                )}
+
+                {order.mercadoPagoPaymentId && (
+                  <div className="flex justify-between items-center text-[11px] font-black text-black bg-gray-100 p-1.5 rounded border border-gray-300">
+                    <span>MERCADO PAGO AUTORIZADO:</span>
+                    <span className="font-mono">{order.mercadoPagoPaymentId}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="text-center pt-2 text-[11px] text-gray-500 space-y-0.5">
+                <p className="font-bold text-gray-700">Obrigado pela preferência! Bom apetite! 🔥</p>
+                <p className="tracking-widest font-mono text-[10px]">
+                  * * * {order.orderNumber} * * *
                 </p>
               </div>
             </div>
@@ -552,25 +633,37 @@ ${doubleDivider}
         </div>
 
         {/* Bottom Actions Bar (Hidden in Print) */}
-        <div className="p-3.5 bg-[#171616] border-t border-[#353535] flex items-center justify-between gap-2.5 print:hidden flex-shrink-0">
-          <button
-            onClick={handleCopyRawText}
-            className="flex items-center gap-1.5 bg-[#252424] hover:bg-[#2f2e2e] text-[#b4b5b5] hover:text-white px-3 py-2.5 rounded-xl font-bold font-['Montserrat'] text-xs transition-colors"
-            title="Copiar texto puro para impressora Bluetooth / ESC/POS"
-          >
-            {copiedText ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copiado!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Copiar Texto (ESC/POS)</span>
-                <span className="sm:hidden">Copiar</span>
-              </>
-            )}
-          </button>
+        <div className="p-3.5 bg-[#171616] border-t border-[#353535] flex flex-wrap items-center justify-between gap-2.5 print:hidden flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyRawText}
+              className="flex items-center gap-1.5 bg-[#252424] hover:bg-[#2f2e2e] text-[#b4b5b5] hover:text-white px-3 py-2.5 rounded-xl font-bold font-['Montserrat'] text-xs transition-colors"
+              title="Copiar texto puro para impressora Bluetooth / ESC/POS"
+            >
+              {copiedText ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">Copiado!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copiar Texto</span>
+                </>
+              )}
+            </button>
+
+            {/* Web Bluetooth Thermal Printer Button */}
+            <button
+              onClick={handleBluetoothPrint}
+              disabled={isPrintingBluetooth}
+              className="flex items-center gap-1.5 bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 border border-sky-500/40 px-3 py-2.5 rounded-xl font-bold font-['Montserrat'] text-xs transition-all active:scale-95 disabled:opacity-50"
+              title="Conectar via Web Bluetooth a impressora térmica portátil ESC/POS (58mm/80mm)"
+            >
+              <Bluetooth className={`w-3.5 h-3.5 ${isPrintingBluetooth ? 'animate-spin' : ''}`} />
+              <span>{isPrintingBluetooth ? 'Conectando...' : 'Bluetooth ESC/POS'}</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
