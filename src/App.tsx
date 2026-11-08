@@ -764,7 +764,7 @@ export default function App() {
         deliveryFee: existingOrder.deliveryFee ?? deliveryFee,
         total: existingOrder.total ?? total,
         status:
-          finalPaymentStatus === 'aprovado' && existingOrder.status === 'novo' && isAutoAccept
+          finalPaymentStatus === 'aprovado' && (existingOrder.status === 'novo' || existingOrder.status === 'recebido')
             ? 'preparando'
             : existingOrder.status,
       };
@@ -817,8 +817,8 @@ export default function App() {
       customerPhone: customerProfile.phone,
       type: orderType,
       tableNumber: isTableOrder ? tableNumber || 1 : undefined,
-      status: isAutoAccept ? 'preparando' : 'novo',
-      timeAgo: isAutoAccept ? 'Aceito automaticamente' : 'Acabou de ser feito',
+      status: (isAutoAccept || mercadoPagoPaymentId || customPaymentStatus === 'aprovado' || paymentMethod.toLowerCase().includes('online')) ? 'preparando' : 'novo',
+      timeAgo: (isAutoAccept || mercadoPagoPaymentId || customPaymentStatus === 'aprovado' || paymentMethod.toLowerCase().includes('online')) ? 'Pago e enviado ao gestor' : 'Acabou de ser feito',
       address: effectiveAddress,
       latitude: !isTableOrder && !isPickupOrder ? customerProfile.latitude : undefined,
       longitude: !isTableOrder && !isPickupOrder ? customerProfile.longitude : undefined,
@@ -1086,11 +1086,13 @@ export default function App() {
 
   const handleUpdatePaymentStatus = (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => {
     const targetOrder = orders.find(o => o.id === orderId);
+    const newStatus = status === 'aprovado' && (!targetOrder?.status || targetOrder?.status === 'novo' || targetOrder?.status === 'recebido') ? 'preparando' : targetOrder?.status;
+
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, paymentStatus: status } : o))
+      prev.map(o => (o.id === orderId ? { ...o, paymentStatus: status, status: newStatus || o.status } : o))
     );
-    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, paymentStatus: status } : prev));
-    updateOrderInFirestore(orderId, { paymentStatus: status });
+    setActiveTrackingOrder(prev => (prev?.id === orderId ? { ...prev, paymentStatus: status, status: newStatus || prev.status } : prev));
+    updateOrderInFirestore(orderId, { paymentStatus: status, ...(newStatus ? { status: newStatus } : {}) });
 
     if (status === 'aprovado') {
       if (storeSettings.soundAlerts !== false) {

@@ -2026,15 +2026,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     }
   };
 
-  // Produtos com estoque mínimo atingido (alerta visual)
+  // Produtos com estoque mínimo atingido ou crítico (alerta visual)
   const lowStockProducts = products.filter(
-    p => p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock
+    p =>
+      (p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock) ||
+      (p.criticalStock !== undefined && p.stock !== undefined && p.stock <= p.criticalStock)
   );
 
   // Filtered products for Menu Management
   const filteredProducts = products.filter(p => {
     if (cardapioFilter === 'low_stock') {
-      return p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock;
+      return (
+        (p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock) ||
+        (p.criticalStock !== undefined && p.stock !== undefined && p.stock <= p.criticalStock)
+      );
     }
     if (cardapioFilter === 'all') return true;
     if (cardapioFilter === 'refrigerantes') {
@@ -5120,7 +5125,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {filteredProducts.map(product => {
                 const isAvailable = product.isAvailable !== false;
-                const hasStockAlert = product.minStock !== undefined && product.stock !== undefined && product.stock <= product.minStock;
+                const isCriticalStock = product.criticalStock !== undefined && product.stock !== undefined && product.stock <= product.criticalStock;
+                const hasStockAlert = (product.minStock !== undefined && product.stock !== undefined && product.stock <= product.minStock) || isCriticalStock;
                 const isZeroStock = product.stock !== undefined && product.stock <= 0;
 
                 return (
@@ -5129,6 +5135,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     className={`bg-[#20201f] rounded-lg p-4 border transition-all flex items-center gap-3.5 ${
                       !isAvailable
                         ? 'border-red-900/40 bg-[#191515] opacity-80'
+                        : isCriticalStock
+                        ? 'border-red-500 bg-gradient-to-r from-red-950/40 via-[#261717] to-[#20201f] ring-2 ring-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse'
                         : hasStockAlert
                         ? isZeroStock
                           ? 'border-red-500/80 bg-gradient-to-r from-red-950/25 to-[#20201f] ring-2 ring-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
@@ -5147,7 +5155,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           ESGOTADO
                         </div>
                       )}
-                      {isAvailable && hasStockAlert && (
+                      {isAvailable && isCriticalStock ? (
+                        <div className="absolute top-0.5 left-0.5 right-0.5 px-1 py-0.5 rounded text-[7.5px] font-black uppercase text-center tracking-wider bg-red-600 text-white animate-bounce shadow-md">
+                          CRÍTICO
+                        </div>
+                      ) : isAvailable && hasStockAlert && (
                         <div className={`absolute top-0.5 left-0.5 right-0.5 px-1 py-0.5 rounded text-[7.5px] font-black uppercase text-center tracking-wider shadow-md ${
                           isZeroStock ? 'bg-red-600 text-white animate-pulse' : 'bg-amber-500 text-black'
                         }`}>
@@ -5163,7 +5175,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             <h4 className="font-['Montserrat'] font-bold text-xs text-white truncate">
                               {product.name}
                             </h4>
-                            {hasStockAlert && (
+                            {isCriticalStock ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8.5px] font-extrabold uppercase tracking-wide bg-red-600 text-white animate-pulse">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                Nível Crítico
+                              </span>
+                            ) : hasStockAlert && (
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8.5px] font-extrabold uppercase tracking-wide animate-pulse ${
                                 isZeroStock
                                   ? 'bg-red-500/20 text-red-400 border border-red-500/40'
@@ -5194,18 +5211,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                           {product.stock !== undefined && (
                             <span
                               className={`text-[9.5px] font-mono block font-bold mt-0.5 ${
-                                hasStockAlert ? 'text-amber-400' : 'text-[#a1a1aa]'
+                                isCriticalStock ? 'text-red-400' : hasStockAlert ? 'text-amber-400' : 'text-[#a1a1aa]'
                               }`}
                               title={product.minStock !== undefined ? `Estoque mínimo: ${product.minStock} un.` : undefined}
                             >
-                              Estoque: {product.stock} un. {product.minStock !== undefined ? `(mín: ${product.minStock})` : ''}
+                              Estoque: {product.stock} un. {product.criticalStock !== undefined ? `(crítico: ${product.criticalStock})` : product.minStock !== undefined ? `(mín: ${product.minStock})` : ''}
                             </span>
                           )}
                         </div>
                       </div>
 
                       {/* Alerta Visual de Reposição em Destaque */}
-                      {hasStockAlert && (
+                      {isCriticalStock ? (
+                        <div className="mt-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-bold flex items-center justify-between border bg-red-950/80 border-red-500 text-red-200 animate-pulse">
+                          <span className="flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <span className="font-extrabold uppercase">🚨 Nível Crítico de Estoque Atingido!</span>
+                          </span>
+                          <span className="font-mono underline">
+                            Restam {product.stock ?? 0} un. (Crítico: {product.criticalStock})
+                          </span>
+                        </div>
+                      ) : hasStockAlert && (
                         <div className={`mt-1.5 px-2 py-1 rounded-md text-[10px] font-bold flex items-center justify-between border ${
                           isZeroStock
                             ? 'bg-red-950/60 border-red-500/50 text-red-200'

@@ -101,6 +101,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [minStock, setMinStock] = useState<string>(
     initialProduct?.minStock !== undefined ? initialProduct.minStock.toString() : ''
   );
+  const [criticalStock, setCriticalStock] = useState<string>(
+    initialProduct?.criticalStock !== undefined ? initialProduct.criticalStock.toString() : ''
+  );
   const [juice300Price, setJuice300Price] = useState(
     initialProduct?.juicePrices?.['300ml'] !== undefined
       ? initialProduct.juicePrices['300ml'].toString()
@@ -206,6 +209,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setCostPrice(initialProduct.costPrice !== undefined ? initialProduct.costPrice.toString() : '');
       setStock(initialProduct.stock !== undefined ? initialProduct.stock.toString() : '');
       setMinStock(initialProduct.minStock !== undefined ? initialProduct.minStock.toString() : '');
+      setCriticalStock(initialProduct.criticalStock !== undefined ? initialProduct.criticalStock.toString() : '');
       setDescription(initialProduct.description || '');
       setImage(initialProduct.image || '');
       setTag(initialProduct.tag || '');
@@ -259,6 +263,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       costPrice: costPrice.trim() ? parseNum(costPrice) : undefined,
       stock: parsedStock,
       minStock: minStock.trim() !== '' ? Math.max(0, parseInt(minStock, 10) || 0) : undefined,
+      criticalStock: criticalStock.trim() !== '' ? Math.max(0, parseInt(criticalStock, 10) || 0) : undefined,
       isAvailable: isZeroStock ? false : (initialProduct?.isAvailable !== undefined ? initialProduct.isAvailable : true),
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
@@ -604,7 +609,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Estoque Atual */}
               <div>
                 <div className="flex justify-between items-center mb-1">
@@ -628,8 +633,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               {/* Estoque Mínimo */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Mínimo (Alerta)</label>
-                  <span className="text-[10px] text-amber-400 font-bold">Gatilho de Aviso</span>
+                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Mínimo</label>
+                  <span className="text-[10px] text-amber-400 font-bold">Aviso</span>
                 </div>
                 <div className="relative flex items-center">
                   <input
@@ -642,6 +647,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     className="w-full bg-[#363533] border border-amber-500/50 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-amber-400 font-semibold"
                   />
                   <span className="absolute right-3 text-xs text-amber-400 font-mono font-bold">un</span>
+                </div>
+              </div>
+
+              {/* Nível Crítico */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[#b4b5b5] text-xs font-medium">Nível Crítico</label>
+                  <span className="text-[10px] text-red-400 font-bold">Urgente</span>
+                </div>
+                <div className="relative flex items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={criticalStock}
+                    onChange={e => setCriticalStock(e.target.value)}
+                    placeholder="Ex: 2"
+                    className="w-full bg-[#363533] border border-red-500/50 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-red-400 font-semibold"
+                  />
+                  <span className="absolute right-3 text-xs text-red-400 font-mono font-bold">un</span>
                 </div>
               </div>
             </div>

@@ -41,6 +41,7 @@ export interface Product {
   costPrice?: number; // Preço de custo / CMV unitário dos insumos
   stock?: number; // Quantidade atual em estoque
   minStock?: number; // Estoque mínimo que dispara alerta visual de reposição
+  criticalStock?: number; // Nível crítico de estoque (alerta urgente)
   description: string;
   image: string;
   tag?: string;
