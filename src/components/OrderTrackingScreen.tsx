@@ -632,13 +632,13 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
         </section>
 
         {/* Live GPS Route Action Link */}
-        <div className="bg-[#182026] border border-[#019ad8]/40 rounded-xl p-3 flex items-center justify-between text-xs shadow-md">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-[#019ad8]/20 text-[#86cfff] flex items-center justify-center shrink-0">
+        <div className="bg-[#182026] border border-[#019ad8]/40 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-lg bg-[#019ad8]/20 text-[#86cfff] flex items-center justify-center shrink-0">
               <Navigation className="w-4 h-4 text-[#019ad8]" />
             </div>
-            <div className="min-w-0">
-              <span className="font-bold text-white block truncate font-['Montserrat']">
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-white block truncate font-['Montserrat'] text-xs sm:text-sm">
                 Trajeto GPS em Tempo Real
               </span>
               <span className="text-[11px] text-[#86cfff]/80 block truncate">
@@ -646,12 +646,12 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             <a
               href={getGoogleMapsRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
               target="_blank"
               rel="noreferrer"
-              className="shrink-0 bg-[#019ad8] hover:bg-[#019ad8]/90 text-white font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
+              className="bg-[#019ad8] hover:bg-[#019ad8]/90 text-white font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
               title="Abrir rota no Google Maps"
             >
               <span>Google Maps</span>
@@ -661,7 +661,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({
               href={getWazeRouteUrl(order.address, { lat: order.latitude, lng: order.longitude })}
               target="_blank"
               rel="noreferrer"
-              className="shrink-0 bg-[#33ccff]/20 hover:bg-[#33ccff]/30 text-[#33ccff] border border-[#33ccff]/40 font-['Montserrat'] font-bold text-xs py-2 px-2.5 rounded-lg flex items-center gap-1 active:scale-95 transition-all shadow-sm"
+              className="bg-[#33ccff]/20 hover:bg-[#33ccff]/30 text-[#33ccff] border border-[#33ccff]/40 font-['Montserrat'] font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1 active:scale-95 transition-all shadow-sm"
               title="Abrir no Waze"
             >
               <span>Waze</span>
