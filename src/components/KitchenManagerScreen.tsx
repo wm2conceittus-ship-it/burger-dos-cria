@@ -442,6 +442,117 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     setTimeout(() => setShoppingToast(null), 4000);
   };
 
+  const handleExportShoppingPDF = () => {
+    try {
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const storeName = storeSettings.storeName || 'Burger dos Crias';
+      const dateStr = new Date().toLocaleString('pt-BR');
+      const pendingItems = shoppingItems.filter(i => !i.purchased);
+      const purchasedItems = shoppingItems.filter(i => i.purchased);
+
+      doc.setFillColor(255, 87, 34); // #ff5722
+      doc.rect(0, 0, 210, 24, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text(storeName.toUpperCase(), 14, 15);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`LISTA DE COMPRAS & SUPRIMENTOS • ${dateStr}`, 205, 15, { align: 'right' });
+
+      let y = 35;
+      doc.setTextColor(30, 30, 30);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('ITENS PENDENTES DE COMPRA', 14, y);
+
+      y += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(14, y - 5, 182, 7, 'F');
+      doc.text('Item / Insumo', 18, y);
+      doc.text('Qtd.', 120, y);
+      doc.text('Categoria', 145, y);
+      doc.text('Obs / Fornecedor', 170, y);
+
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+
+      if (pendingItems.length === 0) {
+        doc.text('Nenhum item pendente na lista de compras.', 14, y);
+        y += 8;
+      } else {
+        for (const item of pendingItems) {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(item.name, 18, y);
+          doc.text(item.quantity, 120, y);
+          doc.text(item.category || 'Insumos', 145, y);
+          doc.text(item.notes || '-', 170, y);
+          y += 7;
+        }
+      }
+
+      if (purchasedItems.length > 0) {
+        y += 5;
+        if (y > 265) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text('ITENS JÁ COMPRADOS', 14, y);
+
+        y += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(14, y - 5, 182, 7, 'F');
+        doc.text('Item / Insumo', 18, y);
+        doc.text('Qtd.', 120, y);
+        doc.text('Categoria', 145, y);
+        doc.text('Obs / Fornecedor', 170, y);
+
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+
+        for (const item of purchasedItems) {
+          if (y > 275) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(`[X] ${item.name}`, 18, y);
+          doc.text(item.quantity, 120, y);
+          doc.text(item.category || 'Insumos', 145, y);
+          doc.text(item.notes || '-', 170, y);
+          y += 7;
+        }
+      }
+
+      const safeStoreName = storeName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const fileDateStr = new Date().toISOString().slice(0, 10);
+      doc.save(`lista-compras-${safeStoreName}-${fileDateStr}.pdf`);
+      setShoppingToast('Lista de compras salva em PDF com sucesso!');
+      setTimeout(() => setShoppingToast(null), 3500);
+    } catch (err) {
+      console.error('Erro ao gerar PDF da lista de compras:', err);
+      setShoppingToast('Erro ao gerar PDF da lista de compras.');
+      setTimeout(() => setShoppingToast(null), 3500);
+    }
+  };
+
   const handleSelectOrdersLayoutMode = (mode: 'carousel' | 'kanban' | 'grid') => {
     setOrdersLayoutMode(mode);
     try {
@@ -6697,21 +6808,21 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
         {activeTab === 'compras' && (
           <div className="space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
             {shoppingToast && (
-              <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg flex items-center justify-between">
+              <div className="p-3 bg-emerald-600 text-white rounded-md text-xs font-bold shadow-lg flex items-center justify-between">
                 <span>{shoppingToast}</span>
                 <Check className="w-4 h-4" />
               </div>
             )}
 
-            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+            <div className="bg-white rounded-md p-5 border border-gray-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center shadow-inner">
+                  <div className="w-11 h-11 rounded-md bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center shadow-inner">
                     <ShoppingCart className="w-6 h-6" />
                   </div>
                   <div>
                     <h2 className="font-['Montserrat'] text-xl font-bold text-gray-900">
-                      Lista de Compras & Suprimentos
+                      Compras & Suprimentos
                     </h2>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Gerencie insumos necessários, controle itens adquiridos e envie a lista diretamente para fornecedores via WhatsApp.
@@ -6723,7 +6834,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <button
                     type="button"
                     onClick={handleGenerateFromLowStock}
-                    className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    className="px-3.5 py-2 rounded-md bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
                     title="Adicionar automaticamente itens com estoque baixo ou zerado"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -6732,8 +6843,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                   <button
                     type="button"
+                    onClick={handleExportShoppingPDF}
+                    className="px-3.5 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    title="Baixar lista de compras em PDF"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Baixar PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleCopyShoppingWhatsApp}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    className="px-3.5 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
                     title="Copiar lista para colar no WhatsApp"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
@@ -6752,7 +6873,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     value={newShoppingName}
                     onChange={e => setNewShoppingName(e.target.value)}
                     placeholder="Ex: Pão Brioche, Maionese..."
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-md px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -6762,7 +6883,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     value={newShoppingQty}
                     onChange={e => setNewShoppingQty(e.target.value)}
                     placeholder="Ex: 50 un, 5kg"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-md px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -6770,7 +6891,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   <select
                     value={newShoppingCategory}
                     onChange={e => setNewShoppingCategory(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
                   >
                     <option value="Insumos">Insumos</option>
                     <option value="Pães">Pães</option>
@@ -6788,13 +6909,13 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     value={newShoppingNotes}
                     onChange={e => setNewShoppingNotes(e.target.value)}
                     placeholder="Ex: Fornecedor João"
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722]"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-md px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722]"
                   />
                 </div>
                 <div className="sm:col-span-1">
                   <button
                     type="submit"
-                    className="w-full h-9 rounded-xl btn-flame text-white text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all"
+                    className="w-full h-9 rounded-md btn-flame text-white text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all"
                     title="Adicionar item"
                   >
                     <Plus className="w-4 h-4" />
@@ -6811,7 +6932,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       key={f}
                       type="button"
                       onClick={() => setShoppingFilter(f)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
                         shoppingFilter === f
                           ? 'bg-[#ff5722] text-white shadow-sm'
                           : 'bg-gray-100 text-gray-600 hover:text-gray-900'
@@ -6850,7 +6971,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     if (shoppingFilter === 'purchased') return i.purchased;
                     return true;
                   }).map(item => (
-                    <div key={item.id} className={`py-3 px-3 flex items-center justify-between gap-3 hover:bg-gray-50/80 rounded-xl transition-colors ${item.purchased ? 'opacity-60 bg-gray-50/50' : ''}`}>
+                    <div key={item.id} className={`py-3 px-3 flex items-center justify-between gap-3 hover:bg-gray-50/80 rounded-md transition-colors ${item.purchased ? 'opacity-60 bg-gray-50/50' : ''}`}>
                       <div className="flex items-center gap-3 min-w-0">
                         <input
                           type="checkbox"
