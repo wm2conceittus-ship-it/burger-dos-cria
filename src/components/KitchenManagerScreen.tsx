@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon } from '../types';
+import { Order, Product, StoreSettings, Courier, DeliveryZone, Coupon, ShoppingItem } from '../types';
 import { APP_IMAGES } from '../data/mockData';
 import {
   Timer,
@@ -96,6 +96,7 @@ import {
   RefreshCw,
   Filter,
   List,
+  ShoppingCart,
 } from 'lucide-react';
 import { generatePixPayload, getPixQrCodeUrl } from '../utils/pixPayload';
 import { compressImageFile } from '../utils/imageUpload';
@@ -163,7 +164,7 @@ interface KitchenManagerScreenProps {
   onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
   onDeleteProduct?: (productId: string) => void;
   onClearOrders?: () => void;
-  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados';
+  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras';
 }
 
 export interface ExpenseItem {
@@ -203,7 +204,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados'>(
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras'>(
     initialTab || 'pedidos'
   );
 
@@ -325,6 +326,121 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   });
   const [quickMoveOrderId, setQuickMoveOrderId] = useState<string | null>(null);
   const [rejectOrderTarget, setRejectOrderTarget] = useState<Order | null>(null);
+
+  // Shopping List State
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('burger_shopping_list');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 'sh-1', name: 'Pão de hambúrguer brioche', quantity: '50 un', category: 'Pães', purchased: false, notes: 'Fornecedor Padaria Central' },
+      { id: 'sh-2', name: 'Blend bovino 180g', quantity: '30 kg', category: 'Carnes', purchased: false, notes: 'Açougue do Bairro' },
+      { id: 'sh-3', name: 'Queijo cheddar fatiado', quantity: '5 kg', category: 'Laticínios', purchased: true, notes: 'Estoque reposto' },
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('burger_shopping_list', JSON.stringify(shoppingItems));
+    } catch {}
+  }, [shoppingItems]);
+
+  const [newShoppingName, setNewShoppingName] = useState('');
+  const [newShoppingQty, setNewShoppingQty] = useState('');
+  const [newShoppingCategory, setNewShoppingCategory] = useState('Insumos');
+  const [newShoppingNotes, setNewShoppingNotes] = useState('');
+  const [shoppingFilter, setShoppingFilter] = useState<'all' | 'pending' | 'purchased'>('all');
+  const [shoppingToast, setShoppingToast] = useState<string | null>(null);
+
+  const handleAddShoppingItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShoppingName.trim()) return;
+    const newItem: ShoppingItem = {
+      id: `sh-${Date.now()}`,
+      name: newShoppingName.trim(),
+      quantity: newShoppingQty.trim() || '1 un',
+      category: newShoppingCategory,
+      purchased: false,
+      notes: newShoppingNotes.trim() || undefined,
+    };
+    setShoppingItems(prev => [newItem, ...prev]);
+    setNewShoppingName('');
+    setNewShoppingQty('');
+    setNewShoppingNotes('');
+    setShoppingToast('Item adicionado à lista de compras!');
+    setTimeout(() => setShoppingToast(null), 3000);
+  };
+
+  const handleToggleShoppingItem = (id: string) => {
+    setShoppingItems(prev =>
+      prev.map(i => (i.id === id ? { ...i, purchased: !i.purchased } : i))
+    );
+  };
+
+  const handleDeleteShoppingItem = (id: string) => {
+    setShoppingItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  const handleClearCompletedShopping = () => {
+    setShoppingItems(prev => prev.filter(i => !i.purchased));
+    setShoppingToast('Itens comprados removidos da lista.');
+    setTimeout(() => setShoppingToast(null), 3000);
+  };
+
+  const handleGenerateFromLowStock = () => {
+    const lowStock = products.filter(
+      p => (p.minStock !== undefined && p.stock !== undefined && p.stock <= p.minStock) ||
+           (p.criticalStock !== undefined && p.stock !== undefined && p.stock <= p.criticalStock) ||
+           (p.stock !== undefined && p.stock <= 0)
+    );
+
+    if (lowStock.length === 0) {
+      setShoppingToast('Nenhum produto com estoque baixo ou crítico no momento.');
+      setTimeout(() => setShoppingToast(null), 3000);
+      return;
+    }
+
+    let addedCount = 0;
+    setShoppingItems(prev => {
+      const next = [...prev];
+      for (const p of lowStock) {
+        const exists = next.some(item => item.name.toLowerCase() === p.name.toLowerCase());
+        if (!exists) {
+          const deficit = Math.max(5, (p.minStock || 10) - (p.stock || 0));
+          next.unshift({
+            id: `sh-auto-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            name: p.name,
+            quantity: `${deficit} un`,
+            category: p.category,
+            purchased: false,
+            notes: `Gerado automaticamente (Estoque atual: ${p.stock ?? 0} un)`,
+          });
+          addedCount++;
+        }
+      }
+      return next;
+    });
+
+    setShoppingToast(`${addedCount} itens com estoque baixo adicionados à lista de compras!`);
+    setTimeout(() => setShoppingToast(null), 3500);
+  };
+
+  const handleCopyShoppingWhatsApp = () => {
+    const pending = shoppingItems.filter(i => !i.purchased);
+    if (pending.length === 0) {
+      setShoppingToast('Não há itens pendentes na lista de compras.');
+      setTimeout(() => setShoppingToast(null), 3000);
+      return;
+    }
+    const text = `🛒 *LISTA DE COMPRAS - ${storeSettings.storeName || 'Burger dos Crias'}*\n\n` +
+      pending.map((i, idx) => `${idx + 1}. *${i.name}* - Qtd: *${i.quantity}* ${i.notes ? `(${i.notes})` : ''}`).join('\n') +
+      `\n\n_Gerado pelo Sistema em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}_`;
+
+    navigator.clipboard.writeText(text);
+    setShoppingToast('Lista de compras copiada para a área de transferência! Pronta para colar no WhatsApp.');
+    setTimeout(() => setShoppingToast(null), 4000);
+  };
 
   const handleSelectOrdersLayoutMode = (mode: 'carousel' | 'kanban' | 'grid') => {
     setOrdersLayoutMode(mode);
@@ -2359,27 +2475,17 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
         {/* Management Module Tabs */}
-        <section className={`flex items-center justify-between border-b pb-2 overflow-x-auto hide-scrollbar ${
+        <section className={`flex items-center justify-between border-b pb-3 pt-1 overflow-x-auto hide-scrollbar gap-4 ${
           managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'
         }`}>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
             {[
-              { id: 'pedidos' as const, label: 'Pedidos (KDS)', icon: Receipt, badge: novosOrders.length },
-              {
-                id: 'mesas' as const,
-                label: 'Mesas & Salão',
-                icon: UtensilsCrossed,
-                badge: (storeSettings.tables || []).filter(t => t.status === 'ocupada' || t.status === 'conta_pedida').length,
-              },
-              {
-                id: 'cardapio' as const,
-                label: 'Cardápio & Estoque',
-                icon: Layers,
-                badge: lowStockProducts.length > 0 ? lowStockProducts.length : undefined,
-                isAlert: lowStockProducts.length > 0,
-              },
+              { id: 'pedidos' as const, label: 'Pedidos (KDS)', icon: Receipt },
+              { id: 'mesas' as const, label: 'Mesas & Salão', icon: UtensilsCrossed },
+              { id: 'cardapio' as const, label: 'Cardápio & Estoque', icon: Layers, isAlert: lowStockProducts.length > 0 },
               { id: 'relatorios' as const, label: 'Finanças & Gráficos', icon: BarChart3 },
-              { id: 'cancelados' as const, label: 'Cancelados', icon: XCircle, badge: cancelledOrders.length > 0 ? cancelledOrders.length : undefined },
+              { id: 'compras' as const, label: 'Compras', icon: ShoppingCart },
+              { id: 'cancelados' as const, label: 'Cancelados', icon: XCircle },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
             ].map(tab => {
               const isActive = activeTab === tab.id;
@@ -2387,7 +2493,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               const isAlert = (tab as any).isAlert;
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-[0_2px_12px_rgba(61,32,12,0.4)] border border-[#73401D]'
                       : isAlert
@@ -2399,18 +2505,6 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 >
                   <Icon className={`w-4 h-4 ${isAlert && !isActive ? 'text-amber-400' : ''}`} />
                   <span>{tab.label}</span>
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <span
-                      className={`min-w-4 h-4 px-1 rounded-full text-[10px] flex items-center justify-center font-extrabold ${
-                        isAlert
-                          ? 'bg-amber-400 text-black animate-pulse shadow-sm ring-1 ring-amber-300'
-                          : 'bg-white text-[#5C3317]'
-                      }`}
-                      title={isAlert ? `${tab.badge} itens atingiram o estoque mínimo` : undefined}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -2421,7 +2515,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               setActiveTab('configuracoes');
               setConfigTab('horarios');
             }}
-            className="hidden lg:flex items-center gap-2 text-xs cursor-pointer hover:opacity-80 transition-opacity"
+            className="hidden lg:flex items-center gap-2 text-xs cursor-pointer hover:opacity-80 transition-opacity shrink-0 pl-4 border-l border-[#353535]/60"
             title="Clique para gerenciar horários de funcionamento"
           >
             <span
@@ -6596,6 +6690,211 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ================= ABA: LISTA DE COMPRAS ================= */}
+        {activeTab === 'compras' && (
+          <div className="space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
+            {shoppingToast && (
+              <div className="p-3 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-lg flex items-center justify-between">
+                <span>{shoppingToast}</span>
+                <Check className="w-4 h-4" />
+              </div>
+            )}
+
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center shadow-inner">
+                    <ShoppingCart className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-['Montserrat'] text-xl font-bold text-gray-900">
+                      Lista de Compras & Suprimentos
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Gerencie insumos necessários, controle itens adquiridos e envie a lista diretamente para fornecedores via WhatsApp.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleGenerateFromLowStock}
+                    className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    title="Adicionar automaticamente itens com estoque baixo ou zerado"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Gerar da Cozinha (Estoque Baixo)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyShoppingWhatsApp}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-['Montserrat'] shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    title="Copiar lista para colar no WhatsApp"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Copiar p/ WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Add item form */}
+              <form onSubmit={handleAddShoppingItem} className="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                <div className="sm:col-span-4">
+                  <label className="block text-gray-700 text-xs font-semibold mb-1">Nome do Insumo / Produto *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newShoppingName}
+                    onChange={e => setNewShoppingName(e.target.value)}
+                    placeholder="Ex: Pão Brioche, Maionese..."
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-gray-700 text-xs font-semibold mb-1">Quantidade</label>
+                  <input
+                    type="text"
+                    value={newShoppingQty}
+                    onChange={e => setNewShoppingQty(e.target.value)}
+                    placeholder="Ex: 50 un, 5kg"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-gray-700 text-xs font-semibold mb-1">Categoria</label>
+                  <select
+                    value={newShoppingCategory}
+                    onChange={e => setNewShoppingCategory(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722] font-semibold"
+                  >
+                    <option value="Insumos">Insumos</option>
+                    <option value="Pães">Pães</option>
+                    <option value="Carnes">Carnes</option>
+                    <option value="Laticínios">Laticínios</option>
+                    <option value="Bebidas">Bebidas</option>
+                    <option value="Embalagens">Embalagens</option>
+                    <option value="Limpeza">Limpeza</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="block text-gray-700 text-xs font-semibold mb-1">Observações / Fornecedor</label>
+                  <input
+                    type="text"
+                    value={newShoppingNotes}
+                    onChange={e => setNewShoppingNotes(e.target.value)}
+                    placeholder="Ex: Fornecedor João"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs text-gray-900 focus:outline-none focus:border-[#ff5722]"
+                  />
+                </div>
+                <div className="sm:col-span-1">
+                  <button
+                    type="submit"
+                    className="w-full h-9 rounded-xl btn-flame text-white text-xs font-bold font-['Montserrat'] flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all"
+                    title="Adicionar item"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+
+              {/* Filters & Actions */}
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-600">Filtrar:</span>
+                  {(['all', 'pending', 'purchased'] as const).map(f => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setShoppingFilter(f)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        shoppingFilter === f
+                          ? 'bg-[#ff5722] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {f === 'all' ? 'Todos' : f === 'pending' ? 'Pendentes' : 'Comprados'}
+                    </button>
+                  ))}
+                </div>
+
+                {shoppingItems.some(i => i.purchased) && (
+                  <button
+                    type="button"
+                    onClick={handleClearCompletedShopping}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remover itens comprados</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Items List */}
+              <div className="divide-y divide-gray-100 max-h-[50vh] overflow-y-auto">
+                {shoppingItems.filter(i => {
+                  if (shoppingFilter === 'pending') return !i.purchased;
+                  if (shoppingFilter === 'purchased') return i.purchased;
+                  return true;
+                }).length === 0 ? (
+                  <div className="py-12 text-center text-gray-400 text-xs">
+                    Nenhum item na lista de compras.
+                  </div>
+                ) : (
+                  shoppingItems.filter(i => {
+                    if (shoppingFilter === 'pending') return !i.purchased;
+                    if (shoppingFilter === 'purchased') return i.purchased;
+                    return true;
+                  }).map(item => (
+                    <div key={item.id} className={`py-3 px-3 flex items-center justify-between gap-3 hover:bg-gray-50/80 rounded-xl transition-colors ${item.purchased ? 'opacity-60 bg-gray-50/50' : ''}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={item.purchased}
+                          onChange={() => handleToggleShoppingItem(item.id)}
+                          className="w-4 h-4 text-[#ff5722] rounded border-gray-300 focus:ring-[#ff5722] cursor-pointer"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-bold ${item.purchased ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                              {item.name}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 text-[10px] font-semibold font-mono">
+                              {item.quantity}
+                            </span>
+                            {item.category && (
+                              <span className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 text-[10px] font-medium">
+                                {item.category}
+                              </span>
+                            )}
+                          </div>
+                          {item.notes && (
+                            <p className="text-[11px] text-gray-500 mt-0.5 italic truncate">
+                              {item.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteShoppingItem(item.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Excluir item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
 

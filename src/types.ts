@@ -288,3 +288,12 @@ export interface Order {
   createdAt: string;
   orderDate?: string;
 }
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: string;
+  category?: string;
+  purchased: boolean;
+  notes?: string;
+}
