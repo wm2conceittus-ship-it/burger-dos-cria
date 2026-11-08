@@ -597,24 +597,24 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {/* Seção de Controle de Estoque & Estoque Mínimo */}
-          <div className="p-3.5 bg-[#2b2a29] border border-[#444341] rounded-xl space-y-2.5 shadow-md">
-            <div className="flex items-center justify-between">
-              <label className="text-white font-['Montserrat'] font-bold text-xs flex items-center gap-1.5">
+          <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3 shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <label className="text-gray-900 font-['Montserrat'] font-bold text-xs flex items-center gap-1.5">
                 <Package className="w-4 h-4 text-[#ff5722]" />
-                <span>Controle de Estoque & Estoque Mínimo</span>
+                <span>Controle de Estoque & Alertas</span>
               </label>
-              <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" />
+              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 text-amber-500" />
                 Alerta no Cardápio
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Estoque Atual */}
-              <div>
+              <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200">
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Atual</label>
-                  <span className="text-[10px] text-[#8e8f8f]">Qtd. Física</span>
+                  <label className="block text-gray-700 text-xs font-semibold">Estoque Atual</label>
+                  <span className="text-[10px] text-gray-400">Qtd. Física</span>
                 </div>
                 <div className="relative flex items-center">
                   <input
@@ -624,17 +624,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={stock}
                     onChange={e => setStock(e.target.value)}
                     placeholder="Ex: 10"
-                    className="w-full bg-[#363533] border border-[#555] rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-[#ff5722] font-semibold"
+                    className="w-full bg-white border border-gray-300 rounded-lg pl-3 pr-8 py-1.5 text-gray-900 text-sm focus:outline-none focus:border-[#ff5722] font-bold"
                   />
-                  <span className="absolute right-3 text-xs text-[#8e8f8f] font-mono">un</span>
+                  <span className="absolute right-2.5 text-xs text-gray-400 font-mono">un</span>
                 </div>
               </div>
 
               {/* Estoque Mínimo */}
-              <div>
+              <div className="bg-amber-50/50 p-2.5 rounded-xl border border-amber-200">
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[#b4b5b5] text-xs font-medium">Estoque Mínimo</label>
-                  <span className="text-[10px] text-amber-400 font-bold">Aviso</span>
+                  <label className="block text-amber-900 text-xs font-semibold">Mínimo (Aviso)</label>
+                  <span className="text-[10px] text-amber-600 font-bold">Alerta</span>
                 </div>
                 <div className="relative flex items-center">
                   <input
@@ -644,17 +644,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={minStock}
                     onChange={e => setMinStock(e.target.value)}
                     placeholder="Ex: 5"
-                    className="w-full bg-[#363533] border border-amber-500/50 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-amber-400 font-semibold"
+                    className="w-full bg-white border border-amber-300 rounded-lg pl-3 pr-8 py-1.5 text-gray-900 text-sm focus:outline-none focus:border-amber-500 font-bold"
                   />
-                  <span className="absolute right-3 text-xs text-amber-400 font-mono font-bold">un</span>
+                  <span className="absolute right-2.5 text-xs text-amber-600 font-mono font-bold">un</span>
                 </div>
               </div>
 
               {/* Nível Crítico */}
-              <div>
+              <div className="bg-red-50/50 p-2.5 rounded-xl border border-red-200">
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-[#b4b5b5] text-xs font-medium">Nível Crítico</label>
-                  <span className="text-[10px] text-red-400 font-bold">Urgente</span>
+                  <label className="block text-red-900 text-xs font-semibold">Crítico (Urgente)</label>
+                  <span className="text-[10px] text-red-600 font-bold">Risco</span>
                 </div>
                 <div className="relative flex items-center">
                   <input
@@ -664,9 +664,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={criticalStock}
                     onChange={e => setCriticalStock(e.target.value)}
                     placeholder="Ex: 2"
-                    className="w-full bg-[#363533] border border-red-500/50 rounded-xl pl-3 pr-9 py-2 text-white text-sm focus:outline-none focus:border-red-400 font-semibold"
+                    className="w-full bg-white border border-red-300 rounded-lg pl-3 pr-8 py-1.5 text-gray-900 text-sm focus:outline-none focus:border-red-500 font-bold"
                   />
-                  <span className="absolute right-3 text-xs text-red-400 font-mono font-bold">un</span>
+                  <span className="absolute right-2.5 text-xs text-red-600 font-mono font-bold">un</span>
                 </div>
               </div>
             </div>
@@ -676,8 +676,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <div
                 className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border transition-all ${
                   stock.trim() !== '' && Number(stock) <= Number(minStock)
-                    ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
-                    : 'bg-[#363533] border-[#555] text-[#b4b5b5]'
+                    ? 'bg-amber-50 border-amber-300 text-amber-800'
+                    : 'bg-gray-50 border-gray-200 text-gray-600'
                 }`}
               >
                 <AlertTriangle
