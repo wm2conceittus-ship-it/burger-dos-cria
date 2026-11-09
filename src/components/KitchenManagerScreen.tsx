@@ -2586,10 +2586,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
         {/* Management Module Tabs */}
-        <section className={`flex items-center justify-between border-b pb-3 pt-1 overflow-x-auto hide-scrollbar gap-4 ${
+        <section className={`flex items-center justify-between border-b pb-2.5 pt-1 overflow-x-auto hide-scrollbar gap-3 ${
           managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'
         }`}>
-          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+          <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
             {[
               { id: 'pedidos' as const, label: 'Pedidos (KDS)', icon: Receipt },
               { id: 'mesas' as const, label: 'Mesas & Salão', icon: UtensilsCrossed },
@@ -2604,7 +2604,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               const isAlert = (tab as any).isAlert;
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-[0_2px_12px_rgba(61,32,12,0.4)] border border-[#73401D]'
                       : isAlert
@@ -2614,7 +2614,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         : 'bg-[#1c1b1b] text-[#b4b5b5] hover:text-white hover:bg-[#252525] border border-[#353535]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isAlert && !isActive ? 'text-amber-400' : ''}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isAlert && !isActive ? 'text-amber-400' : ''}`} />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -2689,12 +2689,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             )}
 
             {/* Header Summary & Operational Toolbar */}
-            <section className="bg-[#181818] border border-[#353535] rounded-lg p-4 md:p-5 shadow-lg space-y-4">
+            <section className="bg-[#181818] border border-[#353535] rounded-lg p-3 md:p-4 shadow-lg space-y-3">
               {/* Linha Superior: Título & Status */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <h1 className="font-['Montserrat'] text-xl md:text-2xl font-black text-white tracking-tight">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2.5">
+                    <h1 className="font-['Montserrat'] text-lg md:text-xl font-black text-white tracking-tight">
                       Gestor de Pedidos (KDS)
                     </h1>
                     <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-extrabold flex items-center gap-1.5 uppercase tracking-wide">
@@ -2714,11 +2714,11 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
 
               {/* Linha de Baixo: Seletor Pedidos Abertos & Botões de Ação */}
-              <div className="pt-3 border-t border-[#353535] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="pt-2.5 border-t border-[#353535] flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
                 {/* Segmented View Switch: Abertos vs Agendados */}
-                <div className="inline-flex items-center p-1 bg-[#141414] rounded-lg border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
+                <div className="inline-flex items-center p-0.5 bg-[#141414] rounded-md border border-[#353535] shadow-inner shrink-0 self-start lg:self-auto">
                   <button onClick={() => setMainFilter('abertos')}
-                    className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                    className={`h-6 px-3 rounded text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'abertos'
                         ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                         : 'text-[#b4b5b5] hover:text-white'
@@ -2733,7 +2733,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </button>
 
                   <button onClick={() => setMainFilter('agendados')}
-                    className={`h-7 px-3.5 rounded-md text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
+                    className={`h-6 px-3 rounded text-xs font-['Montserrat'] font-bold transition-all flex items-center gap-1.5 ${
                       mainFilter === 'agendados'
                         ? 'bg-gradient-to-r from-[#5C3317] to-[#3D200C] text-white shadow-md border border-[#73401D]'
                         : 'text-[#b4b5b5] hover:text-white'
@@ -2749,12 +2749,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
 
                 {/* Botões de Ação na mesma sequência */}
-                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                   <button
                     type="button"
                     disabled={isValidatingPendingPix}
                     onClick={handleCheckAllPendingPix}
-                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-sky-400 border border-sky-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    className="h-8 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-sky-400 border border-sky-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Consulta manualmente a API do Mercado Pago para todos os pedidos com Pix pendente"
                   >
                     {isValidatingPendingPix ? (
@@ -2764,27 +2764,27 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="w-4 h-4 text-sky-400 shrink-0" />
+                        <RefreshCw className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                         <span>Forçar Verificação Pix</span>
                       </>
                     )}
                   </button>
 
                   <button onClick={() => setShowDailyReportModal(true)}
-                    className="h-9 px-3.5 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
+                    className="h-8 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-emerald-400 border border-emerald-500/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0"
                     title="Ver e exportar lista detalhada de pedidos do dia"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span>Relatório do Dia</span>
                   </button>
 
-                  <button onClick={onOpenManualOrder} className="h-9 px-3.5 btn-flame text-white border border-[#73401D] rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all leading-none shrink-0" title="Lançar pedido presencial ou telefônico no sistema" >
-                    <Plus className="w-4 h-4 shrink-0" />
+                  <button onClick={onOpenManualOrder} className="h-8 px-3 btn-flame text-white border border-[#73401D] rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all leading-none shrink-0" title="Lançar pedido presencial ou telefônico no sistema" >
+                    <Plus className="w-3.5 h-3.5 shrink-0" />
                     <span>Pedido Balcão</span>
                   </button>
 
                   <button onClick={() => setShowGuideModal(true)}
-                    className="h-9 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#5C3317] border border-[#5C3317]/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
+                    className="h-8 px-3 bg-[#1c1b1b] hover:bg-[#252525] text-[#5C3317] border border-[#5C3317]/40 rounded-md text-xs font-['Montserrat'] font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm leading-none shrink-0"
                     title="Como Fazer a Gestão"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-[#5C3317] shrink-0" />
@@ -2797,7 +2797,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         autoAcceptOrders: !storeSettings.autoAcceptOrders,
                       })
                     }
-                    className={`h-9 px-3.5 rounded-xl text-xs font-['Montserrat'] font-bold border inline-flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm leading-none shrink-0 ${
+                    className={`h-8 px-3 rounded-md text-xs font-['Montserrat'] font-bold border inline-flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm leading-none shrink-0 ${
                       storeSettings.autoAcceptOrders
                         ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 hover:bg-emerald-950/80'
                         : 'bg-[#1c1b1b] border-[#353535] text-[#b4b5b5] hover:text-white hover:border-[#4d4d4d]'
@@ -2806,7 +2806,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   >
                     <Zap className={`w-3.5 h-3.5 ${storeSettings.autoAcceptOrders ? 'text-emerald-400 fill-emerald-400' : 'text-[#b4b5b5]'}`} />
                     <span>Auto-Aceite:</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-black uppercase ${
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-black uppercase ${
                       storeSettings.autoAcceptOrders ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#141414] text-[#8e8f8f]'
                     }`}>
                       {storeSettings.autoAcceptOrders ? 'ATIVADO' : 'MANUAL'}
