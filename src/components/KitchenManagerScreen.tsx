@@ -2310,7 +2310,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           ? 'bg-white/95 border-slate-200 text-slate-800 shadow-sm'
           : 'bg-[#141414]/95 border-[#353535] text-white'
       }`}>
-        <div className="max-w-7xl mx-auto w-full h-full flex justify-between items-center">
+        <div className="max-w-full mx-auto w-full h-full flex justify-between items-center px-2">
           <div className="flex items-center gap-3">
             <button onClick={onNavigateToMenu} className="flex items-center gap-2 group active:scale-95 transition-transform" >
               <div className="w-10 h-10 rounded-full overflow-hidden border border-[#7A431D]/60 shadow-sm flex-shrink-0">
@@ -2584,7 +2584,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
       )}
 
       {/* Main Container */}
-      <main className="pt-20 px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6">
+      <main className="pt-20 px-4 md:px-8 max-w-full w-full space-y-6">
         {/* Management Module Tabs */}
         <section className={`flex items-center justify-between border-b pb-2.5 pt-1 overflow-x-auto hide-scrollbar gap-3 ${
           managerTheme === 'light' ? 'border-slate-200' : 'border-[#353535]'
@@ -6550,7 +6550,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
         {/* ================= ABA: PEDIDOS CANCELADOS / RECUSADOS ================= */}
         {activeTab === 'cancelados' && (
-          <div className="space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
+          <div className="space-y-6 w-full animate-in fade-in duration-200">
             <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -6806,7 +6806,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
         {/* ================= ABA: LISTA DE COMPRAS ================= */}
         {activeTab === 'compras' && (
-          <div className="space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
+          <div className="space-y-6 w-full animate-in fade-in duration-200">
             {shoppingToast && (
               <div className="p-3 bg-emerald-600 text-white rounded-md text-xs font-bold shadow-lg flex items-center justify-between">
                 <span>{shoppingToast}</span>
@@ -7021,7 +7021,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
         {/* ================= ABA 4: CONFIGURAÇÕES DA LOJA ================= */}
         {activeTab === 'configuracoes' && (
-          <div className="space-y-6 max-w-4xl mx-auto w-full">
+          <div className="space-y-6 w-full">
             <div className="text-center sm:text-left">
               <h2 className="font-['Montserrat'] text-2xl font-bold text-white">
                 Configurações da Hamburgueria
