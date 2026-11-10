@@ -7748,11 +7748,10 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 Configure quais formas de pagamento aparecem para os clientes no carrinho (Pix, cartões na maquininha, dinheiro, vales-refeição).
               </p>
 
-                {/* Chave Pix Config - Painel Completo e Confiável */}
-                <div className="bg-gray-50 border-2 border-orange-200 rounded-xl p-4 sm:p-5 space-y-4 shadow-xs relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100/50 rounded-bl-full pointer-events-none" />
+                  {/* Chave Pix Config - Painel Completo e Confiável */}
+                  <div className="bg-gray-50 border-2 border-orange-200 rounded-xl p-4 sm:p-5 space-y-4 shadow-xs relative overflow-hidden">
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200 pb-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#ff5722] to-[#e64a19] flex items-center justify-center text-white shadow-sm">
                         <QrCode className="w-5 h-5" />

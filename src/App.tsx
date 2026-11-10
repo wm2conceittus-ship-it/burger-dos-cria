@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Screen, Product, CartItem, Order, StoreSettings, CustomerProfile } from './types';
 import { PRODUCTS, INITIAL_ORDERS, INITIAL_RESTAURANT_TABLES, INITIAL_EMPLOYEES, INITIAL_DELIVERY_ZONES } from './data/mockData';
-import { DEFAULT_WEEKLY_SCHEDULE } from './utils/scheduleUtils';
+import { DEFAULT_WEEKLY_SCHEDULE, getStoreOperatingStatus } from './utils/scheduleUtils';
 import { getDeliveryFeeForNeighborhood } from './utils/deliveryFee';
 import {
   testFirestoreConnection,
@@ -633,6 +633,12 @@ export default function App() {
       showToast('⏸️ A hamburgueria está com as atividades suspensas temporariamente. O envio de pedidos está pausado!');
       return;
     }
+    const operatingStatus = getStoreOperatingStatus(storeSettings);
+    if (!operatingStatus.isOpen) {
+      const hoursText = storeSettings?.openingHours || '19h às 04h';
+      showToast(`🔒 Loja Fechada! Horário de funcionamento: ${hoursText}. Não é possível adicionar itens ao carrinho no momento.`);
+      return;
+    }
     setCartItems(prev => [...prev, item]);
     showToast(`Adicionado ao carrinho: ${item.product.name}!`);
     setCurrentScreen('cart');
@@ -641,6 +647,12 @@ export default function App() {
   const handleQuickAdd = (product: Product) => {
     if (storeSettings?.isOrdersPaused) {
       showToast('⏸️ A hamburgueria está com as atividades suspensas temporariamente. O envio de pedidos está pausado!');
+      return;
+    }
+    const operatingStatus = getStoreOperatingStatus(storeSettings);
+    if (!operatingStatus.isOpen) {
+      const hoursText = storeSettings?.openingHours || '19h às 04h';
+      showToast(`🔒 Loja Fechada! Horário de funcionamento: ${hoursText}. Não é possível adicionar itens ao carrinho no momento.`);
       return;
     }
     if (product.isAvailable === false) {

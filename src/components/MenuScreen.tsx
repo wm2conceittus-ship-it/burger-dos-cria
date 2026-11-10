@@ -126,10 +126,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [pausedAlertToast, setPausedAlertToast] = useState<string | null>(null);
 
-  // Intercepta tentativas de adicionar pratos quando a hamburgueria estiver com atividades suspensas
+  // Intercepta tentativas de adicionar pratos quando a hamburgueria estiver fechada ou pausada
   const onQuickAdd = (product: Product) => {
     if (storeSettings?.isOrdersPaused) {
       setPausedAlertToast('A hamburgueria está com as atividades suspensas temporariamente. O recebimento de pedidos está pausado no momento.');
+      setTimeout(() => setPausedAlertToast(null), 4000);
+      return;
+    }
+    if (!operatingStatus.isOpen) {
+      const hoursText = storeSettings?.openingHours || '19h às 04h';
+      setPausedAlertToast(`Loja Fechada! Horário de funcionamento: ${hoursText}. Não é possível adicionar novos itens ao carrinho no momento.`);
       setTimeout(() => setPausedAlertToast(null), 4000);
       return;
     }
@@ -626,6 +632,51 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
       {/* Main Container */}
       <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto space-y-6">
+        {/* Alerta de Loja Fechada (Fora do Horário de Funcionamento) */}
+        {!operatingStatus.isOpen && !storeSettings?.isOrdersPaused && (
+          <div className="bg-gradient-to-r from-red-950/90 via-[#2a1313] to-red-950/90 border-2 border-red-500 rounded-xl p-4 sm:p-5 shadow-2xl shadow-red-950/60 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/15 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/50 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-['Montserrat'] font-black text-xs sm:text-sm text-red-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping inline-block" />
+                      Loja Fechada no Momento
+                    </span>
+                    <span className="bg-red-500/25 text-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-500/40">
+                      {storeSettings?.openingHours || '19h às 04h'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-white font-semibold">
+                    Nosso horário de atendimento é das {storeSettings?.openingHours || '19h às 04h'}.
+                  </p>
+
+                  <p className="text-[11px] text-[#d1d5db] max-w-xl">
+                    No momento estamos fora do horário de funcionamento. Você pode navegar pelo cardápio para conferir nossos produtos, mas novos pedidos só poderão ser feitos quando a loja abrir!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleModal(true)}
+                  className="px-3.5 py-2 rounded-lg bg-[#2a2a2a] hover:bg-[#353535] border border-[#454545] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-[#ff8a65]" />
+                  <span>Ver Horários</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Alerta de Atividades Suspensas Temporariamente (Recebimento de Pedidos Pausado pelo Gestor) */}
         {storeSettings?.isOrdersPaused ? (
           <div className="bg-gradient-to-r from-amber-950/90 via-[#26170c] to-amber-950/90 border-2 border-amber-500 rounded-xl p-4 sm:p-5 shadow-2xl shadow-amber-950/60 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
