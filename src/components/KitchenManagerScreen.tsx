@@ -122,6 +122,7 @@ import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
 import { WeeklyScheduleManager } from './WeeklyScheduleManager';
+import { getStoreOperatingStatus } from '../utils/scheduleUtils';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { RechartsAnalyticsPanel } from './RechartsAnalyticsPanel';
 import { ShareMenuModal } from './ShareMenuModal';
@@ -2517,6 +2518,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             <button onClick={onOpenChat} className="text-[#b4b5b5] hover:text-[#ffb5a0] p-1.5 transition-colors" title="WhatsApp Suporte" >
               <MessageSquare className="w-5 h-5" />
             </button>
+
+            {(() => {
+              const opStatus = getStoreOperatingStatus(storeSettings);
+              return (
+                <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-['Montserrat'] font-bold border ${
+                  opStatus.isOpen
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                    : 'bg-red-500/15 text-red-400 border-red-500/30'
+                }`} title={opStatus.statusText}>
+                  <span className={`w-2 h-2 rounded-full ${opStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span>{opStatus.isOpen ? 'Aberta' : 'Fechada'}</span>
+                </div>
+              );
+            })()}
 
             {onLockManager && (
               <button onClick={onLockManager} className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" title="Bloquear Painel do Gestor (Exigir PIN novamente)" >
