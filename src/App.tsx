@@ -93,143 +93,160 @@ export default function App() {
   });
   const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]); // Gourmet Truffle Burger
 
-  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
-    isOpen: true,
-    storeName: 'Burguer dos Crias',
-    address: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
-    defaultDeliveryFee: 7.00,
-    estimatedDeliveryTime: '20-30 min',
-    autoPrintReceipts: true,
-    soundAlerts: true,
-    webNotifications: true,
-    allowManualOrders: true,
-    autoAcceptOrders: false,
-    allowTableOrders: true,
-    serviceFeePercentage: 10,
-    tables: INITIAL_RESTAURANT_TABLES,
-    employees: INITIAL_EMPLOYEES,
-    whatsappSupport: '(88) 99217-6318',
-    whatsappManagerAlert: '(88) 99217-6318',
-    autoSendWhatsappAlertToManager: true,
-    autoSendWhatsappOnDispatch: true,
-    openingHours: 'Terça a Domingo, 18h - 00h',
-    weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
-    scheduleMode: 'auto',
-    pixKey: '11987654321',
-    pixApprovalMode: 'automatic',
-    acceptedPaymentMethods: [
-      'Pix',
-      'Cartão de Crédito',
-      'Cartão de Débito',
-      'Dinheiro',
-      'Vale Refeição (VR / Sodexo / Alelo)',
-    ],
-    mercadoPago: {
-      isEnabled: true,
-      publicKey: 'TEST-98a72b4c-9f82-411a-ba73-1029837465ab',
-      accessToken: 'TEST-8291039847120938-092714-a9f82b7c6d5e4a3b2c1d-19283746',
-      environment: 'sandbox',
-      allowPix: true,
-      allowCreditCard: true,
-      allowCheckoutPro: true,
-    },
-    couriers: [
-      {
-        id: 'cour-1',
-        name: 'Ricardo Souza (Cria 01)',
-        phone: '(11) 98765-1122',
-        vehicle: 'moto',
-        vehicleModel: 'Honda CG 160 Titan (Preta)',
-        plate: 'BRA-2E19',
-        pixKey: 'ricardo.entregas@pix.com',
-        feePerDelivery: 7.00,
-        dailyRate: 60.00,
-        active: true,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        totalDeliveries: 48,
-        notes: 'Entregador oficial do turno da noite',
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
+    try {
+      const saved = localStorage.getItem('burger_store_settings_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.storeName) {
+          return {
+            ...parsed,
+            tables: parsed.tables || INITIAL_RESTAURANT_TABLES,
+            employees: parsed.employees || INITIAL_EMPLOYEES,
+          };
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+    return {
+      isOpen: true,
+      storeName: 'Burguer dos Crias',
+      address: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
+      defaultDeliveryFee: 7.00,
+      estimatedDeliveryTime: '20-30 min',
+      autoPrintReceipts: true,
+      soundAlerts: true,
+      webNotifications: true,
+      allowManualOrders: true,
+      autoAcceptOrders: false,
+      allowTableOrders: true,
+      serviceFeePercentage: 10,
+      tables: INITIAL_RESTAURANT_TABLES,
+      employees: INITIAL_EMPLOYEES,
+      whatsappSupport: '(88) 99217-6318',
+      whatsappManagerAlert: '(88) 99217-6318',
+      autoSendWhatsappAlertToManager: true,
+      autoSendWhatsappOnDispatch: true,
+      openingHours: 'Terça a Domingo, 18h - 00h',
+      weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
+      scheduleMode: 'auto',
+      pixKey: '11987654321',
+      pixApprovalMode: 'automatic',
+      acceptedPaymentMethods: [
+        'Pix',
+        'Cartão de Crédito',
+        'Cartão de Débito',
+        'Dinheiro',
+        'Vale Refeição (VR / Sodexo / Alelo)',
+      ],
+      mercadoPago: {
+        isEnabled: true,
+        publicKey: 'TEST-98a72b4c-9f82-411a-ba73-1029837465ab',
+        accessToken: 'TEST-8291039847120938-092714-a9f82b7c6d5e4a3b2c1d-19283746',
+        environment: 'sandbox',
+        allowPix: true,
+        allowCreditCard: true,
+        allowCheckoutPro: true,
       },
-      {
-        id: 'cour-2',
-        name: 'Matheus Santos (Cria Veloz)',
-        phone: '(11) 97654-3344',
-        vehicle: 'moto',
-        vehicleModel: 'Yamaha Fazer 250 (Azul)',
-        plate: 'SP-9A82',
-        pixKey: '11976543344',
-        feePerDelivery: 8.00,
-        dailyRate: 70.00,
-        active: true,
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-        totalDeliveries: 35,
-        notes: 'Especialista em rotas expressas',
+      couriers: [
+        {
+          id: 'cour-1',
+          name: 'Ricardo Souza (Cria 01)',
+          phone: '(11) 98765-1122',
+          vehicle: 'moto',
+          vehicleModel: 'Honda CG 160 Titan (Preta)',
+          plate: 'BRA-2E19',
+          pixKey: 'ricardo.entregas@pix.com',
+          feePerDelivery: 7.00,
+          dailyRate: 60.00,
+          active: true,
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          totalDeliveries: 48,
+          notes: 'Entregador oficial do turno da noite',
+        },
+        {
+          id: 'cour-2',
+          name: 'Matheus Santos (Cria Veloz)',
+          phone: '(11) 97654-3344',
+          vehicle: 'moto',
+          vehicleModel: 'Yamaha Fazer 250 (Azul)',
+          plate: 'SP-9A82',
+          pixKey: '11976543344',
+          feePerDelivery: 8.00,
+          dailyRate: 70.00,
+          active: true,
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+          totalDeliveries: 35,
+          notes: 'Especialista em rotas expressas',
+        },
+        {
+          id: 'cour-3',
+          name: 'Felipe Rocha (Bike Express)',
+          phone: '(11) 96123-9988',
+          vehicle: 'bike',
+          vehicleModel: 'Bicicleta Caloi Aro 29 c/ Bag',
+          plate: '',
+          pixKey: 'felipe.bike@pix.com',
+          feePerDelivery: 5.00,
+          dailyRate: 40.00,
+          active: false,
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+          totalDeliveries: 19,
+          notes: 'Entregas locais até 3km',
+        },
+      ],
+      managerPin: '123456',
+      deliveryArea: {
+        baseAddress: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
+        radiusKm: 7,
+        freeDeliveryThreshold: 120.0,
+        allowPickup: true,
+        zones: INITIAL_DELIVERY_ZONES,
       },
-      {
-        id: 'cour-3',
-        name: 'Felipe Rocha (Bike Express)',
-        phone: '(11) 96123-9988',
-        vehicle: 'bike',
-        vehicleModel: 'Bicicleta Caloi Aro 29 c/ Bag',
-        plate: '',
-        pixKey: 'felipe.bike@pix.com',
-        feePerDelivery: 5.00,
-        dailyRate: 40.00,
-        active: false,
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        totalDeliveries: 19,
-        notes: 'Entregas locais até 3km',
-      },
-    ],
-    managerPin: '123456',
-    deliveryArea: {
-      baseAddress: 'Rua Augusta, 1000 - Consolação, São Paulo - SP',
-      radiusKm: 7,
-      freeDeliveryThreshold: 120.0,
-      allowPickup: true,
-      zones: INITIAL_DELIVERY_ZONES,
-    },
-    coupons: [
-      {
-        id: 'coup-1',
-        code: 'CRIAS10',
-        description: '10% de desconto em todo o pedido',
-        discountType: 'percentage',
-        discountValue: 10,
-        minOrderValue: 30,
-        active: true,
-        usageCount: 142,
-      },
-      {
-        id: 'coup-2',
-        code: 'FOGO20',
-        description: '20% OFF exclusivo para novos clientes',
-        discountType: 'percentage',
-        discountValue: 20,
-        minOrderValue: 45,
-        active: true,
-        usageCount: 89,
-      },
-      {
-        id: 'coup-3',
-        code: 'FRETEGRATIS',
-        description: 'Taxa de entrega grátis para compras acima de R$ 50',
-        discountType: 'free_shipping',
-        discountValue: 0,
-        minOrderValue: 50,
-        active: true,
-        usageCount: 64,
-      },
-      {
-        id: 'coup-4',
-        code: 'BURGER15',
-        description: 'R$ 15,00 de desconto no combo',
-        discountType: 'fixed',
-        discountValue: 15,
-        minOrderValue: 60,
-        active: true,
-        usageCount: 31,
-      },
-    ],
+      coupons: [
+        {
+          id: 'coup-1',
+          code: 'CRIAS10',
+          description: '10% de desconto em todo o pedido',
+          discountType: 'percentage',
+          discountValue: 10,
+          minOrderValue: 30,
+          active: true,
+          usageCount: 142,
+        },
+        {
+          id: 'coup-2',
+          code: 'FOGO20',
+          description: '20% OFF exclusivo para novos clientes',
+          discountType: 'percentage',
+          discountValue: 20,
+          minOrderValue: 45,
+          active: true,
+          usageCount: 89,
+        },
+        {
+          id: 'coup-3',
+          code: 'FRETEGRATIS',
+          description: 'Taxa de entrega grátis para compras acima de R$ 50',
+          discountType: 'free_shipping',
+          discountValue: 0,
+          minOrderValue: 50,
+          active: true,
+          usageCount: 64,
+        },
+        {
+          id: 'coup-4',
+          code: 'BURGER15',
+          description: 'R$ 15,00 de desconto no combo',
+          discountType: 'fixed',
+          discountValue: 15,
+          minOrderValue: 60,
+          active: true,
+          usageCount: 31,
+        },
+      ],
+    };
   });
   
   // Initial cart: starts 100% empty so customers always receive a clean menu with 0 items selected
@@ -566,7 +583,7 @@ export default function App() {
                 : INITIAL_DELIVERY_ZONES,
           };
 
-          return {
+          const newSettings = {
             ...prev,
             ...remoteSettings,
             deliveryArea: mergedDeliveryArea,
@@ -578,6 +595,12 @@ export default function App() {
             tables: cleanedTables || prev.tables,
             employees: cleanedEmployees || prev.employees,
           };
+          try {
+            localStorage.setItem('burger_store_settings_v4', JSON.stringify(newSettings));
+          } catch (e) {
+            // ignore
+          }
+          return newSettings;
         });
       }
     });
@@ -623,6 +646,11 @@ export default function App() {
         : newSettings.employees,
     };
     setStoreSettings(cleanedSettings);
+    try {
+      localStorage.setItem('burger_store_settings_v4', JSON.stringify(cleanedSettings));
+    } catch (e) {
+      // ignore
+    }
     saveStoreSettingsToFirestore(cleanedSettings);
     showToast('Configurações sincronizadas no Firebase!');
   };
