@@ -318,6 +318,30 @@ button[class*="rounded-full"],
   -webkit-filter: none !important;
 }
 
+/* Sombra para os pontos (dots) indicadores do carrossel */
+.manager-view button.carousel-dot,
+.manager-light-mode button.carousel-dot,
+.manager-view button.carousel-dot:focus,
+.manager-light-mode button.carousel-dot:focus,
+.manager-view button.carousel-dot:active,
+.manager-light-mode button.carousel-dot:active {
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.28), 0 1px 2px rgba(0, 0, 0, 0.22) !important;
+}
+
+.manager-view button.carousel-dot:hover,
+.manager-light-mode button.carousel-dot:hover {
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.manager-view button.carousel-dot.carousel-dot-active,
+.manager-light-mode button.carousel-dot.carousel-dot-active,
+.manager-view button.carousel-dot.carousel-dot-active:hover,
+.manager-light-mode button.carousel-dot.carousel-dot-active:hover,
+.manager-view button.carousel-dot.carousel-dot-active:focus,
+.manager-light-mode button.carousel-dot.carousel-dot-active:focus {
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.38), 0 2px 4px rgba(0, 0, 0, 0.28) !important;
+}
+
 .manager-view .btn-flame *,
 .manager-view .btn-coffee-primary *,
 .manager-view .btn-bronze *,

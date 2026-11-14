@@ -4158,13 +4158,18 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 {/* Indicador de Dots / Paginação do Carrossel */}
                 {ordersLayoutMode === 'carousel' && (
-                  <div className="flex items-center justify-center gap-2 pt-1 pb-2">
+                  <div className="flex items-center justify-center gap-2.5 pt-1.5 pb-2">
                     {kanbanColumns.map((col, idx) => (
-                      <button key={col.key} type="button" onClick={() => scrollToCarouselIndex(idx)}
-                        className={`transition-all rounded-full ${
+                      <button
+                        key={col.key}
+                        type="button"
+                        onClick={() => scrollToCarouselIndex(idx)}
+                        className={`carousel-dot transition-all rounded-full ${
                           safeCarouselIndex === idx
-                            ? `w-8 h-2.5 ${col.topBar} shadow-md`
-                            : 'w-2.5 h-2.5 bg-[#353535] hover:bg-[#666]'
+                            ? `w-8 h-2.5 ${col.topBar} carousel-dot-active`
+                            : managerTheme === 'light'
+                            ? 'w-2.5 h-2.5 bg-slate-300 hover:bg-slate-400'
+                            : 'w-2.5 h-2.5 bg-zinc-600 hover:bg-zinc-500'
                         }`}
                         title={`Ir para ${col.title}`}
                       />
