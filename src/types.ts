@@ -45,6 +45,7 @@ export interface Product {
   description: string;
   image: string;
   tag?: string;
+  weightOrUnit?: string; // Ex: 300g, 500ml, 180g, 1 un
   rating?: number;
   ingredients?: string[];
   isAvailable?: boolean;

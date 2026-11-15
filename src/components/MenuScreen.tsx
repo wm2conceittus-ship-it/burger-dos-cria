@@ -1671,11 +1671,18 @@ const ProductGridCard: React.FC<{
           </div>
         )}
 
-        {isAvailable && product.tag && (
-          <div className="absolute top-2.5 left-2.5">
-            <span className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[#ff8a65] border border-[#ff5722]/30 text-[9px] font-bold font-['Montserrat'] tracking-wider">
-              {product.tag}
-            </span>
+        {isAvailable && (product.weightOrUnit || product.tag) && (
+          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+            {product.weightOrUnit && (
+              <span className="px-2.5 py-1 rounded-md bg-[#ff5722] text-white border border-orange-400 text-xs font-black font-['Montserrat'] tracking-wider shadow-lg">
+                {product.weightOrUnit}
+              </span>
+            )}
+            {product.tag && product.tag !== product.weightOrUnit && (
+              <span className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[#ff8a65] border border-[#ff5722]/30 text-[9px] font-bold font-['Montserrat'] tracking-wider">
+                {product.tag}
+              </span>
+            )}
           </div>
         )}
 

@@ -175,6 +175,11 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
         <div className="absolute bottom-0 left-0 w-full p-5 z-20">
           <div className="max-w-2xl mx-auto">
             <div className="flex flex-wrap gap-2 mb-2 items-center">
+              {product.weightOrUnit && (
+                <span className="bg-[#ff5722] text-white px-3.5 py-0.5 rounded-full text-xs font-black tracking-wide border border-orange-400 shadow-md">
+                  ⚖️ {product.weightOrUnit}
+                </span>
+              )}
               <span className="bg-[#ff5722]/20 text-[#ff8a65] px-3 py-0.5 rounded-full text-xs font-semibold tracking-wide border border-[#ff5722]/30">
                 {product.tag || 'Gourmet'}
               </span>

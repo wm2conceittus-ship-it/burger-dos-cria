@@ -145,6 +145,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAYiCpXDFzLo2i6AtAat0pi5aY8cpQUYfRuf2lbZeJUENy1TTAC_Bp1C6uBfpTVpZo5EBVV-P4x_1BjUgFtYgHZL-qddmIobcNc7lXG8HraY8OO7zkpnTr9cPo8CXh4B_xkAUO1J2kEZ5F6bESJfzGCr5GCSfpvW7aFvJsjpZVH-y5_FDuAVwAZta5HmIc8WjdmPiru6h5LhILUqoQtXc6eN7wGbyqDCpwfNowYZEEKdEzN9rFso8No-Yz7_ictkmFt8jLOplvkWlWY'
   );
   const [tag, setTag] = useState(initialProduct?.tag || '');
+  const [weightOrUnit, setWeightOrUnit] = useState(initialProduct?.weightOrUnit || '');
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   // Estados para upload de imagem do dispositivo
@@ -213,6 +214,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setDescription(initialProduct.description || '');
       setImage(initialProduct.image || '');
       setTag(initialProduct.tag || '');
+      setWeightOrUnit(initialProduct.weightOrUnit || '');
       if (initialProduct.juicePrices) {
         setJuice300Price(initialProduct.juicePrices['300ml']?.toString() || '');
         setJuice500Price(initialProduct.juicePrices['500ml']?.toString() || '');
@@ -268,6 +270,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       description: description.trim() || 'Feito com ingredientes frescos.',
       image,
       tag: tag.trim() || undefined,
+      weightOrUnit: weightOrUnit.trim() || undefined,
       subCategory:
         category === 'refrigerantes' || (category as string) === 'refrigerante'
           ? 'refrigerantes'
@@ -704,15 +707,27 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             )}
           </div>
 
-          <div>
-            <label className="block text-[#b4b5b5] mb-1">Destaque / Tag (Opcional)</label>
-            <input
-              type="text"
-              value={tag}
-              onChange={e => setTag(e.target.value)}
-              placeholder="Ex: NOVIDADE, BEST-SELLER, ESPECIAL"
-              className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-[#ff5722]"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[#b4b5b5] mb-1">Peso / Quantidade (Ex: 300g, 500ml, 1 un)</label>
+              <input
+                type="text"
+                value={weightOrUnit}
+                onChange={e => setWeightOrUnit(e.target.value)}
+                placeholder="Ex: 300g, 180g, 500ml"
+                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+              />
+            </div>
+            <div>
+              <label className="block text-[#b4b5b5] mb-1">Destaque / Tag (Opcional)</label>
+              <input
+                type="text"
+                value={tag}
+                onChange={e => setTag(e.target.value)}
+                placeholder="Ex: NOVIDADE, BEST-SELLER"
+                className="w-full bg-[#1c1b1b] border border-[#353535] rounded-xl px-3.5 py-2 text-white focus:outline-none focus:border-[#ff5722]"
+              />
+            </div>
           </div>
 
           <div>
