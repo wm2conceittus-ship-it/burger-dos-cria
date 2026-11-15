@@ -1164,33 +1164,59 @@ export default function App() {
     }
   };
 
-  // Leitura automática e contínua do status de pagamentos Pix via API do Mercado Pago
+  // Leitura automática e contínua do status de pagamentos Pix via API do Mercado Pago (Ultra Rápida - 1.5s)
   useEffect(() => {
     const isAutoReadEnabled = storeSettings.mercadoPago?.autoPixReadEnabled ?? true;
     if (!isAutoReadEnabled) return;
 
     const pendingPixOrders = orders.filter(
-      o => o.paymentStatus === 'pendente' && o.mercadoPagoPaymentId
+      o => o.paymentStatus === 'pendente' && (o.paymentMethod === 'Pix' || o.mercadoPagoPaymentId)
     );
     if (pendingPixOrders.length === 0) return;
 
-    const pollInterval = Math.max(2000, (storeSettings.mercadoPago?.autoPixReadInterval || 3) * 1000);
+    // Intervalo ultra rápido (1.5 segundos) para confirmação imediata
+    const pollInterval = 1500;
 
     const interval = setInterval(async () => {
+      // 1. Checar pagamentos específicos
       for (const ord of pendingPixOrders) {
-        if (!ord.mercadoPagoPaymentId) continue;
-        try {
-          const res = await mercadoPagoApi.checkPaymentStatus(
-            ord.mercadoPagoPaymentId,
-            storeSettings.mercadoPago?.accessToken
-          );
-          if (res.approved) {
-            handleUpdatePaymentStatus(ord.id, 'aprovado');
-            showToast(`🎉 Pix do Pedido ${ord.orderNumber} Validado e Recebido via Mercado Pago!`);
+        if (ord.mercadoPagoPaymentId) {
+          try {
+            const res = await mercadoPagoApi.checkPaymentStatus(
+              ord.mercadoPagoPaymentId,
+              storeSettings.mercadoPago?.accessToken
+            );
+            if (res.approved) {
+              handleUpdatePaymentStatus(ord.id, 'aprovado');
+              playPixConfirmedSound();
+              showToast(`🎉 Pix do Pedido ${ord.orderNumber} Aprovado e Confirmado pelo Banco!`);
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore transient polling errors
         }
+      }
+
+      // 2. Sincronizar transações recentes para capturar Pix pendentes sem ID direto
+      try {
+        const recentRes = await mercadoPagoApi.getRecentPayments(storeSettings.mercadoPago?.accessToken);
+        if (recentRes.success && recentRes.payments) {
+          for (const pay of recentRes.payments) {
+            if (pay.approved && pay.transaction_amount) {
+              // Encontra pedido pendente com o mesmo valor exato
+              const matchingOrd = pendingPixOrders.find(
+                o => Math.abs(o.total - (pay.transaction_amount || 0)) < 0.05 && o.paymentStatus === 'pendente'
+              );
+              if (matchingOrd) {
+                handleUpdatePaymentStatus(matchingOrd.id, 'aprovado');
+                playPixConfirmedSound();
+                showToast(`🎉 Pix do Pedido ${matchingOrd.orderNumber} (R$ ${matchingOrd.total.toFixed(2)}) Confirmado Automaticamente!`);
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore
       }
     }, pollInterval);
 
@@ -1199,7 +1225,6 @@ export default function App() {
     orders,
     storeSettings.mercadoPago?.accessToken,
     storeSettings.mercadoPago?.autoPixReadEnabled,
-    storeSettings.mercadoPago?.autoPixReadInterval,
   ]);
 
   const handleManualOrderAdd = (newOrder: Order) => {
