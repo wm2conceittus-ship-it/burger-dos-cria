@@ -1869,6 +1869,23 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     }
   };
 
+  const getCustomerOrderCount = (customerName: string, customerPhone?: string) => {
+    const cleanPhone = customerPhone ? customerPhone.replace(/\D/g, '') : '';
+    const cleanName = (customerName || '').trim().toLowerCase();
+    
+    let count = 0;
+    orders.forEach(o => {
+      const oPhone = o.customerPhone ? o.customerPhone.replace(/\D/g, '') : '';
+      const oName = (o.customerName || '').trim().toLowerCase();
+      if (cleanPhone && oPhone && cleanPhone === oPhone) {
+        count++;
+      } else if (cleanName && oName && cleanName === oName) {
+        count++;
+      }
+    });
+    return Math.max(1, count);
+  };
+
   const handleCarouselScroll = () => {
     if (!carouselTrackRef.current) return;
     const container = carouselTrackRef.current;

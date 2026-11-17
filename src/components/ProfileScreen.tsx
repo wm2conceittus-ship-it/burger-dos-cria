@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CustomerProfile, Order, StoreSettings, Coupon } from '../types';
 import {
   User,
@@ -23,8 +23,43 @@ import {
   RefreshCw,
   LogOut,
   Flame,
+  TrendingUp,
 } from 'lucide-react';
 import { formatOrderCreationDateTime } from '../utils/orderDateTime';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+function parseOrderDate(order: Order): Date {
+  if (order.id && order.id.startsWith('ord-')) {
+    const rawNum = parseInt(order.id.replace('ord-', ''), 10);
+    if (!isNaN(rawNum) && rawNum > 1500000000000 && rawNum < 2500000000000) {
+      return new Date(rawNum);
+    }
+  }
+  if (order.createdAt) {
+    const d = new Date(order.createdAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (order.orderDate && typeof order.orderDate === 'string') {
+    const parts = order.orderDate.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+  }
+  return new Date();
+}
 
 interface ProfileScreenProps {
   customerProfile: CustomerProfile | null;
@@ -70,6 +105,32 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   );
 
   const totalSpent = customerOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+  const monthlyHistoryData = useMemo(() => {
+    const result: { month: string; orders: number; spent: number }[] = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+      const year = d.getFullYear();
+      const monthIdx = d.getMonth();
+
+      const ordersInMonth = customerOrders.filter(o => {
+        const orderDate = parseOrderDate(o);
+        return orderDate.getFullYear() === year && orderDate.getMonth() === monthIdx;
+      });
+
+      const totalSpentInMonth = ordersInMonth.reduce((sum, o) => sum + (o.total || 0), 0);
+
+      result.push({
+        month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+        orders: ordersInMonth.length,
+        spent: totalSpentInMonth,
+      });
+    }
+    return result;
+  }, [customerOrders]);
 
   const handleCopyCoupon = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -314,6 +375,42 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* Section: Recorrência de Compras Mensais (Últimos 6 Meses) */}
+        <section className="bg-[#20201f] rounded-lg p-4 border border-[#353535] space-y-3 shadow-md">
+          <div className="flex items-center justify-between pb-2 border-b border-[#353535]">
+            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#ff5722]" />
+              <span>Sua Recorrência (Últimos 6 Meses)</span>
+            </h3>
+            <span className="text-[10px] text-[#ff8a65] font-bold bg-[#ff5722]/15 px-2 py-0.5 rounded">
+              Histórico Mensal
+            </span>
+          </div>
+
+          <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyHistoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
+                  <XAxis dataKey="month" stroke="#8e8f8f" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#8e8f8f" fontSize={11} allowDecimals={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#20201f', borderColor: '#353535', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+                    formatter={(value: any, name: any) => [
+                      name === 'orders' ? `${value} pedido(s)` : `R$ ${Number(value).toFixed(2).replace('.', ',')}`,
+                      name === 'orders' ? 'Pedidos' : 'Total Gasto'
+                    ]}
+                  />
+                  <Bar dataKey="orders" fill="#ff5722" radius={[4, 4, 0, 0]} name="orders" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="text-[10px] text-[#8e8f8f] text-center mt-2">
+              Quantidade de pedidos realizados por mês na hamburgueria.
+            </p>
           </div>
         </section>
 
