@@ -165,6 +165,7 @@ interface KitchenManagerScreenProps {
   onUpdatePaymentStatus?: (orderId: string, status: 'pendente' | 'aprovado' | 'recusado') => void;
   onDeleteProduct?: (productId: string) => void;
   onClearOrders?: () => void;
+  onUpdateOrders?: (newOrders: Order[]) => void;
   initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras';
 }
 
@@ -202,6 +203,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   onUpdatePaymentStatus,
   onDeleteProduct,
   onClearOrders,
+  onUpdateOrders,
   initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
@@ -857,6 +859,56 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     setShowClearOrdersConfirm(false);
     setFinancialToast('Pedidos, faturamento e finanças zerados com sucesso! Começando do zero 🟢');
     setTimeout(() => setFinancialToast(null), 3500);
+  };
+
+  const handleEndShiftAction = () => {
+    const finishedOrders = orders.filter(o => o.status === 'entregue');
+    if (finishedOrders.length === 0) {
+      alert('Não há pedidos finalizados (entregues) no momento para encerrar o expediente.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Deseja encerrar o expediente da loja agora?\n\nIsso irá:\n- Arquivar e preservar o resumo de ${finishedOrders.length} pedido(s) finalizado(s) nos Relatórios e no DRE.\n- Apagar os pedidos finalizados da tela de finalizados (Card de Finalizados).\n- Marcar a loja como FECHADA.\n\nDeseja continuar?`
+    );
+    if (!confirmed) return;
+
+    const totalRev = finishedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const deliveryRev = finishedOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+    const productRev = Math.max(0, totalRev - deliveryRev);
+    const pixRev = finishedOrders.filter(o => o.paymentMethod?.toLowerCase().includes('pix')).reduce((sum, o) => sum + (o.total || 0), 0);
+    const cardRev = finishedOrders.filter(o => {
+      const pm = (o.paymentMethod || '').toLowerCase();
+      return pm.includes('cart') || pm.includes('créd') || pm.includes('cred') || pm.includes('déb') || pm.includes('deb');
+    }).reduce((sum, o) => sum + (o.total || 0), 0);
+    const cashRev = finishedOrders.filter(o => (o.paymentMethod || '').toLowerCase().includes('dinheiro')).reduce((sum, o) => sum + (o.total || 0), 0);
+
+    const newArchive = {
+      id: `shift-${Date.now()}`,
+      closedAt: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      totalRevenue: totalRev,
+      orderCount: finishedOrders.length,
+      deliveryFeeRevenue: deliveryRev,
+      productSalesRevenue: productRev,
+      pixTotal: pixRev,
+      cardTotal: cardRev,
+      cashTotal: cashRev,
+    };
+
+    const currentArchives = storeSettings.closedShiftArchives || [];
+    onUpdateStoreSettings({
+      ...storeSettings,
+      isOpen: false,
+      closedShiftArchives: [newArchive, ...currentArchives],
+    });
+
+    if (onUpdateOrders) {
+      const remaining = orders.filter(o => o.status !== 'entregue');
+      onUpdateOrders(remaining);
+    }
+
+    setFinancialToast('🟢 Expediente encerrado com sucesso! Pedidos finalizados foram apagados da tela de finalizados e preservados permanentemente no DRE e Relatórios.');
+    setTimeout(() => setFinancialToast(null), 5000);
   };
 
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
@@ -2036,10 +2088,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     return true;
   });
 
-  // Financial calculations
+  // Financial calculations including archived closed shifts
+  const archivedArchives = storeSettings.closedShiftArchives || [];
+  const archivedRevenue = archivedArchives.reduce((acc, s) => acc + s.totalRevenue, 0);
+  const archivedDelivery = archivedArchives.reduce((acc, s) => acc + s.deliveryFeeRevenue, 0);
+  const archivedPix = archivedArchives.reduce((acc, s) => acc + s.pixTotal, 0);
+  const archivedCard = archivedArchives.reduce((acc, s) => acc + s.cardTotal, 0);
+  const archivedCash = archivedArchives.reduce((acc, s) => acc + s.cashTotal, 0);
+  const archivedOrderCount = archivedArchives.reduce((acc, s) => acc + s.orderCount, 0);
+
   const validOrders = orders.filter(o => o.status !== 'recusado');
-  const totalRevenue = validOrders.reduce((acc, o) => acc + o.total, 0);
-  const averageTicket = validOrders.length > 0 ? totalRevenue / validOrders.length : 0;
+  const liveRevenue = validOrders.reduce((acc, o) => acc + o.total, 0);
+  const totalRevenue = liveRevenue + archivedRevenue;
+  const totalOrderCount = validOrders.length + archivedOrderCount;
+  const averageTicket = totalOrderCount > 0 ? totalRevenue / totalOrderCount : 0;
 
   // Expenses & DRE calculations
   const totalExpenses = expenses.reduce((acc, e) => acc + e.amount, 0);
@@ -2057,24 +2119,24 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
   const cmvPercentage = totalRevenue > 0 ? ((insumosExpenses + bebidasExpenses) / totalRevenue) * 100 : 0;
 
-  // Breakdown by payment methods calculated from REAL orders
+  // Breakdown by payment methods calculated from REAL orders + archived shifts
   const pixTotal = validOrders
     .filter(o => o.paymentMethod?.toLowerCase().includes('pix'))
-    .reduce((acc, o) => acc + (o.total || 0), 0);
+    .reduce((acc, o) => acc + (o.total || 0), 0) + archivedPix;
   const cardTotal = validOrders
     .filter(o => {
       const pm = (o.paymentMethod || '').toLowerCase();
       return pm.includes('cart') || pm.includes('créd') || pm.includes('cred') || pm.includes('déb') || pm.includes('deb');
     })
-    .reduce((acc, o) => acc + (o.total || 0), 0);
+    .reduce((acc, o) => acc + (o.total || 0), 0) + archivedCard;
   const cashTotal = validOrders
     .filter(o => (o.paymentMethod || '').toLowerCase().includes('dinheiro'))
-    .reduce((acc, o) => acc + (o.total || 0), 0);
+    .reduce((acc, o) => acc + (o.total || 0), 0) + archivedCash;
   const pixPercent = totalRevenue > 0 ? Math.round((pixTotal / totalRevenue) * 100) : 0;
   const cardPercent = totalRevenue > 0 ? Math.round((cardTotal / totalRevenue) * 100) : 0;
   const cashPercent = totalRevenue > 0 ? Math.round((cashTotal / totalRevenue) * 100) : 0;
 
-  const deliveryFeeRevenue = validOrders.reduce((acc, o) => acc + (o.deliveryFee || 0), 0);
+  const deliveryFeeRevenue = validOrders.reduce((acc, o) => acc + (o.deliveryFee || 0), 0) + archivedDelivery;
   const productSalesRevenue = Math.max(0, totalRevenue - deliveryFeeRevenue);
 
   // Real items breakdown (Curva ABC de produtos) from valid orders
@@ -2549,6 +2611,16 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 </div>
               );
             })()}
+
+            <button
+              type="button"
+              onClick={handleEndShiftAction}
+              className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all"
+              title="Encerrar Expediente: Arquiva pedidos finalizados e os limpa da tela de finalizados mantendo nos relatórios"
+            >
+              <Power className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Encerrar Expediente</span>
+            </button>
 
             {onLockManager && (
               <button onClick={onLockManager} className="bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/40 px-2.5 py-1.5 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 active:scale-95 transition-all" title="Bloquear Painel do Gestor (Exigir PIN novamente)" >

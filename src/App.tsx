@@ -1526,6 +1526,7 @@ export default function App() {
           onUpdatePaymentStatus={handleUpdatePaymentStatus}
           onDeleteProduct={handleDeleteProduct}
           onClearOrders={handleClearOrders}
+          onUpdateOrders={setOrders}
         />
       )}
 

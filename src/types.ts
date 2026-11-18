@@ -199,6 +199,19 @@ export interface StoreSettings {
   deliveryArea?: DeliveryAreaConfig;
   coupons?: Coupon[];
   customMenuUrl?: string;
+  closedShiftArchives?: ClosedShiftArchive[];
+}
+
+export interface ClosedShiftArchive {
+  id: string;
+  closedAt: string;
+  totalRevenue: number;
+  orderCount: number;
+  deliveryFeeRevenue: number;
+  productSalesRevenue: number;
+  pixTotal: number;
+  cardTotal: number;
+  cashTotal: number;
 }
 
 export type TableStatus = 'livre' | 'ocupada' | 'conta_pedida' | 'reservada';
