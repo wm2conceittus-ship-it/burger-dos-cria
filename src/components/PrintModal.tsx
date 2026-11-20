@@ -266,6 +266,23 @@ ${doubleDivider}
       {/* Dynamic page print size injection */}
       <style>{`
         @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          .ticket-58mm, .ticket-58mm *, .ticket-80mm, .ticket-80mm * {
+            visibility: visible !important;
+          }
+          .ticket-58mm, .ticket-80mm {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 4px !important;
+            background: white !important;
+            color: black !important;
+            box-shadow: none !important;
+          }
           @page {
             size: ${paperSize === '58mm' ? '58mm auto' : '80mm auto'};
             margin: 0 !important;
