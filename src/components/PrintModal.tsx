@@ -241,8 +241,12 @@ ${doubleDivider}
 
       alert('Comando ESC/POS enviado via Bluetooth com sucesso para a impressora!');
     } catch (err: any) {
-      console.error('Erro Web Bluetooth:', err);
-      alert(`Erro na impressão Bluetooth: ${err.message || err}`);
+      console.warn('Web Bluetooth indisponível ou bloqueado:', err);
+      if (err.message && (err.message.includes('permissions policy') || err.message.includes('disallowed'))) {
+        alert('A impressão direta via Bluetooth requer acesso direto do navegador. Utilize o botão "Imprimir Cupom" padrão (Ctrl+P / window.print), que funciona com qualquer impressora térmica (USB, Rede ou Bluetooth) instalada no seu sistema.');
+      } else {
+        alert(`Erro na impressão Bluetooth: ${err.message || err}`);
+      }
     } finally {
       setIsPrintingBluetooth(false);
     }
@@ -256,6 +260,15 @@ ${doubleDivider}
           @page {
             size: ${paperSize === '58mm' ? '58mm auto' : '80mm auto'};
             margin: 0 !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          img {
+            display: block !important;
+            max-width: 100% !important;
+            visibility: visible !important;
           }
         }
       `}</style>
@@ -336,8 +349,8 @@ ${doubleDivider}
             <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
-                <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm">
-                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
+                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
                 </div>
                 <h2 className="font-black text-sm tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[10px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
@@ -487,8 +500,8 @@ ${doubleDivider}
             <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 print:shadow-none print:w-[80mm] print:p-0">
               {/* Header */}
               <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">
-                <div className="w-12 h-12 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1.5 overflow-hidden border border-gray-300 shadow-sm">
-                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover" />
+                <div className="w-12 h-12 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1.5 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
+                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
                 </div>
                 <h2 className="font-black text-base tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[11px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
