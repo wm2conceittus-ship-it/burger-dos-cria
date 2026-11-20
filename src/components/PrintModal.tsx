@@ -10,6 +10,14 @@ interface PrintModalProps {
   onClose: () => void;
 }
 
+function normalizeForThermal(str: string): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x20-\x7E\n]/g, '');
+}
+
 export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, onClose }) => {
   const [paperSize, setPaperSize] = useState<'58mm' | '80mm'>(() => {
     return (localStorage.getItem('receipt_paper_size') as '58mm' | '80mm') || '58mm';
@@ -193,26 +201,26 @@ ${doubleDivider}
       escPosData += '\x1b\x40'; // Init ESC @
       escPosData += '\x1b\x61\x01'; // Center align
       escPosData += '\x1b\x45\x01'; // Bold ON
-      escPosData += `${storeName.toUpperCase()}\n`;
+      escPosData += `${normalizeForThermal(storeName).toUpperCase()}\n`;
       escPosData += '\x1b\x45\x00'; // Bold OFF
       escPosData += `PEDIDO #${order.orderNumber}\n`;
       escPosData += `${doubleDivider}\n`;
       escPosData += '\x1b\x61\x00'; // Left align
       escPosData += `Data: ${getOrderDate(order)}  Hora: ${getOrderTime(order)}\n`;
-      escPosData += `Tipo: ${order.type.toUpperCase()}\n`;
-      escPosData += `Cliente: ${order.customerName}\n`;
+      escPosData += `Tipo: ${normalizeForThermal(order.type).toUpperCase()}\n`;
+      escPosData += `Cliente: ${normalizeForThermal(order.customerName)}\n`;
       escPosData += `Fone: ${order.customerPhone || 'N/A'}\n`;
-      escPosData += `Endereço: ${order.address || 'Retirada'}\n`;
-      if (order.notes) escPosData += `Obs: ${order.notes}\n`;
+      escPosData += `Endereco: ${normalizeForThermal(order.address || 'Retirada')}\n`;
+      if (order.notes) escPosData += `Obs: ${normalizeForThermal(order.notes)}\n`;
       escPosData += `${divider}\n`;
       escPosData += `QTD ITEM                      TOTAL\n`;
       escPosData += `${divider}\n`;
 
       order.items.forEach(it => {
         const itemTotal = (it.price * it.quantity).toFixed(2).replace('.', ',');
-        escPosData += `${it.quantity}x ${it.name} - R$ ${itemTotal}\n`;
-        if (it.pizzaSize) escPosData += `   TAM: ${it.pizzaSize.toUpperCase()}\n`;
-        if (it.notes) escPosData += `   OBS: ${it.notes}\n`;
+        escPosData += `${it.quantity}x ${normalizeForThermal(it.name)} - R$ ${itemTotal}\n`;
+        if (it.pizzaSize) escPosData += `   TAM: ${normalizeForThermal(it.pizzaSize).toUpperCase()}\n`;
+        if (it.notes) escPosData += `   OBS: ${normalizeForThermal(it.notes)}\n`;
       });
 
       escPosData += `${divider}\n`;
@@ -223,9 +231,9 @@ ${doubleDivider}
       escPosData += `${doubleDivider}\n`;
       escPosData += `TOTAL: R$ ${order.total.toFixed(2).replace('.', ',')}\n`;
       escPosData += `${doubleDivider}\n`;
-      escPosData += `Pagamento: ${order.paymentMethod || 'PIX'}\n`;
+      escPosData += `Pagamento: ${normalizeForThermal(order.paymentMethod || 'PIX')}\n`;
       escPosData += '\x1b\x61\x01'; // Center align
-      escPosData += `\nOBRIGADO PELA PREFERÊNCIA!\n`;
+      escPosData += `\nOBRIGADO PELA PREFERENCIA!\n`;
       escPosData += `=== ${order.orderNumber} ===\n\n\n`;
       escPosData += '\x1d\x56\x41\x00'; // Cut paper
 
