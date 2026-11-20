@@ -172,7 +172,7 @@ export const DailySummaryPrintModal: React.FC<DailySummaryPrintModalProps> = ({
         <div className="p-4 sm:p-6 bg-[#131313] overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white">
           {paperSize === '58mm' ? (
             /* 58mm POS Thermal Ticket */
-            <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
+            <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ticket-58mm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
               
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
@@ -289,7 +289,7 @@ export const DailySummaryPrintModal: React.FC<DailySummaryPrintModalProps> = ({
             </div>
           ) : (
             /* 80mm Wide Thermal Ticket */
-            <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 print:shadow-none print:w-[80mm] print:p-0">
+            <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 ticket-80mm print:shadow-none print:w-[80mm] print:p-0">
               
               {/* Header */}
               <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">

@@ -106,6 +106,25 @@ button[class*="rounded-full"],
   scrollbar-width: none;
 }
 
+.ticket-58mm {
+  width: 58mm;
+  max-width: 100%;
+}
+
+.ticket-80mm {
+  width: 80mm;
+  max-width: 100%;
+}
+
+@media print {
+  .ticket-58mm {
+    width: 58mm !important;
+  }
+  .ticket-80mm {
+    width: 80mm !important;
+  }
+}
+
 @keyframes flame-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.85; transform: scale(1.04); }
