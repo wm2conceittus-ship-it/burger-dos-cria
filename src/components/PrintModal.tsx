@@ -22,6 +22,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   if (!order) return null;
 
   const storeName = storeSettings?.storeName || 'BURGER DOS CRIAS';
+  const storeLogo = storeSettings?.logoUrl || APP_IMAGES.logo;
   const storeAddress = storeSettings?.address || storeSettings?.deliveryArea?.baseAddress || 'Rua Augusta, 1000 - Consolação, São Paulo - SP';
   const storeWhatsApp = storeSettings?.whatsappSupport || '(11) 98765-4321';
 
@@ -350,7 +351,7 @@ ${doubleDivider}
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
-                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
+                  <img src={storeLogo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
                 </div>
                 <h2 className="font-black text-sm tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[10px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>
@@ -501,7 +502,7 @@ ${doubleDivider}
               {/* Header */}
               <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">
                 <div className="w-12 h-12 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1.5 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
-                  <img src={APP_IMAGES.logo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
+                  <img src={storeLogo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
                 </div>
                 <h2 className="font-black text-base tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[11px] font-normal text-gray-600">Hamburgueria & Pizzaria Artesanal</p>

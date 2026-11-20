@@ -170,6 +170,7 @@ export interface StoreSettings {
   isOrdersPaused?: boolean;
   ordersPausedMessage?: string;
   storeName: string;
+  logoUrl?: string;
   address?: string;
   defaultDeliveryFee: number;
   estimatedDeliveryTime: string;

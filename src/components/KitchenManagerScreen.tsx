@@ -118,6 +118,7 @@ import jsPDF from 'jspdf';
 import { DailyOrdersReportModal } from './DailyOrdersReportModal';
 import { PixRecoveryModal } from './PixRecoveryModal';
 import { FinancialPdfModal } from './FinancialPdfModal';
+import { DailySummaryPrintModal } from './DailySummaryPrintModal';
 import { DeliveryRadiusControl } from './DeliveryRadiusControl';
 import { TableManagementView } from './TableManagementView';
 import { EmployeeManagementView } from './EmployeeManagementView';
@@ -914,6 +915,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showFinancialGuide, setShowFinancialGuide] = useState(false);
   const [showFinancialPdfModal, setShowFinancialPdfModal] = useState(false);
+  const [showDailySummaryModal, setShowDailySummaryModal] = useState(false);
   const [financialToast, setFinancialToast] = useState<string | null>(null);
   const [financialSubTab, setFinancialSubTab] = useState<'graficos' | 'dre' | 'conciliacao' | 'recharts'>('graficos');
 
@@ -5645,6 +5647,14 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                 >
                   <FileText className="w-4 h-4 text-red-400" />
                   <span>Exportar PDF</span>
+                </button>
+
+                <button onClick={() => setShowDailySummaryModal(true)}
+                  className="bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 hover:border-emerald-500 text-emerald-400 hover:text-white px-3.5 py-2 rounded-md text-xs font-['Montserrat'] font-bold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm"
+                  title="Imprimir resumo diário das vendas consolidadas em formato de ticket POS"
+                >
+                  <Printer className="w-4 h-4 text-emerald-400" />
+                  <span>Imprimir Ticket Diário</span>
                 </button>
               </div>
             </div>
@@ -10746,6 +10756,20 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
           cardTotal={cardTotal}
           cashTotal={cashTotal}
           cmvPercentage={cmvPercentage}
+        />
+      )}
+
+      {/* Modal Ticket Resumo Diário Consolidado */}
+      {showDailySummaryModal && (
+        <DailySummaryPrintModal
+          isOpen={showDailySummaryModal}
+          onClose={() => setShowDailySummaryModal(false)}
+          orders={orders}
+          storeSettings={storeSettings}
+          expenses={expenses}
+          totalRevenue={totalRevenue}
+          totalExpenses={totalExpenses}
+          netProfit={netProfit}
         />
       )}
 
