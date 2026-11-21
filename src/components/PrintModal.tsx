@@ -22,10 +22,19 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   const [paperSize, setPaperSize] = useState<'58mm' | '80mm'>(() => {
     return (localStorage.getItem('receipt_paper_size') as '58mm' | '80mm') || '58mm';
   });
+  const [printMargin, setPrintMargin] = useState<'zero' | 'fina' | 'padrao'>(() => {
+    return (localStorage.getItem('receipt_print_margin') as 'zero' | 'fina' | 'padrao') || 'zero';
+  });
+  const [viewMode, setViewMode] = useState<'web' | 'simulation'>('simulation');
   const [copiedText, setCopiedText] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
   const [isPrintingBluetooth, setIsPrintingBluetooth] = useState(false);
   const [showPrintQrModal, setShowPrintQrModal] = useState(false);
+
+  const handleSelectMargin = (margin: 'zero' | 'fina' | 'padrao') => {
+    setPrintMargin(margin);
+    localStorage.setItem('receipt_print_margin', margin);
+  };
 
   if (!order) return null;
 
@@ -278,14 +287,14 @@ ${doubleDivider}
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 4px !important;
+            padding: ${printMargin === 'zero' ? '0px' : printMargin === 'fina' ? '2px' : '5px'} !important;
             background: white !important;
             color: black !important;
             box-shadow: none !important;
           }
           @page {
             size: ${paperSize === '58mm' ? '58mm auto' : '80mm auto'};
-            margin: 0 !important;
+            margin: ${printMargin === 'zero' ? '0mm' : printMargin === 'fina' ? '2mm' : '5mm'} !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -354,6 +363,59 @@ ${doubleDivider}
             </button>
           </div>
 
+          {/* Margins Selector */}
+          <div className="flex items-center gap-1 bg-[#141414] px-2 py-1 rounded-xl border border-[#353535]">
+            <span className="text-[10px] text-[#8e8f8f] font-bold">Margem:</span>
+            <button
+              onClick={() => handleSelectMargin('zero')}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
+                printMargin === 'zero' ? 'bg-[#ff5722] text-white' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+              title="Sem margem (0mm) - Evita corte em térmicas"
+            >
+              0mm
+            </button>
+            <button
+              onClick={() => handleSelectMargin('fina')}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
+                printMargin === 'fina' ? 'bg-[#ff5722] text-white' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+              title="Margem fina (2mm)"
+            >
+              2mm
+            </button>
+            <button
+              onClick={() => handleSelectMargin('padrao')}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${
+                printMargin === 'padrao' ? 'bg-[#ff5722] text-white' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+              title="Margem padrão (5mm)"
+            >
+              5mm
+            </button>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-[#141414] p-1 rounded-xl border border-[#353535]">
+            <button
+              onClick={() => setViewMode('web')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                viewMode === 'web' ? 'bg-[#ff5722] text-white shadow-md' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+            >
+              Web
+            </button>
+            <button
+              onClick={() => setViewMode('simulation')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                viewMode === 'simulation' ? 'bg-emerald-600 text-white shadow-md' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+              title="Simulação Real de Impressão (Força dimensões térmicas exatas e margens)"
+            >
+              Simulação Térmica
+            </button>
+          </div>
+
           {/* Quick Options */}
           {paperSize === '58mm' && (
             <label className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] cursor-pointer hover:text-white select-none">
@@ -369,10 +431,14 @@ ${doubleDivider}
         </div>
 
         {/* Receipt Preview Container (Scrollable) */}
-        <div className="p-4 sm:p-6 bg-[#131313] overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white">
+        <div className={`overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white ${viewMode === 'simulation' ? 'p-8 bg-[#0b0b0b]' : 'p-4 sm:p-6 bg-[#131313]'}`}>
           {paperSize === '58mm' ? (
             /* 58mm POS Thermal Receipt Preview */
-            <div className={`bg-white text-black font-mono font-bold p-4 shadow-2xl rounded-sm ticket-58mm ${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} print:shadow-none print:w-[58mm] print:p-0`}>
+            <div className={`bg-white text-black font-mono font-bold rounded-sm ticket-58mm ${
+              viewMode === 'simulation'
+                ? `w-[58mm] min-w-[58mm] ${printMargin === 'zero' ? 'p-0.5' : printMargin === 'fina' ? 'p-1.5' : 'p-3'} text-[10px] leading-tight space-y-1.5 shadow-[0_15px_40px_rgba(0,0,0,0.9)] border border-gray-300`
+                : `${compactMode ? 'w-[260px] text-[11px] leading-tight space-y-2' : 'w-[280px] text-[11.5px] leading-relaxed space-y-3'} p-4 shadow-2xl`
+            } print:shadow-none print:w-[58mm] print:p-0`}>
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
@@ -534,7 +600,11 @@ ${doubleDivider}
             </div>
           ) : (
             /* 80mm Wide Thermal Receipt Preview */
-            <div className="bg-white text-black font-mono font-bold p-5 shadow-2xl rounded-sm w-[360px] text-xs leading-relaxed space-y-3 ticket-80mm print:shadow-none print:w-[80mm] print:p-0">
+            <div className={`bg-white text-black font-mono font-bold rounded-sm ticket-80mm ${
+              viewMode === 'simulation'
+                ? `w-[80mm] min-w-[80mm] ${printMargin === 'zero' ? 'p-1' : printMargin === 'fina' ? 'p-2' : 'p-4'} text-[11px] leading-snug space-y-2.5 shadow-[0_15px_40px_rgba(0,0,0,0.9)] border border-gray-300`
+                : `w-[360px] text-xs leading-relaxed space-y-3 p-5 shadow-2xl`
+            } print:shadow-none print:w-[80mm] print:p-0`}>
               {/* Header */}
               <div className="text-center space-y-1 border-b border-dashed border-gray-400 pb-3">
                 <div className="w-12 h-12 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1.5 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
