@@ -370,6 +370,20 @@ ${doubleDivider}
             </button>
           </div>
 
+          {/* Goldensky 80mm Preset Button */}
+          <button
+            onClick={() => {
+              handleSelectPaperSize('80mm');
+              handleSelectMargin('zero');
+              setViewMode('simulation');
+              alert('Impressora Goldensky 80mm configurada com sucesso!\n• Formato: 80mm (48 colunas)\n• Margens: 0mm (Sem cortes)\n• Modo: Simulação Térmica ESC/POS');
+            }}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600/30 text-amber-300 border border-amber-500/40 hover:bg-amber-600/50 transition-all flex items-center gap-1.5 shadow-sm"
+            title="Configurar automaticamente para Impressora Térmica Goldensky 80mm"
+          >
+            <span>⚡ Goldensky 80mm</span>
+          </button>
+
           {/* Margins Selector */}
           <div className="flex items-center gap-1 bg-[#141414] px-2 py-1 rounded-xl border border-[#353535]">
             <span className="text-[10px] text-[#8e8f8f] font-bold">Margem:</span>
