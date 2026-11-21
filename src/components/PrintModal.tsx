@@ -510,7 +510,7 @@ ${doubleDivider}
                   <span>TOTAL (R$)</span>
                 </div>
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="space-y-0.5">
+                  <div key={idx} className="space-y-0.5" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                     <div className="flex justify-between items-start gap-2">
                       <span className="font-bold text-black">
                         {item.quantity}x {item.name}
@@ -676,7 +676,7 @@ ${doubleDivider}
                   <span>TOTAL (R$)</span>
                 </div>
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="space-y-0.5">
+                  <div key={idx} className="space-y-0.5" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                     <div className="flex justify-between items-start gap-2">
                       <span className="font-bold text-black text-sm">
                         {item.quantity}x {item.name}
