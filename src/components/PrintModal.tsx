@@ -275,6 +275,11 @@ ${doubleDivider}
       {/* Dynamic page print size injection */}
       <style>{`
         @media print {
+          body, html {
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+          }
           body * {
             visibility: hidden !important;
           }
@@ -282,11 +287,13 @@ ${doubleDivider}
             visibility: visible !important;
           }
           .ticket-58mm, .ticket-80mm {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
+            position: static !important;
+            display: block !important;
+            width: ${paperSize === '58mm' ? '58mm' : '80mm'} !important;
+            max-width: none !important;
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 auto !important;
             padding: ${printMargin === 'zero' ? '0px' : printMargin === 'fina' ? '2px' : '5px'} !important;
             background: white !important;
             color: black !important;
