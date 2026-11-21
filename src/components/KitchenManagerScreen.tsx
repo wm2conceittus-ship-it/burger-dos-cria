@@ -7404,6 +7404,43 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
                 </div>
 
+                {/* Logo URL Input */}
+                <div>
+                  <label className="block text-[#b4b5b5] mb-1 font-semibold flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-[#ff5722]" />
+                    <span>URL da Logomarca (Exibida no topo das comandas impressas e no menu)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={storeSettings.logoUrl || ''}
+                      onChange={e =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          logoUrl: e.target.value,
+                        })
+                      }
+                      placeholder="https://exemplo.com/logo.png (Deixe em branco para usar o padrão)"
+                      className="flex-1 bg-[#121212] border border-[#353535] rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-[#ff5722] text-xs font-mono"
+                    />
+                    {storeSettings.logoUrl && (
+                      <div className="w-9 h-9 rounded-full overflow-hidden border border-[#353535] bg-black flex-shrink-0 flex items-center justify-center">
+                        <img
+                          src={storeSettings.logoUrl}
+                          alt="Logo Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#8e8f8f] mt-1 block">
+                    💡 Dica: Insira o link direto da imagem PNG ou JPG da sua logomarca para garantir que ela seja impressa corretamente no topo de todas as comandas.
+                  </span>
+                </div>
+
                 {/* Endereço Completo da Loja Física */}
                 <div>
                   <div className="flex justify-between items-center mb-1">

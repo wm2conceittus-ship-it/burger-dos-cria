@@ -194,7 +194,18 @@ export const DailySummaryPrintModal: React.FC<DailySummaryPrintModalProps> = ({
               {/* Header */}
               <div className="text-center space-y-0.5 border-b border-dashed border-gray-400 pb-2">
                 <div className="w-10 h-10 mx-auto rounded-full bg-black text-[#ff5722] flex items-center justify-center mb-1 overflow-hidden border border-gray-300 shadow-sm print:bg-black print:text-black">
-                  <img src={storeLogo} alt="Logo" className="w-full h-full object-cover print:block print:opacity-100" crossOrigin="anonymous" />
+                  <img
+                    src={storeLogo}
+                    alt="Logo"
+                    className="w-full h-full object-cover print:block print:opacity-100"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                      if (e.currentTarget.parentElement) {
+                        e.currentTarget.parentElement.innerHTML = '<span style="font-size:18px; font-weight:900; color:#ff5722;">🍔</span>';
+                      }
+                    }}
+                  />
                 </div>
                 <h2 className="font-black text-sm tracking-wide">{storeName.toUpperCase()}</h2>
                 <p className="text-[10px] font-normal text-gray-600">Fechamento & Resumo Diário</p>
