@@ -175,6 +175,7 @@ export interface StoreSettings {
   defaultDeliveryFee: number;
   estimatedDeliveryTime: string;
   autoPrintReceipts: boolean;
+  printCopies?: number;
   soundAlerts: boolean;
   webNotifications?: boolean;
   allowManualOrders: boolean;

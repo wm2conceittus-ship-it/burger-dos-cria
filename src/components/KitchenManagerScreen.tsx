@@ -7868,6 +7868,51 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
                 <div className="flex justify-between items-center py-2 border-t border-[#353535]/40">
                   <div>
+                    <span className="font-semibold text-white block">
+                      Número de Vias Automáticas por Impressão
+                    </span>
+                    <span className="text-[11px] text-[#b4b5b5]">
+                      Define quantas cópias (vias) são geradas automaticamente por cada comanda impressa (ex: 1 para cozinha, 1 para entrega).
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-[#141414] p-1 rounded-xl border border-[#353535]">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          printCopies: 1,
+                        })
+                      }
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        (storeSettings.printCopies ?? 2) === 1
+                          ? 'bg-[#ff5722] text-white shadow-md'
+                          : 'text-[#8e8f8f] hover:text-white'
+                      }`}
+                    >
+                      1 Via
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateStoreSettings({
+                          ...storeSettings,
+                          printCopies: 2,
+                        })
+                      }
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        (storeSettings.printCopies ?? 2) === 2
+                          ? 'bg-[#ff5722] text-white shadow-md'
+                          : 'text-[#8e8f8f] hover:text-white'
+                      }`}
+                    >
+                      2 Vias (Automático)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-t border-[#353535]/40">
+                  <div>
                     <span className="font-semibold text-white block flex items-center gap-1.5">
                       <Volume2 className="w-4 h-4 text-[#ff5722]" />
                       Alerta Sonoro para Novos Pedidos (Beep Automático)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Order, StoreSettings } from '../types';
 import { X, Printer, Flame, Check, Copy, Scissors, ReceiptText, FileText, Bluetooth, QrCode } from 'lucide-react';
 import { APP_IMAGES } from '../data/mockData';
@@ -27,8 +27,14 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   });
   const [viewMode, setViewMode] = useState<'web' | 'simulation'>('simulation');
   const [printCopies, setPrintCopies] = useState<number>(() => {
-    return Number(localStorage.getItem('receipt_print_copies')) || 1;
+    return storeSettings?.printCopies ?? Number(localStorage.getItem('receipt_print_copies')) ?? 2;
   });
+
+  useEffect(() => {
+    if (storeSettings?.printCopies !== undefined) {
+      setPrintCopies(storeSettings.printCopies);
+    }
+  }, [storeSettings?.printCopies]);
   const [copiedText, setCopiedText] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
   const [isPrintingBluetooth, setIsPrintingBluetooth] = useState(false);
