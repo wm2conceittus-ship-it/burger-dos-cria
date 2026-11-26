@@ -26,6 +26,9 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
     return (localStorage.getItem('receipt_print_margin') as 'zero' | 'fina' | 'padrao') || 'zero';
   });
   const [viewMode, setViewMode] = useState<'web' | 'simulation'>('simulation');
+  const [printCopies, setPrintCopies] = useState<number>(() => {
+    return Number(localStorage.getItem('receipt_print_copies')) || 1;
+  });
   const [copiedText, setCopiedText] = useState(false);
   const [compactMode, setCompactMode] = useState(true);
   const [isPrintingBluetooth, setIsPrintingBluetooth] = useState(false);
@@ -34,6 +37,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({ order, storeSettings, on
   const handleSelectMargin = (margin: 'zero' | 'fina' | 'padrao') => {
     setPrintMargin(margin);
     localStorage.setItem('receipt_print_margin', margin);
+  };
+
+  const handleSelectCopies = (copies: number) => {
+    setPrintCopies(copies);
+    localStorage.setItem('receipt_print_copies', String(copies));
   };
 
   if (!order) return null;
@@ -437,6 +445,28 @@ ${doubleDivider}
             </button>
           </div>
 
+          {/* Print Copies Selector */}
+          <div className="flex items-center gap-1 bg-[#141414] px-2 py-1 rounded-xl border border-[#353535]">
+            <span className="text-[10px] text-[#8e8f8f] font-bold">Vias:</span>
+            <button
+              onClick={() => handleSelectCopies(1)}
+              className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                printCopies === 1 ? 'bg-[#ff5722] text-white' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+            >
+              1 Via
+            </button>
+            <button
+              onClick={() => handleSelectCopies(2)}
+              className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                printCopies === 2 ? 'bg-[#ff5722] text-white' : 'text-[#8e8f8f] hover:text-white'
+              }`}
+              title="Imprimir 2 vias (duplicado para cozinha e entrega)"
+            >
+              2 Vias
+            </button>
+          </div>
+
           {/* Quick Options */}
           {paperSize === '58mm' && (
             <label className="flex items-center gap-1.5 text-[11px] text-[#b4b5b5] cursor-pointer hover:text-white select-none">
@@ -452,8 +482,10 @@ ${doubleDivider}
         </div>
 
         {/* Receipt Preview Container (Scrollable) */}
-        <div className={`overflow-y-auto flex-1 flex justify-center print:p-0 print:bg-white ${viewMode === 'simulation' ? 'p-8 bg-[#0b0b0b]' : 'p-4 sm:p-6 bg-[#131313]'}`}>
-          {paperSize === '58mm' ? (
+        <div className={`overflow-y-auto flex-1 flex flex-col items-center justify-center print:p-0 print:bg-white ${viewMode === 'simulation' ? 'p-8 bg-[#0b0b0b] gap-8' : 'p-4 sm:p-6 bg-[#131313] gap-8'}`}>
+          {Array.from({ length: printCopies }).map((_, copyIndex) => (
+            <div key={copyIndex} className={`flex justify-center w-full ${copyIndex > 0 ? 'print:break-before-page' : ''}`}>
+              {paperSize === '58mm' ? (
             /* 58mm POS Thermal Receipt Preview */
             <div className={`bg-white text-black font-mono font-bold rounded-sm ticket-58mm ${
               viewMode === 'simulation'
@@ -786,6 +818,8 @@ ${doubleDivider}
               </div>
             </div>
           )}
+            </div>
+          ))}
         </div>
 
         {/* Bottom Actions Bar (Hidden in Print) */}
