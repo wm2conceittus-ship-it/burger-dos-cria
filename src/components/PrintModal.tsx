@@ -262,12 +262,17 @@ ${doubleDivider}
 
       const bytes = encoder.encode(escPosData);
       const chunkSize = 512;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.slice(i, i + chunkSize);
-        if (characteristic.properties.writeWithoutResponse) {
-          await characteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await characteristic.writeValue(chunk);
+      for (let copy = 0; copy < printCopies; copy++) {
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.slice(i, i + chunkSize);
+          if (characteristic.properties.writeWithoutResponse) {
+            await characteristic.writeValueWithoutResponse(chunk);
+          } else {
+            await characteristic.writeValue(chunk);
+          }
+        }
+        if (copy < printCopies - 1) {
+          await new Promise(r => setTimeout(r, 400));
         }
       }
 
