@@ -167,7 +167,7 @@ interface KitchenManagerScreenProps {
   onDeleteProduct?: (productId: string) => void;
   onClearOrders?: () => void;
   onUpdateOrders?: (newOrders: Order[]) => void;
-  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras';
+  initialTab?: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras' | 'clientes';
 }
 
 export interface ExpenseItem {
@@ -208,7 +208,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   initialTab,
 }) => {
   // Main Sub-Tab: 'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes'
-  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras'>(
+  const [activeTab, setActiveTab] = useState<'pedidos' | 'mesas' | 'cardapio' | 'relatorios' | 'configuracoes' | 'cancelados' | 'compras' | 'clientes'>(
     initialTab || 'pedidos'
   );
 
@@ -236,6 +236,8 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [cancelledPeriodFilter, setCancelledPeriodFilter] = useState<'diario' | 'semanal' | 'mensal' | 'anual' | 'todos'>('todos');
   const [cancelledViewMode, setCancelledViewMode] = useState<'cards' | 'lista'>('cards');
   const [rejectReasonInput, setRejectReasonInput] = useState('Produto em falta / Indisponível');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<any | null>(null);
 
   // Web Notifications State (HTML5 Browser Notifications)
   const [webNotificationPerm, setWebNotificationPerm] = useState<WebNotificationState>(() => {
@@ -1736,6 +1738,70 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
     return orders.filter(o => o.status === 'recusado');
   }, [orders]);
 
+  const aggregatedCustomers = useMemo(() => {
+    const map = new Map<string, {
+      key: string;
+      customerName: string;
+      customerPhone: string;
+      orders: Order[];
+      totalSpent: number;
+      totalOrders: number;
+      lastOrderDate: string;
+      address: string;
+    }>();
+
+    orders.forEach(o => {
+      if (o.status === 'recusado') return;
+      const phoneClean = (o.customerPhone || '').replace(/\D/g, '');
+      const nameClean = (o.customerName || '').trim().toLowerCase();
+      const key = phoneClean || nameClean || 'desconhecido';
+      if (!key || key === 'desconhecido') return;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          customerName: o.customerName || 'Cliente sem Nome',
+          customerPhone: o.customerPhone || '',
+          orders: [],
+          totalSpent: 0,
+          totalOrders: 0,
+          lastOrderDate: o.createdAt || '',
+          address: o.address || '',
+        });
+      }
+
+      const entry = map.get(key)!;
+      entry.orders.push(o);
+      entry.totalSpent += Number(o.total || 0);
+      entry.totalOrders += 1;
+      if (o.createdAt && (!entry.lastOrderDate || o.createdAt > entry.lastOrderDate)) {
+        entry.lastOrderDate = o.createdAt;
+        if (o.address) entry.address = o.address;
+        if (o.customerPhone) entry.customerPhone = o.customerPhone;
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+  }, [orders]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearchQuery.trim()) return aggregatedCustomers;
+    const q = customerSearchQuery.toLowerCase();
+    return aggregatedCustomers.filter(c => 
+      c.customerName.toLowerCase().includes(q) || 
+      c.customerPhone.includes(q) ||
+      c.address.toLowerCase().includes(q)
+    );
+  }, [aggregatedCustomers, customerSearchQuery]);
+
+  const recurringCustomersCount = useMemo(() => {
+    return aggregatedCustomers.filter(c => c.totalOrders > 1).length;
+  }, [aggregatedCustomers]);
+
+  const totalClientsRevenue = useMemo(() => {
+    return aggregatedCustomers.reduce((sum, c) => sum + c.totalSpent, 0);
+  }, [aggregatedCustomers]);
+
   const now = useMemo(() => new Date(), []);
 
   const filteredCancelledOrders = useMemo(() => {
@@ -2701,6 +2767,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               { id: 'mesas' as const, label: 'Mesas & Salão', icon: UtensilsCrossed },
               { id: 'cardapio' as const, label: 'Cardápio & Estoque', icon: Layers, isAlert: lowStockProducts.length > 0 },
               { id: 'relatorios' as const, label: 'Finanças & Gráficos', icon: BarChart3 },
+              { id: 'clientes' as const, label: 'Clientes', icon: Users },
               { id: 'compras' as const, label: 'Compras', icon: ShoppingCart },
               { id: 'cancelados' as const, label: 'Cancelados', icon: XCircle },
               { id: 'configuracoes' as const, label: 'Configurações', icon: Settings },
@@ -6917,6 +6984,221 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= ABA: CLIENTES & RECORRENTES ================= */}
+        {activeTab === 'clientes' && (
+          <div className="space-y-6 w-full animate-in fade-in duration-200">
+            {/* Header / Summary */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-[#ff5722] flex items-center justify-center shadow-inner">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-['Montserrat'] text-xl font-bold text-gray-900">
+                      Base de Clientes & Histórico de Gastos
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Agrupamento automático de clientes recorrentes, total de pedidos, ticket médio e histórico financeiro completo.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-72">
+                  <input
+                    type="text"
+                    value={customerSearchQuery}
+                    onChange={e => setCustomerSearchQuery(e.target.value)}
+                    placeholder="Buscar por nome, fone ou endereço..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#ff5722]"
+                  />
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 pt-2">
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total de Clientes</span>
+                  <span className="font-mono font-black text-xl text-gray-900">{aggregatedCustomers.length}</span>
+                </div>
+                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 space-y-1">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Clientes Recorrentes (&gt;1 ped.)</span>
+                  <span className="font-mono font-black text-xl text-emerald-700">{recurringCustomersCount}</span>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 space-y-1">
+                  <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider block">Faturamento Consolidado</span>
+                  <span className="font-mono font-black text-xl text-orange-700">R$ {totalClientsRevenue.toFixed(2).replace('.', ',')}</span>
+                </div>
+                <div className="bg-sky-50 p-4 rounded-xl border border-sky-200 space-y-1">
+                  <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">Ticket Médio Geral</span>
+                  <span className="font-mono font-black text-xl text-sky-700">
+                    R$ {aggregatedCustomers.length > 0 ? (totalClientsRevenue / aggregatedCustomers.reduce((s, c) => s + c.totalOrders, 0)).toFixed(2).replace('.', ',') : '0,00'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Client List Table */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold font-['Montserrat']">
+                      <th className="p-3.5 pl-5">Cliente</th>
+                      <th className="p-3.5">Telefone / WhatsApp</th>
+                      <th className="p-3.5 text-center">Pedidos</th>
+                      <th className="p-3.5 text-center">Status</th>
+                      <th className="p-3.5 text-right">Gasto Total</th>
+                      <th className="p-3.5 text-right">Ticket Médio</th>
+                      <th className="p-3.5">Última Compra</th>
+                      <th className="p-3.5 pr-5 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredCustomers.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-gray-500 font-medium">
+                          Nenhum cliente encontrado com os critérios de busca.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCustomers.map((client) => {
+                        const avgTicket = client.totalOrders > 0 ? client.totalSpent / client.totalOrders : 0;
+                        const isRec = client.totalOrders > 1;
+                        return (
+                          <tr key={client.key} className="hover:bg-gray-50 transition-colors">
+                            <td className="p-3.5 pl-5">
+                              <div className="font-bold text-gray-900">{client.customerName}</div>
+                              <div className="text-[10px] text-gray-500 truncate max-w-[200px]" title={client.address}>
+                                📍 {client.address || 'Endereço não informado'}
+                              </div>
+                            </td>
+                            <td className="p-3.5 font-mono text-gray-700">
+                              {client.customerPhone || 'Não informado'}
+                            </td>
+                            <td className="p-3.5 text-center font-mono font-bold text-gray-900">
+                              {client.totalOrders} {client.totalOrders === 1 ? 'pedido' : 'pedidos'}
+                            </td>
+                            <td className="p-3.5 text-center">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                                isRec ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'
+                              }`}>
+                                {isRec ? '🔄 Recorrente' : '⭐ 1ª Compra'}
+                              </span>
+                            </td>
+                            <td className="p-3.5 text-right font-mono font-bold text-emerald-600">
+                              R$ {client.totalSpent.toFixed(2).replace('.', ',')}
+                            </td>
+                            <td className="p-3.5 text-right font-mono text-gray-700">
+                              R$ {avgTicket.toFixed(2).replace('.', ',')}
+                            </td>
+                            <td className="p-3.5 font-mono text-gray-500 text-[11px]">
+                              {client.lastOrderDate ? formatOrderCreationDateTime({ createdAt: client.lastOrderDate } as any) : 'N/A'}
+                            </td>
+                            <td className="p-3.5 pr-5 text-center flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCustomerForHistory(client)}
+                                className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm"
+                                title="Ver histórico completo de pedidos e gastos"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Histórico</span>
+                              </button>
+                              {client.customerPhone && (
+                                <a
+                                  href={`https://wa.me/55${client.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${client.customerName}, tudo bem? Aqui é da ${storeSettings.storeName}.`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors"
+                                  title="Enviar WhatsApp"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </a>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Customer History Modal */}
+            {selectedCustomerForHistory && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95">
+                  <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-['Montserrat'] font-bold text-base text-gray-900">
+                        Histórico de Pedidos: {selectedCustomerForHistory.customerName}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {selectedCustomerForHistory.customerPhone || 'Sem telefone'} • {selectedCustomerForHistory.totalOrders} pedidos • Total Gasto: <strong className="text-emerald-600 font-mono">R$ {selectedCustomerForHistory.totalSpent.toFixed(2).replace('.', ',')}</strong>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCustomerForHistory(null)}
+                      className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="p-5 overflow-y-auto space-y-3 flex-1">
+                    {selectedCustomerForHistory.orders.map((ord: Order) => (
+                      <div key={ord.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2 text-xs">
+                        <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-gray-900">Pedido #{ord.orderNumber}</span>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-gray-600">{formatOrderCreationDateTime(ord)}</span>
+                          </div>
+                          <span className="font-mono font-black text-emerald-600 text-sm">
+                            R$ {Number(ord.total || 0).toFixed(2).replace('.', ',')}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-gray-600 text-[11px]">
+                          <span>Tipo: <strong className="text-gray-900 capitalize">{ord.type}</strong></span>
+                          <span>•</span>
+                          <span>Pagamento: <strong className="text-gray-900">{ord.paymentMethod || 'Pix'}</strong></span>
+                          <span>•</span>
+                          <span>Status: <strong className="text-gray-900 capitalize">{ord.status}</strong></span>
+                        </div>
+                        <div className="space-y-1 pt-1 border-t border-gray-200">
+                          <span className="font-bold text-gray-700 block">Itens do Pedido:</span>
+                          <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+                            {ord.items.map((it, idx) => (
+                              <li key={idx}>
+                                {it.quantity}x {it.name} {it.pizzaSize ? `(${it.pizzaSize})` : ''} - R$ {(it.price * it.quantity).toFixed(2).replace('.', ',')}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCustomerForHistory(null)}
+                      className="px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all"
+                    >
+                      Fechar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
