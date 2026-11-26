@@ -11778,6 +11778,12 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
                       </div>
                     )}
+                    {order.couponCode && (
+                      <div className="flex justify-between text-purple-700 font-bold bg-purple-50 p-1.5 rounded border border-purple-200 mt-1">
+                        <span>🎟️ Cupom Utilizado: {order.couponCode}</span>
+                        <span>{order.discountAmount ? `-R$ ${order.discountAmount.toFixed(2).replace('.', ',')}` : 'Aplicado'}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-300 text-gray-900">
                       <span>Total Geral:</span>
                       <span className="text-base font-black text-[#ff5722] font-mono">

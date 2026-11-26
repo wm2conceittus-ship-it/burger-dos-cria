@@ -608,6 +608,12 @@ ${doubleDivider}
                     <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
                   </div>
                 )}
+                {order.couponCode && (
+                  <div className="flex justify-between text-black font-bold text-[11px] bg-gray-100 p-1 rounded">
+                    <span>CUPOM: {order.couponCode}</span>
+                    <span>-{order.discountAmount ? `R$ ${order.discountAmount.toFixed(2).replace('.', ',')}` : 'APLICADO'}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-black font-black text-sm pt-1 border-t border-gray-300">
                   <span>TOTAL:</span>
                   <span>R$ {order.total.toFixed(2).replace('.', ',')}</span>
@@ -772,6 +778,12 @@ ${doubleDivider}
                   <div className="flex justify-between text-gray-600">
                     <span>Taxa de Entrega:</span>
                     <span>R$ {order.deliveryFee.toFixed(2).replace('.', ',')}</span>
+                  </div>
+                )}
+                {order.couponCode && (
+                  <div className="flex justify-between text-black font-bold text-xs bg-gray-100 p-1.5 rounded">
+                    <span>CUPOM: {order.couponCode}</span>
+                    <span>-{order.discountAmount ? `R$ ${order.discountAmount.toFixed(2).replace('.', ',')}` : 'APLICADO'}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-black font-black text-base pt-1.5 border-t border-gray-300">

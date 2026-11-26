@@ -751,7 +751,8 @@ export default function App() {
     pixReceiptUrl?: string,
     customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado',
     customDeliveryFee?: number,
-    chosenNeighborhood?: string
+    chosenNeighborhood?: string,
+    couponCode?: string
   ) => {
     if (!customerProfile) {
       setIsCustomerRegisterOpen(true);
@@ -883,6 +884,8 @@ export default function App() {
       })),
       subtotal,
       deliveryFee,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
+      couponCode: couponCode || undefined,
       total,
       courierName: assignedCourier?.name,
       courierPhone: assignedCourier?.phone,
@@ -892,6 +895,18 @@ export default function App() {
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       orderDate: new Date().toLocaleDateString('pt-BR'),
     };
+
+    if (couponCode) {
+      const updatedCoupons = (storeSettings.coupons || []).map(c =>
+        c.code.toUpperCase() === couponCode.toUpperCase()
+          ? { ...c, usageCount: (c.usageCount || 0) + 1 }
+          : c
+      );
+      handleUpdateStoreSettings({
+        ...storeSettings,
+        coupons: updatedCoupons,
+      });
+    }
 
     setOrders(prev => [newOrder, ...prev]);
     saveOrderToFirestore(newOrder).catch(err => {

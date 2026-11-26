@@ -69,7 +69,8 @@ interface CartScreenProps {
     pixReceiptUrl?: string,
     customPaymentStatus?: 'pendente' | 'aprovado' | 'recusado',
     customDeliveryFee?: number,
-    chosenNeighborhood?: string
+    chosenNeighborhood?: string,
+    couponCode?: string
   ) => void;
 }
 
@@ -272,7 +273,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({
       receiptUrl,
       pStatus,
       deliveryFee,
-      selectedNeighborhood || neighborhoodCalc.zoneName
+      selectedNeighborhood || neighborhoodCalc.zoneName,
+      appliedCouponName || undefined
     );
   };
 

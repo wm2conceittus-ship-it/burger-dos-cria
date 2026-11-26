@@ -284,6 +284,8 @@ export interface Order {
   }[];
   subtotal: number;
   deliveryFee: number;
+  discountAmount?: number;
+  couponCode?: string;
   total: number;
   paymentMethod: string;
   changeFor?: string;
