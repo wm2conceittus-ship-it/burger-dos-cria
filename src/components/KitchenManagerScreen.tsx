@@ -238,6 +238,9 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [rejectReasonInput, setRejectReasonInput] = useState('Produto em falta / Indisponível');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<any | null>(null);
+  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [promoTargetGroup, setPromoTargetGroup] = useState<'all' | 'recurring' | 'new'>('recurring');
+  const [promoMessage, setPromoMessage] = useState('Olá {nome}! 🍔🔥 Passando para avisar que hoje temos uma super promoção no Burguer dos Crias! Peça já o seu com frete especial: ');
 
   // Web Notifications State (HTML5 Browser Notifications)
   const [webNotificationPerm, setWebNotificationPerm] = useState<WebNotificationState>(() => {
@@ -7010,16 +7013,28 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative w-full sm:w-72">
-                  <input
-                    type="text"
-                    value={customerSearchQuery}
-                    onChange={e => setCustomerSearchQuery(e.target.value)}
-                    placeholder="Buscar por nome, fone ou endereço..."
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#ff5722]"
-                  />
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                {/* Campaign Button & Search Bar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPromoModal(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                    title="Criar e enviar promoções em lote via WhatsApp para seus clientes"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Campanha Promocional (WhatsApp)</span>
+                  </button>
+
+                  <div className="relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      value={customerSearchQuery}
+                      onChange={e => setCustomerSearchQuery(e.target.value)}
+                      placeholder="Buscar por nome, fone..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-gray-900 focus:outline-none focus:border-[#ff5722]"
+                    />
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
@@ -7043,6 +7058,91 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                     R$ {aggregatedCustomers.length > 0 ? (totalClientsRevenue / aggregatedCustomers.reduce((s, c) => s + c.totalOrders, 0)).toFixed(2).replace('.', ',') : '0,00'}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Cupons & Promoções Section */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shadow-inner">
+                    <Ticket className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-['Montserrat'] text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <span>Cupons & Promoções</span>
+                      <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                        {(storeSettings.coupons || []).filter(c => c.active).length} ativos
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Crie e gerencie cupons de desconto para impulsionar suas campanhas de vendas e fidelização.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddCouponModal(true)}
+                  className="px-4 py-2 bg-[#ff5722] hover:bg-[#f4511e] text-white rounded-xl text-xs font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Criar Novo Cupom</span>
+                </button>
+              </div>
+
+              {/* Coupons Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                {(!storeSettings.coupons || storeSettings.coupons.length === 0) ? (
+                  <div className="col-span-full bg-gray-50 rounded-xl p-6 text-center border border-gray-200 text-gray-500 text-xs">
+                    Nenhum cupom cadastrado. Clique em "Criar Novo Cupom" para começar.
+                  </div>
+                ) : (
+                  storeSettings.coupons.map(coupon => {
+                    const discountBadge =
+                      coupon.discountType === 'percentage'
+                        ? `${coupon.discountValue}% OFF`
+                        : coupon.discountType === 'fixed'
+                        ? `R$ ${coupon.discountValue.toFixed(2)} OFF`
+                        : 'Frete Grátis';
+
+                    return (
+                      <div key={coupon.id} className="bg-gray-50 rounded-xl p-3.5 border border-gray-200 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-black text-xs text-gray-900 bg-white px-2 py-1 rounded border border-gray-200">
+                            {coupon.code}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+                            {discountBadge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 truncate">{coupon.description || 'Desconto no checkout'}</p>
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200 text-[10px] text-gray-500">
+                          <span>{coupon.usageCount || 0} usos</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(coupon.code);
+                                alert(`Cupom ${coupon.code} copiado!`);
+                              }}
+                              className="px-2 py-1 bg-white hover:bg-gray-100 rounded border border-gray-200 text-gray-700 font-bold"
+                            >
+                              Copiar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCoupon(coupon.id)}
+                              className={`px-2 py-1 rounded font-bold ${coupon.active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-700'}`}
+                            >
+                              {coupon.active ? 'Ativo' : 'Pausado'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -7197,6 +7297,107 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                       className="px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all"
                     >
                       Fechar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Promotion Broadcast Modal */}
+            {showPromoModal && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95">
+                  <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <Share2 className="w-5 h-5" />
+                      </span>
+                      <div>
+                        <h3 className="font-['Montserrat'] font-bold text-base text-gray-900">
+                          Disparar Campanha Promocional
+                        </h3>
+                        <p className="text-xs text-gray-500">Envie ofertas e cupons em lote para sua base de clientes</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPromoModal(false)}
+                      className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">Público-Alvo da Campanha</label>
+                      <select
+                        value={promoTargetGroup}
+                        onChange={e => setPromoTargetGroup(e.target.value as any)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                      >
+                        <option value="recurring">Clientes Recorrentes ({aggregatedCustomers.filter(c => c.totalOrders > 1).length} clientes)</option>
+                        <option value="new">Clientes de 1ª Compra ({aggregatedCustomers.filter(c => c.totalOrders === 1).length} clientes)</option>
+                        <option value="all">Todos os Clientes da Base ({aggregatedCustomers.length} clientes)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block font-bold text-gray-700">Mensagem da Promoção</label>
+                        <span className="text-[10px] text-gray-400">Use {'{nome}'} para personalizar</span>
+                      </div>
+                      <textarea
+                        rows={5}
+                        value={promoMessage}
+                        onChange={e => setPromoMessage(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                        placeholder="Digite sua mensagem promocional..."
+                      />
+                    </div>
+
+                    <div className="bg-orange-50 border border-orange-200 p-3.5 rounded-xl text-orange-900 space-y-1">
+                      <span className="font-bold block">💡 Dica de Disparo em Lote:</span>
+                      <p className="text-[11px] leading-relaxed">
+                        Ao clicar em "Gerar & Disparar no WhatsApp", o sistema filtrará os clientes do grupo selecionado e abrirá o WhatsApp com a mensagem personalizada pronta para envio rápido.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setShowPromoModal(false)}
+                      className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetList = aggregatedCustomers.filter(c => {
+                          if (!c.customerPhone) return false;
+                          if (promoTargetGroup === 'recurring') return c.totalOrders > 1;
+                          if (promoTargetGroup === 'new') return c.totalOrders === 1;
+                          return true;
+                        });
+
+                        if (targetList.length === 0) {
+                          alert('Nenhum cliente com telefone válido encontrado no grupo selecionado.');
+                          return;
+                        }
+
+                        const firstClient = targetList[0];
+                        const personalizedText = promoMessage.replace('{nome}', firstClient.customerName);
+                        const waUrl = `https://wa.me/55${firstClient.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(personalizedText)}`;
+                        window.open(waUrl, '_blank');
+                        setShowPromoModal(false);
+                        alert(`Campanha iniciada! Abrindo WhatsApp para o primeiro cliente (${firstClient.customerName}). A base possui ${targetList.length} clientes aptos para disparo.`);
+                      }}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Gerar & Disparar no WhatsApp</span>
                     </button>
                   </div>
                 </div>
