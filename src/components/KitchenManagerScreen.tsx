@@ -127,6 +127,7 @@ import { getStoreOperatingStatus } from '../utils/scheduleUtils';
 import { FinancialReportsDashboard } from './FinancialReportsDashboard';
 import { RechartsAnalyticsPanel } from './RechartsAnalyticsPanel';
 import { ShareMenuModal } from './ShareMenuModal';
+import { CouponManager } from './CouponManager';
 import { getPublicMenuUrl, getManagerMenuUrl, copyToClipboard } from '../utils/shareUtils';
 import {
   getManagerWhatsAppNotificationUrl,
@@ -7303,6 +7304,148 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
               </div>
             )}
 
+            {/* Add Coupon Modal Popup */}
+            {showAddCouponModal && (
+              <div className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+                <form
+                  onSubmit={handleSaveCoupon}
+                  className="bg-[#1f1e1e] border border-[#353535] rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl animate-in zoom-in-95 text-white"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-xl bg-[#ff5722]/20 text-[#ff5722] flex items-center justify-center">
+                        <Tag className="w-4 h-4" />
+                      </span>
+                      <h3 className="font-['Montserrat'] font-bold text-base text-white">
+                        Cadastrar Novo Cupom de Desconto
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCouponModal(false)}
+                      className="text-[#8e8f8f] hover:text-white p-1 rounded-lg hover:bg-[#333]"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-[#b4b5b5] font-semibold mb-1">
+                        Código do Cupom *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newCouponCode}
+                        onChange={e => setNewCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Ex: QUINTA15, BURGERTOP"
+                        className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2.5 text-white font-mono font-bold uppercase focus:outline-none focus:border-[#ff5722]"
+                      />
+                      <span className="text-[10px] text-[#8e8f8f] mt-0.5 block">
+                        Sem espaços. O cliente digitará esse código no carrinho.
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[#b4b5b5] font-semibold mb-1">
+                          Tipo de Desconto *
+                        </label>
+                        <select
+                          value={newCouponType}
+                          onChange={e => setNewCouponType(e.target.value as any)}
+                          className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+                        >
+                          <option value="percentage">Porcentagem (%)</option>
+                          <option value="fixed">Valor Fixo (R$)</option>
+                          <option value="free_shipping">Frete Grátis</option>
+                        </select>
+                      </div>
+
+                      {newCouponType !== 'free_shipping' ? (
+                        <div>
+                          <label className="block text-[#b4b5b5] font-semibold mb-1">
+                            Valor do Desconto *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              required
+                              step="0.5"
+                              min="1"
+                              value={newCouponValue}
+                              onChange={e => setNewCouponValue(e.target.value)}
+                              placeholder={newCouponType === 'percentage' ? '10' : '15.00'}
+                              className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2.5 text-white font-mono font-bold focus:outline-none focus:border-[#ff5722]"
+                            />
+                            <span className="absolute right-3 top-2.5 font-bold text-[#8e8f8f]">
+                              {newCouponType === 'percentage' ? '%' : 'R$'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[#b4b5b5] font-semibold mb-1">
+                            Benefício
+                          </label>
+                          <div className="bg-[#141414] border border-emerald-500/30 text-emerald-400 px-3 py-2.5 rounded-xl font-bold flex items-center gap-1">
+                            <Bike className="w-4 h-4" />
+                            <span>Frete Grátis 100%</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[#b4b5b5] font-semibold mb-1">
+                        Descrição / Regra (Exibida para o cliente)
+                      </label>
+                      <input
+                        type="text"
+                        value={newCouponDesc}
+                        onChange={e => setNewCouponDesc(e.target.value)}
+                        placeholder="Ex: 15% de desconto em pedidos acima de R$ 40"
+                        className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#ff5722]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[#b4b5b5] font-semibold mb-1">
+                        Pedido Mínimo (R$) - Opcional
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={newCouponMinOrder}
+                        onChange={e => setNewCouponMinOrder(e.target.value)}
+                        placeholder="0 (Sem pedido mínimo)"
+                        className="w-full bg-[#141414] border border-[#353535] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-[#ff5722]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#353535]">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCouponModal(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold text-[#b4b5b5] hover:text-white bg-[#141414] border border-[#353535] transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-flame text-white px-5 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 shadow-md"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Salvar e Ativar Cupom</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {/* Promotion Broadcast Modal */}
             {showPromoModal && (
               <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -8972,295 +9115,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
 
             {/* ABA CUPONS DE DESCONTO */}
             {configTab === 'cupons' && (
-              <div className="space-y-4">
-                {/* Header Card */}
-                <div className="bg-[#20201f] rounded-lg p-5 border border-[#353535]/50 shadow-md">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#ff5722]/15 text-[#ff5722] flex items-center justify-center shrink-0">
-                        <Ticket className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-['Montserrat'] font-bold text-base text-white flex items-center gap-2">
-                          <span>Gestão de Cupons Promocionais</span>
-                          <span className="text-[10px] bg-[#ff5722]/20 text-[#ff8a65] px-2 py-0.5 rounded-full font-bold">
-                            {(storeSettings.coupons || []).length} cadastrado(s)
-                          </span>
-                        </h3>
-                        <p className="text-xs text-[#b4b5b5] mt-0.5">
-                          Crie códigos de desconto em porcentagem (%), valor em reais (R$) ou frete grátis para atrair e fidelizar clientes.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button type="button" onClick={() => setShowAddCouponModal(true)}
-                      className="btn-flame text-white px-4 py-2.5 rounded-xl font-['Montserrat'] font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all shrink-0 self-start sm:self-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Criar Novo Cupom</span>
-                    </button>
-                  </div>
-
-                  {/* Summary Metric Badges */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 pt-4 border-t border-[#353535]/50 text-xs">
-                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
-                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Total de Cupons</span>
-                      <span className="text-lg font-black text-white mt-0.5 block font-mono">
-                        {(storeSettings.coupons || []).length}
-                      </span>
-                    </div>
-
-                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
-                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Cupons Ativos</span>
-                      <span className="text-lg font-black text-emerald-400 mt-0.5 block font-mono">
-                        {(storeSettings.coupons || []).filter(c => c.active).length}
-                      </span>
-                    </div>
-
-                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
-                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Mais Usado</span>
-                      <span className="text-sm font-black text-[#ff8a65] mt-1 block font-mono truncate">
-                        {(storeSettings.coupons || []).slice().sort((a,b) => (b.usageCount || 0) - (a.usageCount || 0))[0]?.code || 'N/A'}
-                      </span>
-                    </div>
-
-                    <div className="bg-[#181818] p-3 rounded-xl border border-[#353535]">
-                      <span className="text-[10px] text-[#8e8f8f] block uppercase font-bold">Uso no Carrinho</span>
-                      <span className="text-xs font-semibold text-white mt-1 block">
-                        Validação instantânea
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Form inline / modal to add coupon */}
-                {showAddCouponModal && (
-                  <form
-                    onSubmit={handleSaveCoupon}
-                    className="bg-[#242322] rounded-lg p-5 border-2 border-[#ff5722]/50 shadow-2xl space-y-4 animate-in fade-in"
-                  >
-                    <div className="flex items-center justify-between pb-3 border-b border-[#353535]">
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-[#ff5722]" />
-                        <h4 className="font-['Montserrat'] font-bold text-sm text-white">
-                          Cadastrar Novo Cupom de Desconto
-                        </h4>
-                      </div>
-                      <button type="button" onClick={() => setShowAddCouponModal(false)}
-                        className="text-[#8e8f8f] hover:text-white p-1 rounded-lg"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <label className="block text-[#b4b5b5] font-semibold mb-1">
-                          Código do Cupom *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={newCouponCode}
-                          onChange={e => setNewCouponCode(e.target.value.toUpperCase())}
-                          placeholder="Ex: QUINTA15, BURGERTOP"
-                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono font-bold uppercase focus:outline-none focus:border-[#ff5722]"
-                        />
-                        <span className="text-[10px] text-[#8e8f8f] mt-0.5 block">
-                          Sem espaços. O cliente digitará esse código.
-                        </span>
-                      </div>
-
-                      <div>
-                        <label className="block text-[#b4b5b5] font-semibold mb-1">
-                          Tipo de Desconto *
-                        </label>
-                        <select
-                          value={newCouponType}
-                          onChange={e => setNewCouponType(e.target.value as any)}
-                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
-                        >
-                          <option value="percentage">Porcentagem (%)</option>
-                          <option value="fixed">Valor Fixo em Reais (R$)</option>
-                          <option value="free_shipping">Frete Grátis (R$ 0,00)</option>
-                        </select>
-                      </div>
-
-                      {newCouponType !== 'free_shipping' ? (
-                        <div>
-                          <label className="block text-[#b4b5b5] font-semibold mb-1">
-                            Valor do Desconto *
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              required
-                              step="0.5"
-                              min="1"
-                              value={newCouponValue}
-                              onChange={e => setNewCouponValue(e.target.value)}
-                              placeholder={newCouponType === 'percentage' ? '10' : '15.00'}
-                              className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-[#ff5722]"
-                            />
-                            <span className="absolute right-3 top-2 font-bold text-[#8e8f8f]">
-                              {newCouponType === 'percentage' ? '%' : 'R$'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="block text-[#b4b5b5] font-semibold mb-1">
-                            Benefício
-                          </label>
-                          <div className="bg-[#181818] border border-emerald-500/30 text-emerald-400 px-3 py-2 rounded-xl font-bold flex items-center gap-1.5">
-                            <Bike className="w-4 h-4" />
-                            <span>100% Taxa de Entrega Grátis</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-[#b4b5b5] font-semibold mb-1">
-                          Descrição / Regra (Exibida para o cliente)
-                        </label>
-                        <input
-                          type="text"
-                          value={newCouponDesc}
-                          onChange={e => setNewCouponDesc(e.target.value)}
-                          placeholder="Ex: 15% de desconto em pedidos acima de R$ 40"
-                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#ff5722]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[#b4b5b5] font-semibold mb-1">
-                          Pedido Mínimo (R$)
-                        </label>
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          value={newCouponMinOrder}
-                          onChange={e => setNewCouponMinOrder(e.target.value)}
-                          placeholder="0 (Sem pedido mínimo)"
-                          className="w-full bg-[#181818] border border-[#353535] rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-[#ff5722]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2 border-t border-[#353535]/50">
-                      <button type="button" onClick={() => setShowAddCouponModal(false)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-[#b4b5b5] hover:text-white bg-[#1c1b1b] border border-[#353535]"
-                      >
-                        Cancelar
-                      </button>
-                      <button type="submit" className="btn-flame text-white px-5 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5" >
-                        <Check className="w-4 h-4" />
-                        <span>Salvar e Ativar Cupom</span>
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Coupons List Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {(!storeSettings.coupons || storeSettings.coupons.length === 0) ? (
-                    <div className="col-span-full bg-[#20201f] rounded-lg p-8 text-center border border-[#353535] text-[#b4b5b5] space-y-2">
-                      <Ticket className="w-8 h-8 text-[#ff5722] mx-auto opacity-60" />
-                      <p className="font-bold text-white text-sm">Nenhum cupom cadastrado ainda</p>
-                      <p className="text-xs">Clique no botão acima para criar seu primeiro cupom de desconto!</p>
-                    </div>
-                  ) : (
-                    storeSettings.coupons.map(coupon => {
-                      const discountBadge =
-                        coupon.discountType === 'percentage'
-                          ? `${coupon.discountValue}% OFF`
-                          : coupon.discountType === 'fixed'
-                          ? `R$ ${coupon.discountValue.toFixed(2)} OFF`
-                          : 'Frete Grátis';
-
-                      return (
-                        <div
-                          key={coupon.id}
-                          className={`bg-[#20201f] rounded-lg p-4 border transition-all space-y-3 shadow-md ${
-                            coupon.active
-                              ? 'border-[#353535] hover:border-[#ff5722]/50'
-                              : 'border-[#2d2d2d] opacity-60'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-sm text-white bg-[#141414] px-2.5 py-1 rounded-lg border border-[#353535] tracking-wider">
-                                  {coupon.code}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    coupon.discountType === 'free_shipping'
-                                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                                      : 'bg-[#ff5722]/20 text-[#ff8a65] border border-[#ff5722]/40'
-                                  }`}
-                                >
-                                  {discountBadge}
-                                </span>
-                              </div>
-                              <p className="text-xs text-[#b4b5b5] mt-1.5 leading-snug">
-                                {coupon.description || 'Desconto aplicado diretamente no checkout.'}
-                              </p>
-                            </div>
-
-                            <button type="button" onClick={() => handleToggleCoupon(coupon.id)}
-                              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all ${
-                                coupon.active
-                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                  : 'bg-[#2a2a2a] text-[#8e8f8f] border border-[#383838]'
-                              }`}
-                              title={coupon.active ? 'Clique para pausar cupom' : 'Clique para reativar'}
-                            >
-                              {coupon.active ? 'Ativo' : 'Pausado'}
-                            </button>
-                          </div>
-
-                          <div className="pt-2 border-t border-[#353535]/50 flex items-center justify-between text-[11px] text-[#8e8f8f]">
-                            <div className="space-y-0.5">
-                              {coupon.minOrderValue && coupon.minOrderValue > 0 ? (
-                                <span className="block text-amber-400 font-medium">
-                                  Mínimo: R$ {coupon.minOrderValue.toFixed(2)}
-                                </span>
-                              ) : (
-                                <span className="block">Sem valor mínimo</span>
-                              )}
-                              <span className="block text-[10px]">
-                                {coupon.usageCount || 0} pedido(s) usaram
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              <button type="button" onClick={() => {
-                                  navigator.clipboard.writeText(coupon.code);
-                                  setCouponToast(`Código "${coupon.code}" copiado!`);
-                                  setTimeout(() => setCouponToast(null), 2500);
-                                }}
-                                className="p-1.5 bg-[#181818] hover:bg-[#252525] text-[#b4b5b5] hover:text-white rounded-lg border border-[#353535] transition-colors"
-                                title="Copiar código"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-
-                              <button type="button" onClick={() => handleDeleteCoupon(coupon.id, coupon.code)}
-                                className="p-1.5 bg-[#181818] hover:bg-red-500/20 text-[#8e8f8f] hover:text-red-400 rounded-lg border border-[#353535] transition-colors"
-                                title="Excluir cupom"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+              <CouponManager storeSettings={storeSettings} onUpdateStoreSettings={onUpdateStoreSettings} orders={orders} />
             )}
 
             {/* ABA ENTREGADORES & MOTOBOYS */}

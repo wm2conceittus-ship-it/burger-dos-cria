@@ -207,6 +207,29 @@ export const CartScreen: React.FC<CartScreenProps> = ({
 
   const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0);
 
+  // Aplicação automática de cupons e promoções ativas quando o cliente atinge os requisitos
+  useEffect(() => {
+    if (appliedCouponName) return;
+    const activeCoupons = (storeSettings?.coupons || []).filter(c => c.active);
+    const eligible = activeCoupons.find(c => subtotal >= (c.minOrderValue || 0));
+    if (eligible) {
+      if (eligible.discountType === 'percentage') {
+        setDiscountPercent(eligible.discountValue / 100);
+        setFixedDiscount(0);
+        setIsFreeShippingCoupon(false);
+      } else if (eligible.discountType === 'fixed') {
+        setDiscountPercent(0);
+        setFixedDiscount(eligible.discountValue);
+        setIsFreeShippingCoupon(false);
+      } else if (eligible.discountType === 'free_shipping') {
+        setDiscountPercent(0);
+        setFixedDiscount(0);
+        setIsFreeShippingCoupon(true);
+      }
+      setAppliedCouponName(eligible.code);
+    }
+  }, [subtotal, storeSettings?.coupons, appliedCouponName]);
+
   // Dynamic delivery fee calculation based on neighborhood / bairro
   const addrLower = (deliveryAddress || '').toLowerCase();
   const neighborhoodCalc = useMemo(() => {
