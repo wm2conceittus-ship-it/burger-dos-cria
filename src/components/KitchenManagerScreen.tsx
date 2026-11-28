@@ -249,6 +249,7 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] = useState<any | null>(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
   const [promoTargetGroup, setPromoTargetGroup] = useState<'all' | 'recurring' | 'new'>('recurring');
+  const [promoBatchIndex, setPromoBatchIndex] = useState(0);
   const [promoMessage, setPromoMessage] = useState('Olá {nome}! 🍔🔥 Passando para avisar que hoje temos uma super promoção no Burguer dos Crias! Peça já o seu com frete especial: ');
 
   // Web Notifications State (HTML5 Browser Notifications)
@@ -7601,17 +7602,25 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                             alert('Nenhum cliente com telefone válido encontrado.');
                             return;
                           }
-                          // Open first client and notify
-                          const firstClient = targetList[0];
-                          const personalizedText = promoMessage.replace('{nome}', firstClient.customerName);
-                          const waUrl = `https://wa.me/55${firstClient.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(personalizedText)}`;
+                          const currentIdx = Math.min(promoBatchIndex, targetList.length - 1);
+                          const client = targetList[currentIdx];
+                          const personalizedText = promoMessage.replace('{nome}', client.customerName);
+                          const waUrl = `https://wa.me/55${client.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(personalizedText)}`;
                           window.open(waUrl, '_blank');
-                          alert(`Abrindo WhatsApp para ${firstClient.customerName}. Utilize a lista acima para disparar para os demais clientes da base.`);
+                          setFinancialToast(`WhatsApp aberto para ${client.customerName} (${currentIdx + 1}/${targetList.length})`);
+                          setTimeout(() => setFinancialToast(null), 3000);
+
+                          if (currentIdx < targetList.length - 1) {
+                            setPromoBatchIndex(currentIdx + 1);
+                          } else {
+                            alert('Você disparou para todos os clientes da lista!');
+                            setPromoBatchIndex(0);
+                          }
                         }}
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all"
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold font-['Montserrat'] shadow-lg flex items-center gap-2 transition-all active:scale-95 animate-pulse"
                       >
                         <Share2 className="w-4 h-4" />
-                        <span>Disparar para o 1º da Lista</span>
+                        <span>🚀 Disparar Próximo ({Math.min(promoBatchIndex + 1, targetList.length)} de {targetList.length})</span>
                       </button>
                     </div>
                   </div>
