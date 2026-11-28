@@ -7455,132 +7455,169 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
             )}
 
             {/* Promotion Broadcast Modal */}
-            {showPromoModal && (
-              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95">
-                  <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
-                        <Share2 className="w-5 h-5" />
-                      </span>
+            {showPromoModal && (() => {
+              const targetList = aggregatedCustomers.filter(c => {
+                if (!c.customerPhone) return false;
+                if (promoTargetGroup === 'recurring') return c.totalOrders > 1;
+                if (promoTargetGroup === 'new') return c.totalOrders === 1;
+                return true;
+              });
+
+              return (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95">
+                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                          <Share2 className="w-5 h-5" />
+                        </span>
+                        <div>
+                          <h3 className="font-['Montserrat'] font-bold text-base text-gray-900">
+                            Disparar Campanha Promocional no WhatsApp ({targetList.length} clientes aptos)
+                          </h3>
+                          <p className="text-xs text-gray-500">Envie ofertas e cupons para sua base de clientes</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPromoModal(false)}
+                        className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-bold text-gray-700 mb-1">Público-Alvo da Campanha</label>
+                          <select
+                            value={promoTargetGroup}
+                            onChange={e => setPromoTargetGroup(e.target.value as any)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                          >
+                            <option value="recurring">Clientes Recorrentes ({aggregatedCustomers.filter(c => c.totalOrders > 1).length} clientes)</option>
+                            <option value="new">Clientes de 1ª Compra ({aggregatedCustomers.filter(c => c.totalOrders === 1).length} clientes)</option>
+                            <option value="all">Todos os Clientes da Base ({aggregatedCustomers.length} clientes)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block font-bold text-gray-700 mb-1">Inserir Cupom na Mensagem</label>
+                          <select
+                            onChange={e => {
+                              const selectedCode = e.target.value;
+                              if (!selectedCode) return;
+                              const couponObj = (storeSettings.coupons || []).find(c => c.code === selectedCode);
+                              const couponText = couponObj 
+                                ? ` Use o cupom *${couponObj.code}* (${couponObj.description || (couponObj.discountType === 'percentage' ? `${couponObj.discountValue}% OFF` : couponObj.discountType === 'fixed' ? `R$ ${couponObj.discountValue} OFF` : 'Frete Grátis')}) para garantir seu desconto!`
+                                : ` Use o cupom *${selectedCode}*!`;
+                              setPromoMessage(prev => prev + couponText);
+                              e.target.value = '';
+                            }}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                          >
+                            <option value="">Selecione um cupom ativo...</option>
+                            {(storeSettings.coupons || []).filter(c => c.active).map(c => (
+                              <option key={c.id} value={c.code}>
+                                🏷️ {c.code} - {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : c.discountType === 'fixed' ? `R$ ${c.discountValue.toFixed(2)} OFF` : 'Frete Grátis'}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
                       <div>
-                        <h3 className="font-['Montserrat'] font-bold text-base text-gray-900">
-                          Disparar Campanha Promocional
-                        </h3>
-                        <p className="text-xs text-gray-500">Envie ofertas e cupons em lote para sua base de clientes</p>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block font-bold text-gray-700">Mensagem da Promoção</label>
+                          <span className="text-[10px] text-gray-400">Use {'{nome}'} para personalizar</span>
+                        </div>
+                        <textarea
+                          rows={4}
+                          value={promoMessage}
+                          onChange={e => setPromoMessage(e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                          placeholder="Digite sua mensagem promocional..."
+                        />
+                      </div>
+
+                      <div className="bg-orange-50 border border-orange-200 p-3 rounded-xl text-orange-900 space-y-1">
+                        <span className="font-bold block">💡 Lista de Envio em Lote ({targetList.length} clientes encontrados):</span>
+                        <p className="text-[11px] leading-relaxed">
+                          Clique no botão <strong>Enviar WhatsApp</strong> ao lado de cada cliente para abrir a conversa com a mensagem personalizada pronta para envio instantâneo.
+                        </p>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-gray-100 bg-gray-50">
+                        {targetList.length === 0 ? (
+                          <div className="p-6 text-center text-gray-500 text-xs">
+                            Nenhum cliente com telefone válido encontrado neste grupo.
+                          </div>
+                        ) : (
+                          targetList.map((client, idx) => {
+                            const personalizedText = promoMessage.replace('{nome}', client.customerName);
+                            const cleanPhone = client.customerPhone.replace(/\D/g, '');
+                            const phoneWith55 = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+                            const waUrl = `https://wa.me/${phoneWith55}?text=${encodeURIComponent(personalizedText)}`;
+
+                            return (
+                              <div key={idx} className="p-3 bg-white flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors">
+                                <div>
+                                  <span className="font-bold text-gray-900 block">{client.customerName}</span>
+                                  <span className="text-gray-500 font-mono text-[11px]">{client.customerPhone} • {client.totalOrders} pedido(s)</span>
+                                </div>
+                                <a
+                                  href={waUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => {
+                                    setFinancialToast(`WhatsApp aberto para ${client.customerName}!`);
+                                    setTimeout(() => setFinancialToast(null), 3000);
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1.5 shadow-sm transition-all shrink-0"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  <span>Enviar WhatsApp</span>
+                                </a>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPromoModal(false)}
-                      className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
 
-                  <div className="p-5 overflow-y-auto space-y-4 flex-1 text-xs">
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">Público-Alvo da Campanha</label>
-                      <select
-                        value={promoTargetGroup}
-                        onChange={e => setPromoTargetGroup(e.target.value as any)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                    <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setShowPromoModal(false)}
+                        className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold transition-all"
                       >
-                        <option value="recurring">Clientes Recorrentes ({aggregatedCustomers.filter(c => c.totalOrders > 1).length} clientes)</option>
-                        <option value="new">Clientes de 1ª Compra ({aggregatedCustomers.filter(c => c.totalOrders === 1).length} clientes)</option>
-                        <option value="all">Todos os Clientes da Base ({aggregatedCustomers.length} clientes)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1">Escolher Cupom para Inserir na Mensagem</label>
-                      <select
-                        onChange={e => {
-                          const selectedCode = e.target.value;
-                          if (!selectedCode) return;
-                          const couponObj = (storeSettings.coupons || []).find(c => c.code === selectedCode);
-                          const couponText = couponObj 
-                            ? ` Use o cupom *${couponObj.code}* (${couponObj.description || (couponObj.discountType === 'percentage' ? `${couponObj.discountValue}% OFF` : couponObj.discountType === 'fixed' ? `R$ ${couponObj.discountValue} OFF` : 'Frete Grátis')}) para garantir seu desconto!`
-                            : ` Use o cupom *${selectedCode}*!`;
-                          setPromoMessage(prev => prev + couponText);
-                          e.target.value = '';
+                        Fechar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (targetList.length === 0) {
+                            alert('Nenhum cliente com telefone válido encontrado.');
+                            return;
+                          }
+                          // Open first client and notify
+                          const firstClient = targetList[0];
+                          const personalizedText = promoMessage.replace('{nome}', firstClient.customerName);
+                          const waUrl = `https://wa.me/55${firstClient.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(personalizedText)}`;
+                          window.open(waUrl, '_blank');
+                          alert(`Abrindo WhatsApp para ${firstClient.customerName}. Utilize a lista acima para disparar para os demais clientes da base.`);
                         }}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all"
                       >
-                        <option value="">Selecione um cupom ativo para incluir na mensagem...</option>
-                        {(storeSettings.coupons || []).filter(c => c.active).map(c => (
-                          <option key={c.id} value={c.code}>
-                            🏷️ {c.code} - {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : c.discountType === 'fixed' ? `R$ ${c.discountValue.toFixed(2)} OFF` : 'Frete Grátis'} {c.description ? `(${c.description})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-[10px] text-gray-400 mt-1 block">
-                        O código do cupom selecionado será adicionado automaticamente ao final da sua mensagem.
-                      </span>
+                        <Share2 className="w-4 h-4" />
+                        <span>Disparar para o 1º da Lista</span>
+                      </button>
                     </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block font-bold text-gray-700">Mensagem da Promoção</label>
-                        <span className="text-[10px] text-gray-400">Use {'{nome}'} para personalizar</span>
-                      </div>
-                      <textarea
-                        rows={5}
-                        value={promoMessage}
-                        onChange={e => setPromoMessage(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
-                        placeholder="Digite sua mensagem promocional..."
-                      />
-                    </div>
-
-                    <div className="bg-orange-50 border border-orange-200 p-3.5 rounded-xl text-orange-900 space-y-1">
-                      <span className="font-bold block">💡 Dica de Disparo em Lote:</span>
-                      <p className="text-[11px] leading-relaxed">
-                        Ao clicar em "Gerar & Disparar no WhatsApp", o sistema filtrará os clientes do grupo selecionado e abrirá o WhatsApp com a mensagem personalizada pronta para envio rápido.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setShowPromoModal(false)}
-                      className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const targetList = aggregatedCustomers.filter(c => {
-                          if (!c.customerPhone) return false;
-                          if (promoTargetGroup === 'recurring') return c.totalOrders > 1;
-                          if (promoTargetGroup === 'new') return c.totalOrders === 1;
-                          return true;
-                        });
-
-                        if (targetList.length === 0) {
-                          alert('Nenhum cliente com telefone válido encontrado no grupo selecionado.');
-                          return;
-                        }
-
-                        const firstClient = targetList[0];
-                        const personalizedText = promoMessage.replace('{nome}', firstClient.customerName);
-                        const waUrl = `https://wa.me/55${firstClient.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(personalizedText)}`;
-                        window.open(waUrl, '_blank');
-                        setShowPromoModal(false);
-                        alert(`Campanha iniciada! Abrindo WhatsApp para o primeiro cliente (${firstClient.customerName}). A base possui ${targetList.length} clientes aptos para disparo.`);
-                      }}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold font-['Montserrat'] shadow-md flex items-center gap-1.5 transition-all"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      <span>Gerar & Disparar no WhatsApp</span>
-                    </button>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
