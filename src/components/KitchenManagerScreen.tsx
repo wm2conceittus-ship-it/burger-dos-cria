@@ -182,6 +182,14 @@ export interface ExpenseItem {
 
 const INITIAL_EXPENSES: ExpenseItem[] = [];
 
+const HelmetIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a10 10 0 0 0-10 10v4a2 2 0 0 0 2 2h1v-4a7 7 0 0 1 14 0v4h1a2 2 0 0 0 2-2v-4a10 10 0 0 0-10-10z"></path>
+    <path d="M4 14h16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3z"></path>
+    <path d="M8 9h8v5H8z"></path>
+  </svg>
+);
+
 export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
   orders,
   products,
@@ -7483,6 +7491,33 @@ export const KitchenManagerScreen: React.FC<KitchenManagerScreenProps> = ({
                         <option value="new">Clientes de 1ª Compra ({aggregatedCustomers.filter(c => c.totalOrders === 1).length} clientes)</option>
                         <option value="all">Todos os Clientes da Base ({aggregatedCustomers.length} clientes)</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1">Escolher Cupom para Inserir na Mensagem</label>
+                      <select
+                        onChange={e => {
+                          const selectedCode = e.target.value;
+                          if (!selectedCode) return;
+                          const couponObj = (storeSettings.coupons || []).find(c => c.code === selectedCode);
+                          const couponText = couponObj 
+                            ? ` Use o cupom *${couponObj.code}* (${couponObj.description || (couponObj.discountType === 'percentage' ? `${couponObj.discountValue}% OFF` : couponObj.discountType === 'fixed' ? `R$ ${couponObj.discountValue} OFF` : 'Frete Grátis')}) para garantir seu desconto!`
+                            : ` Use o cupom *${selectedCode}*!`;
+                          setPromoMessage(prev => prev + couponText);
+                          e.target.value = '';
+                        }}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-medium focus:outline-none focus:border-[#ff5722]"
+                      >
+                        <option value="">Selecione um cupom ativo para incluir na mensagem...</option>
+                        {(storeSettings.coupons || []).filter(c => c.active).map(c => (
+                          <option key={c.id} value={c.code}>
+                            🏷️ {c.code} - {c.discountType === 'percentage' ? `${c.discountValue}% OFF` : c.discountType === 'fixed' ? `R$ ${c.discountValue.toFixed(2)} OFF` : 'Frete Grátis'} {c.description ? `(${c.description})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-gray-400 mt-1 block">
+                        O código do cupom selecionado será adicionado automaticamente ao final da sua mensagem.
+                      </span>
                     </div>
 
                     <div>
